@@ -5,3 +5,8 @@ dist
 .env
 .env.local
 .env.*.local
+
+# Secret key files — never commit
+*.key
+rzp-key.csv
+*-key.csv
