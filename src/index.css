@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+.section-number {
+  @apply font-mono text-xs tracking-widest text-red uppercase;
+}
+
+.font-display {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 1px solid #e62b1e;
+  outline-offset: 2px;
+}
