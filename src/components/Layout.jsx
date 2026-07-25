@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { nav } from '../data/site'
+import { nav, event } from '../data/site'
 import logo from '../assets/logo-white-tedx.svg'
+
+const footerSocial = [
+  { label: 'Instagram', href: 'https://www.instagram.com/tedxklhbachupally/' },
+  { label: 'LinkedIn', href: 'https://linkedin.com/company/tedxklhbachupally' },
+]
 
 function linkClass({ isActive }) {
   return [
@@ -139,43 +144,67 @@ export default function Layout({ children }) {
 
       <main className="flex-1">{children}</main>
 
-      <footer className="border-t border-paper/20 mt-24">
-        <div className="max-w-6xl mx-auto px-6 py-16 grid grid-cols-2 md:grid-cols-4 gap-10">
-          <div>
-            <div className="font-display text-lg mb-2">TEDxKLH</div>
-            <div className="text-sm text-paper/60">Ideas worth spreading.</div>
+      <footer className="border-t border-paper/20 mt-24 bg-ink">
+        <div className="max-w-6xl mx-auto px-6 pt-16 pb-12 grid grid-cols-2 md:grid-cols-5 gap-10">
+          <div className="col-span-2 md:col-span-2 pr-6">
+            <Link to="/" className="inline-flex items-center mb-4">
+              <img src={logo} alt="TEDxKLH Bachupally" className="h-10 w-auto" />
+            </Link>
+            <p className="text-sm text-paper/60 max-w-xs leading-relaxed">
+              An independently organized TED event, licensed by TED, curated and produced by students of KL University, Bachupally.
+            </p>
+            <div className="flex items-center gap-4 mt-6">
+              {footerSocial.map((s) => (
+                <a
+                  key={s.label}
+                  href={s.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs font-montserrat uppercase tracking-widest text-paper/50 hover:text-red transition-colors duration-200"
+                >
+                  {s.label}
+                </a>
+              ))}
+            </div>
           </div>
           <FooterCol
             title="Event"
             links={[
               { label: 'Theme', to: '/theme' },
               { label: 'Events', to: '/events' },
-              { label: 'Register', to: '/register' },
+              { label: 'Speakers', to: '/events/1/speakers' },
+              { label: 'Schedule', to: '/events/1/schedule' },
             ]}
           />
           <FooterCol
-            title="Get involved"
+            title="Get Involved"
             links={[
               { label: 'Register', to: '/register' },
               { label: 'Volunteer', to: '/volunteer' },
               { label: 'Sponsor', to: '/sponsor' },
-              { label: 'Nominate', to: '/nominate' },
+              { label: 'Nominate a Speaker', to: '/nominate' },
             ]}
           />
           <div>
-            <div className="font-mono text-xs uppercase tracking-widest text-paper/60 mb-3">Contact</div>
-            <div className="text-sm text-paper/70 space-y-1">
-              <p>KL University, Bachupally</p>
-              <p>Hyderabad, Telangana</p>
-              <p>hello@tedxklhbachupally.in</p>
-            </div>
+            <div className="font-mono text-xs uppercase tracking-widest text-paper/60 mb-4">Contact</div>
+            <address className="not-italic text-sm text-paper/70 space-y-1.5 leading-relaxed">
+              <p>{event.venue}</p>
+              <p>{event.city}</p>
+              <p>
+                <a href="mailto:hello@tedxklhbachupally.in" className="hover:text-red transition-colors">
+                  hello@tedxklhbachupally.in
+                </a>
+              </p>
+            </address>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto px-6 pb-10 flex flex-col md:flex-row justify-between gap-4 text-xs text-paper/50">
-          <p>© 2026 TEDxKLH Bachupally · This independent TEDx event is operated under license from TED.</p>
-          <a href="https://www.instagram.com/tedxklhbachupally/" className="hover:text-red">
-            Instagram
-          </a>
+        <div className="border-t border-paper/10">
+          <div className="max-w-6xl mx-auto px-6 py-6 flex flex-col-reverse md:flex-row items-center justify-between gap-3 text-xs text-paper/45">
+            <p>© {event.year} TEDxKLH Bachupally. All rights reserved.</p>
+            <p className="text-center md:text-right">
+              This independent TEDx event is operated under license from TED.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

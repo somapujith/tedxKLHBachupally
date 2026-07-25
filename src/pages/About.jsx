@@ -1,11 +1,15 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { aboutTabs } from '../data/site'
+import { Eyebrow } from '../components/ui'
 
 const TABS = [
-  { key: 'ted', label: 'About TED', path: '/about-ted' },
-  { key: 'tedx', label: 'About TEDx', path: '/about-tedx' },
-  { key: 'tedxklh', label: 'About TEDxKLH', path: '/about-tedxklh' },
+  { key: 'ted', label: 'TED', path: '/about-ted' },
+  { key: 'tedx', label: 'TEDx', path: '/about-tedx' },
+  { key: 'tedxklh', label: 'TEDxKLH', path: '/about-tedxklh' },
 ]
+
+// Drop any leading "01 / " numbering from the stored eyebrow strings.
+const cleanEyebrow = (s) => s?.replace(/^\s*\d+\s*\/\s*/, '')
 
 export default function About() {
   const location = useLocation()
@@ -14,14 +18,14 @@ export default function About() {
   const data = aboutTabs[active]
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-24">
-      <div className="flex gap-6 border-b border-paper/20 mb-12 font-mono text-xs uppercase tracking-widest">
+    <div className="max-w-3xl mx-auto px-6 py-24 md:py-32">
+      <div className="flex gap-8 mb-16 font-mono text-[11px] uppercase tracking-[0.25em]">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => navigate(t.path)}
-            className={`pb-4 border-b-2 -mb-px transition-colors ${
-              t.key === active ? 'border-red text-red' : 'border-transparent text-paper/60 hover:text-paper'
+            className={`pb-2 border-b transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red ${
+              t.key === active ? 'border-red text-red' : 'border-transparent text-paper/40 hover:text-paper'
             }`}
           >
             {t.label}
@@ -29,32 +33,36 @@ export default function About() {
         ))}
       </div>
 
-      <div className="font-mono text-xs uppercase tracking-widest text-paper/50 mb-4">{data.eyebrow}</div>
-      <h1 className="font-display text-4xl mb-8">{data.h1}</h1>
+      <Eyebrow className="mb-5">{cleanEyebrow(data.eyebrow)}</Eyebrow>
+      <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05] mb-10">{data.h1}</h1>
 
-      {data.intro && <p className="text-paper/70 mb-6">{data.intro}</p>}
-      {data.paragraphs?.map((p, i) => (
-        <p key={i} className="text-paper/70 mb-6 leading-relaxed">
-          {p}
-        </p>
-      ))}
-      {data.body && <p className="text-paper/70 mb-6 leading-relaxed">{data.body}</p>}
+      <div className="space-y-6 text-lg text-paper/70 leading-relaxed max-w-2xl">
+        {data.intro && <p>{data.intro}</p>}
+        {data.paragraphs?.map((p, i) => (
+          <p key={i}>{p}</p>
+        ))}
+        {data.body && <p>{data.body}</p>}
+      </div>
 
       {data.stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-12 border-t border-paper/10">
           {data.stats.map((s) => (
             <div key={s.label}>
-              <div className="font-display text-2xl text-red">{s.value}</div>
-              <div className="text-xs uppercase tracking-widest text-paper/60">{s.label}</div>
+              <div className="font-display text-3xl text-red tabular-nums">{s.value}</div>
+              <div className="text-[11px] uppercase tracking-[0.2em] text-paper/40 mt-1">{s.label}</div>
             </div>
           ))}
         </div>
       )}
 
       {data.social && (
-        <div className="flex gap-6 mt-10 font-mono text-xs uppercase tracking-widest">
+        <div className="flex flex-wrap gap-6 mt-16 pt-12 border-t border-paper/10 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/40">
           {data.social.map((s) => (
-            <a key={s.label} href={s.href} className="hover:text-red">
+            <a
+              key={s.label}
+              href={s.href}
+              className="hover:text-red transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
+            >
               {s.label}
             </a>
           ))}

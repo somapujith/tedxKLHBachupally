@@ -1,11 +1,38 @@
 import { Link } from 'react-router-dom'
 import { event, speakers, schedule, theme, galleryTiles } from '../data/site'
-import { Countdown, SpeakerCard, SectionLabel, Reveal } from '../components/ui'
+import { Countdown, SpeakerCard, Reveal, Section, Eyebrow } from '../components/ui'
 import heroImage from '../assets/tedxhero1.png'
+
+// Single, consistent "read more" CTA — small mono uppercase, red, trailing arrow.
+function ReadMore({ to, href, children }) {
+  const cls =
+    'inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-red hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red'
+  const arrow = <span aria-hidden="true">→</span>
+  if (href) {
+    return (
+      <a href={href} className={cls}>
+        {children} {arrow}
+      </a>
+    )
+  }
+  return (
+    <Link to={to} className={cls}>
+      {children} {arrow}
+    </Link>
+  )
+}
+
+const stats = [
+  ['12', 'Speakers'],
+  ['01', 'Day'],
+  ['06', 'Hours'],
+  ['∞', 'Ideas'],
+]
 
 export default function Home() {
   return (
     <div>
+      {/* HERO — unchanged */}
       <section className="relative min-h-[85vh] flex items-center overflow-hidden">
         <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/10" />
@@ -37,195 +64,169 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-6 py-24 grid md:grid-cols-3 gap-12 border-t border-paper/10">
-        <Reveal className="md:col-span-2">
-          <SectionLabel n="01" label="About" />
-          <h2 className="font-display text-3xl mb-4">TEDxKLH</h2>
-          <p className="text-paper/70 max-w-xl">
-            We gather twelve voices a year — engineers, poets, surgeons, builders, dissenters — and give them
-            eighteen minutes to change how a room thinks. No panels. No keynotes. No theatrics. Only ideas, on a red
-            dot, in front of a city that listens.
-          </p>
-        </Reveal>
-        <Reveal className="grid grid-cols-2 gap-6">
-          {[
-            ['12', 'Speakers'],
-            ['01', 'Day'],
-            ['06', 'Hours'],
-            ['∞', 'Ideas'],
-          ].map(([value, label]) => (
-            <div key={label}>
-              <div className="font-display text-3xl text-red">{value}</div>
-              <div className="text-xs uppercase tracking-widest text-paper/60">{label}</div>
-            </div>
-          ))}
-        </Reveal>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
+      {/* ABOUT — statement, stats, and a quiet "what is TEDx" footnote */}
+      <Section>
         <Reveal>
-          <SectionLabel n="01b" label="Program" />
-          <h3 className="font-display text-2xl mb-4">What is TEDx?</h3>
-          <p className="text-paper/70 max-w-2xl">
-            In the spirit of discovering and spreading ideas, TED has created a program called{' '}
-            <a href="https://www.ted.com/about/programs-initiatives/tedx-program" className="underline hover:text-red">
+          <Eyebrow>About TEDxKLH</Eyebrow>
+          <h2 className="font-display text-3xl md:text-4xl leading-tight max-w-3xl mt-5">
+            We gather twelve voices a year and give them eighteen minutes to change how a room thinks.
+          </h2>
+          <p className="text-paper/60 text-lg leading-relaxed max-w-2xl mt-6">
+            Engineers, poets, surgeons, builders, dissenters. No panels. No keynotes. No theatrics — only ideas, on a
+            red dot, in front of a city that listens.
+          </p>
+
+          <div className="flex flex-wrap gap-x-14 gap-y-8 mt-12">
+            {stats.map(([value, label]) => (
+              <div key={label}>
+                <div className="font-display text-4xl text-red leading-none">{value}</div>
+                <div className="font-mono text-[11px] uppercase tracking-widest text-paper/50 mt-3">{label}</div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-sm text-paper/45 leading-relaxed max-w-2xl mt-14">
+            In the spirit of ideas worth spreading, TED created{' '}
+            <a
+              href="https://www.ted.com/about/programs-initiatives/tedx-program"
+              className="text-paper/70 underline hover:text-red transition-colors"
+            >
               TEDx
             </a>
-            . TEDx is a program of local, self-organized events that bring people together to share a TED-like
-            experience. Our event is called TEDxKLH Bachupally, where x = independently organized TED event.
-            Speakers never pay to join a TEDx event — consideration, coaching, and participation are all free of
-            charge. TED provides general guidance for the program, but individual TEDx events, including ours, are
-            self-organized.
+            {' '}— a program of local, self-organized events that recreate the TED experience. Ours is TEDxKLH
+            Bachupally, where x = independently organized TED event. Speakers are never charged; TED provides guidance,
+            but the event is entirely student-run.
           </p>
         </Reveal>
-      </section>
+      </Section>
 
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10 grid md:grid-cols-2 gap-12">
+      {/* THEME */}
+      <Section>
         <Reveal>
-          <SectionLabel n="01c" label="Highlights" />
-          <h3 className="font-display text-xl mb-3">Target Audience</h3>
-          <p className="text-paper/70">Students, educators, professionals, innovators, and changemakers.</p>
-        </Reveal>
-        <Reveal>
-          <h3 className="font-display text-xl mb-3">Event Highlights</h3>
-          <ul className="space-y-2 text-paper/70">
-            <li>· Inspiring talks by distinguished speakers</li>
-            <li>· Networking opportunities</li>
-            <li>· Live TEDx experience</li>
-          </ul>
-        </Reveal>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
-        <Reveal>
-          <SectionLabel n="02" label="Theme" />
-          <h2 className="font-display text-4xl mb-4">
+          <Eyebrow>{theme.eyebrow}</Eyebrow>
+          <h2 className="font-display text-4xl md:text-5xl leading-[1.05] mt-5">
             {theme.h1[0]} <span className="text-red">{theme.h1[1]}</span>
           </h2>
-          <p className="text-paper/70 max-w-xl mb-4">
+          <p className="text-paper/60 max-w-xl mt-6">
             Every generation negotiates with its tools. Ours is negotiating with intelligence itself.
           </p>
-          <Link to="/theme" className="font-mono text-xs uppercase tracking-widest text-red hover:underline">
-            Read the full theme →
-          </Link>
-        </Reveal>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
-        <Reveal className="flex justify-between items-end mb-10">
-          <div>
-            <SectionLabel n="03" label="Voices" />
-            <h2 className="font-display text-3xl">The speakers.</h2>
+          <div className="mt-8">
+            <ReadMore to="/theme">Read the full theme</ReadMore>
           </div>
-          <Link to="/events/1/speakers" className="font-mono text-xs uppercase tracking-widest text-red hover:underline">
-            All 12 →
-          </Link>
         </Reveal>
-        <div className="grid md:grid-cols-3 gap-6">
+      </Section>
+
+      {/* SPEAKERS */}
+      <Section>
+        <Reveal className="flex items-end justify-between gap-6">
+          <h2 className="font-display text-3xl md:text-4xl">The speakers.</h2>
+          <ReadMore to="/events/1/speakers">All 12</ReadMore>
+        </Reveal>
+        <Reveal className="grid md:grid-cols-2 md:gap-x-14 mt-10">
           {speakers.slice(0, 6).map((s) => (
             <SpeakerCard key={s.slug} speaker={s} />
           ))}
-        </div>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
-        <Reveal className="mb-10">
-          <SectionLabel n="04" label="Run of show" />
-          <h2 className="font-display text-3xl">One day. 3 sessions.</h2>
         </Reveal>
-        <div className="divide-y divide-paper/10 border-y border-paper/10">
+      </Section>
+
+      {/* RUN OF SHOW */}
+      <Section>
+        <Reveal>
+          <Eyebrow>Run of show</Eyebrow>
+          <h2 className="font-display text-3xl md:text-4xl mt-5">One day. Three sessions.</h2>
+        </Reveal>
+        <Reveal className="mt-10">
           {schedule.map((item) => (
-            <div key={item.time} className="flex gap-6 py-4">
-              <div className="font-mono text-sm text-red w-16 shrink-0">{item.time}</div>
-              <div className="text-paper/80">
-                {item.label}
+            <div key={item.time} className="flex gap-8 py-4 border-t border-paper/10">
+              <div className="font-mono text-sm text-red w-14 shrink-0 pt-0.5">{item.time}</div>
+              <div>
+                <div className="text-paper/80">{item.label}</div>
                 {item.slugs && (
-                  <div className="text-xs text-paper/50 mt-1">Featuring: {item.slugs.length} speakers</div>
+                  <div className="font-mono text-[11px] uppercase tracking-widest text-paper/40 mt-1">
+                    {item.slugs.length} speakers
+                  </div>
                 )}
               </div>
             </div>
           ))}
-        </div>
-        <Link
-          to="/events/1/schedule"
-          className="inline-block mt-6 font-mono text-xs uppercase tracking-widest text-red hover:underline"
-        >
-          Full schedule →
-        </Link>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
-        <Reveal>
-          <SectionLabel n="05" label="Setting" />
-          <h2 className="font-display text-3xl mb-6">The auditorium.</h2>
-          <div className="aspect-video border border-paper/20 flex items-center justify-center text-paper/60 font-mono text-xs uppercase tracking-widest mb-6">
-            Audience Setting
-          </div>
-          <div className="flex flex-wrap gap-10">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-paper/50">Location</div>
-              <div>{event.address}</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-widest text-paper/50">Capacity</div>
-              <div>{event.capacity} seats</div>
-            </div>
-            <a href={event.mapsUrl} className="self-end font-mono text-xs uppercase tracking-widest text-red hover:underline">
-              Get directions →
-            </a>
+          <div className="mt-8">
+            <ReadMore to="/events/1/schedule">Full schedule</ReadMore>
           </div>
         </Reveal>
-      </section>
+      </Section>
 
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
+      {/* SETTING — text-only venue block */}
+      <Section>
         <Reveal>
-          <SectionLabel n="06" label="Collaboration" />
-          <h2 className="font-display text-3xl mb-4">Supporting the ideas that shape our future.</h2>
-          <p className="text-paper/70 max-w-xl mb-4">
-            Our independent event is made possible by the collaboration of institutions, brands, and creative teams.
+          <Eyebrow>Setting</Eyebrow>
+          <h2 className="font-display text-3xl md:text-4xl mt-5">The auditorium.</h2>
+          <div className="grid sm:grid-cols-2 gap-10 max-w-2xl mt-10">
+            <div>
+              <div className="font-mono text-[11px] uppercase tracking-widest text-paper/40 mb-3">Location</div>
+              <div className="text-paper/80 leading-relaxed">{event.address}</div>
+            </div>
+            <div>
+              <div className="font-mono text-[11px] uppercase tracking-widest text-paper/40 mb-3">Capacity</div>
+              <div className="text-paper/80">{event.capacity} seats</div>
+            </div>
+          </div>
+          <div className="mt-8">
+            <ReadMore href={event.mapsUrl}>Get directions</ReadMore>
+          </div>
+        </Reveal>
+      </Section>
+
+      {/* COLLABORATION */}
+      <Section>
+        <Reveal>
+          <Eyebrow>Collaboration</Eyebrow>
+          <h2 className="font-display text-3xl md:text-4xl leading-tight max-w-2xl mt-5">
+            Supporting the ideas that shape our future.
+          </h2>
+          <p className="text-paper/60 max-w-xl mt-6">
+            Made possible by the institutions, brands, and creative teams who back independent ideas.
           </p>
-          <Link to="/partners" className="font-mono text-xs uppercase tracking-widest text-red hover:underline">
-            View Partners & Sponsors →
-          </Link>
-        </Reveal>
-      </section>
-
-      <section className="max-w-6xl mx-auto px-6 py-24 border-t border-paper/10">
-        <Reveal className="flex justify-between items-end mb-10">
-          <div>
-            <SectionLabel n="07" label="Archive" />
-            <h2 className="font-display text-3xl">From the floor.</h2>
+          <div className="mt-8">
+            <ReadMore to="/partners">View Partners & Sponsors</ReadMore>
           </div>
-          <Link to="/events/1/gallery" className="font-mono text-xs uppercase tracking-widest text-red hover:underline">
-            Full gallery →
-          </Link>
         </Reveal>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      </Section>
+
+      {/* ARCHIVE / GALLERY */}
+      <Section>
+        <Reveal className="flex items-end justify-between gap-6">
+          <h2 className="font-display text-3xl md:text-4xl">From the floor.</h2>
+          <ReadMore to="/events/1/gallery">Full gallery</ReadMore>
+        </Reveal>
+        <Reveal className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-10">
           {galleryTiles.slice(0, 5).map((tile) => (
             <Link
               key={tile}
               to="/events/1/gallery"
-              className="aspect-square border border-paper/20 flex items-center justify-center text-center px-2 text-xs font-mono uppercase tracking-widest hover:border-red transition-colors"
+              className="aspect-[4/5] border border-paper/15 flex items-end p-3 hover:border-red transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
             >
-              {tile}
+              <span className="font-mono text-[10px] uppercase tracking-widest text-paper/40">{tile}</span>
             </Link>
           ))}
-        </div>
-      </section>
+        </Reveal>
+      </Section>
 
-      <section className="max-w-6xl mx-auto px-6 py-32 border-t border-paper/10 text-center">
+      {/* CLOSING CTA */}
+      <Section className="text-center">
         <Reveal>
-          <div className="section-number justify-center mb-4">{event.date}</div>
-          <h2 className="font-display text-4xl md:text-5xl mb-6">Be in the room.</h2>
-          <p className="text-paper/70 mb-8">Seating is limited and curated. Apply once — we'll confirm within seven days.</p>
+          <Eyebrow className="text-paper/50">{event.date}</Eyebrow>
+          <h2 className="font-display text-5xl md:text-6xl mt-5">Be in the room.</h2>
+          <p className="text-paper/60 max-w-md mx-auto mt-6">
+            Seating is limited and curated. Apply once — we'll confirm within seven days.
+          </p>
           <Link
             to="/register"
-            className="inline-block border border-red px-8 py-4 font-mono text-xs uppercase tracking-widest hover:bg-red transition-colors"
+            className="inline-block mt-10 border border-red px-8 py-4 font-mono text-xs uppercase tracking-widest hover:bg-red transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
           >
             Reserve a seat →
           </Link>
         </Reveal>
-      </section>
+      </Section>
     </div>
   )
 }

@@ -2,12 +2,29 @@ import { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
-export function SectionLabel({ n, label }) {
+// Clean, minimal eyebrow — quiet muted label, no numbering.
+export function Eyebrow({ children, className = '' }) {
   return (
-    <div className="section-number mb-4">
-      {n} — {label}
+    <div className={`font-mono text-[11px] uppercase tracking-[0.25em] text-paper/40 ${className}`}>
+      {children}
     </div>
   )
+}
+
+// Consistent vertical rhythm + centered content column for every section.
+export function Section({ children, className = '', divider = true }) {
+  return (
+    <section
+      className={`px-6 ${divider ? 'border-t border-paper/10' : ''} ${className}`}
+    >
+      <div className="max-w-5xl mx-auto py-24 md:py-32">{children}</div>
+    </section>
+  )
+}
+
+// Backward-compatible: renders only the clean label, number is ignored.
+export function SectionLabel({ label }) {
+  return <Eyebrow className="mb-4">{label}</Eyebrow>
 }
 
 function timeLeft(target) {
@@ -35,12 +52,12 @@ export function Countdown({ target }) {
   ]
   return (
     <div>
-      <div className="section-number mb-2">Countdown to stage</div>
-      <div className="flex gap-6">
+      <Eyebrow className="mb-3">Countdown to stage</Eyebrow>
+      <div className="flex gap-8">
         {units.map(([label, value]) => (
           <div key={label}>
-            <div className="font-display text-3xl">{String(value).padStart(2, '0')}</div>
-            <div className="text-xs uppercase tracking-widest text-paper/60">{label}</div>
+            <div className="font-display text-4xl tabular-nums">{String(value).padStart(2, '0')}</div>
+            <div className="text-[11px] uppercase tracking-widest text-paper/50 mt-1">{label}</div>
           </div>
         ))}
       </div>
@@ -52,12 +69,14 @@ export function SpeakerCard({ speaker }) {
   return (
     <Link
       to={`/events/1/speakers/${speaker.slug}`}
-      className="group block border border-paper/20 p-5 hover:border-red transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
+      className="group block py-6 border-t border-paper/10 hover:border-paper/40 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
     >
-      <div className="font-mono text-xs text-red mb-3">{String(speaker.n).padStart(2, '0')}</div>
-      <div className="font-display text-lg mb-1 group-hover:text-red transition-colors">{speaker.name}</div>
-      <div className="text-sm text-paper/60 mb-2">{speaker.role}</div>
-      <div className="text-sm italic">&ldquo;{speaker.talk}&rdquo;</div>
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="font-display text-xl group-hover:text-red transition-colors">{speaker.name}</span>
+        <span className="font-mono text-[11px] uppercase tracking-widest text-paper/40">{speaker.category}</span>
+      </div>
+      <div className="text-sm text-paper/50 mb-1">{speaker.role}</div>
+      <div className="text-sm text-paper/80">&ldquo;{speaker.talk}&rdquo;</div>
     </Link>
   )
 }
