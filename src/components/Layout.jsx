@@ -7,8 +7,8 @@ const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcyd
 
 function linkClass({ isActive }) {
   return [
-    'relative py-1 transition-colors duration-200',
-    isActive ? 'text-red' : 'text-paper/70 hover:text-paper',
+    'py-1 no-underline transition-colors duration-200',
+    isActive ? 'text-red' : 'text-paper/70 hover:text-red/70',
   ].join(' ')
 }
 
@@ -53,18 +53,7 @@ export default function Layout({ children }) {
                   linkClass({ isActive: isActive || isNavActive(item.to, location.pathname) })
                 }
               >
-                {({ isActive }) => (
-                  <>
-                    {item.label}
-                    <span
-                      aria-hidden
-                      className={[
-                        'absolute left-0 -bottom-0.5 h-px w-full bg-red transition-opacity duration-200',
-                        isActive || isNavActive(item.to, location.pathname) ? 'opacity-100' : 'opacity-0',
-                      ].join(' ')}
-                    />
-                  </>
-                )}
+                {item.label}
               </NavLink>
             ))}
           </nav>
@@ -128,7 +117,7 @@ export default function Layout({ children }) {
                   onClick={() => setMenuOpen(false)}
                   className={[
                     'px-6 py-4 border-t border-paper/10 transition-colors duration-200',
-                    active ? 'text-red' : 'text-paper/70 hover:text-paper',
+                    active ? 'text-red' : 'text-paper/70 hover:text-red/70',
                   ].join(' ')}
                 >
                   {item.label}

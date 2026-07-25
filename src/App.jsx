@@ -4,6 +4,7 @@ import Home from './pages/Home'
 import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
 import SpeakerDetail from './pages/SpeakerDetail'
+import Speakers from './pages/Speakers'
 import Theme from './pages/Theme'
 import About from './pages/About'
 import Team from './pages/Team'
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/events/1/schedule" element={<EventDetail />} />
         <Route path="/events/1/gallery" element={<EventDetail />} />
         <Route path="/events/1/experience" element={<EventDetail />} />
+        <Route path="/speakers" element={<Speakers />} />
         <Route path="/theme" element={<Theme />} />
         <Route path="/about-tedxklh" element={<About />} />
         <Route path="/about-ted" element={<About />} />

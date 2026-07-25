@@ -1,6 +1,7 @@
 export const nav = [
   { label: 'Theme', to: '/theme' },
   { label: 'Events', to: '/events' },
+  { label: 'Speakers', to: '/speakers' },
   { label: 'Team', to: '/team' },
   { label: 'About', to: '/about-tedxklh' },
 ]
