@@ -19,6 +19,15 @@ function isNavActive(to, pathname) {
   return pathname === to
 }
 
+// Reset scroll to the top on every route change.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
+  return null
+}
+
 export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
@@ -36,6 +45,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="relative min-h-screen bg-ink text-paper flex flex-col">
+      <ScrollToTop />
       <GrainOverlay />
       <header className="sticky top-0 z-50 border-b border-paper/15 bg-ink/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4 md:py-5">

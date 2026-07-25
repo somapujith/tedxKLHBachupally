@@ -46,7 +46,6 @@ export default function Home() {
         <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/10" />
         <BinaryDrift className="opacity-60" columns={12} />
-        <RedGlow className="-bottom-32 left-1/4" size={520} />
         <div className="relative z-10 w-full px-6 md:px-12 lg:px-20">
           <div className="max-w-xl">
             <h1 className="font-display leading-[0.95] text-5xl md:text-7xl">
