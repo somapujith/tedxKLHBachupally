@@ -10,6 +10,8 @@ export const event = {
   edition: 'Edition 01',
   year: 2026,
   date: 'Saturday, August 22, 2026',
+  time: '9:30 AM – 3:00 PM',
+  timeNote: 'Timings may extend',
   isoDate: '2026-08-22T09:30:00+05:30',
   venue: 'KLH Bachupally Campus',
   city: 'Hyderabad, Telangana',

@@ -5,6 +5,25 @@ import { event } from '../data/site'
 
 const RAZORPAY_SRC = 'https://checkout.razorpay.com/v1/checkout.js'
 
+// Parse a fetch Response as JSON, but never throw the cryptic
+// "Unexpected end of JSON input" when the server returns an empty body
+// (e.g. an unhandled 500, or the API not running). Return a clean error instead.
+async function readJson(res) {
+  const text = await res.text()
+  if (!text) {
+    throw new Error(
+      res.ok
+        ? 'Server returned an empty response.'
+        : 'The registration service is unavailable right now. Please try again shortly.',
+    )
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    throw new Error('Server returned an invalid response. Please try again.')
+  }
+}
+
 // Load the Razorpay Checkout script on demand. If the SDK is already present,
 // resolve immediately. Otherwise (re)inject a fresh tag — a stale tag from a
 // prior failed load would never fire again, so we drop it first.
@@ -81,7 +100,7 @@ export default function Register() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       })
-      const data = await res.json()
+      const data = await readJson(res)
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Registration failed.')
       }
@@ -101,7 +120,7 @@ export default function Register() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ registrationId: registration.id }),
     })
-    const orderData = await orderRes.json()
+    const orderData = await readJson(orderRes)
     if (!orderRes.ok || !orderData.ok) {
       throw new Error(orderData.error || 'Could not start payment.')
     }
@@ -167,7 +186,7 @@ export default function Register() {
         razorpay_signature: response.razorpay_signature,
       }),
     })
-    const verifyData = await verifyRes.json()
+    const verifyData = await readJson(verifyRes)
     if (!verifyRes.ok || !verifyData.ok) {
       throw new Error(verifyData.error || 'Payment could not be verified.')
     }
@@ -315,10 +334,14 @@ export default function Register() {
 
               <dl className="mt-6 space-y-3 border-t border-paper/10 pt-6 text-sm">
                 <SummaryRow label="Date" value={event.date} />
+                <SummaryRow label="Time" value={event.time} />
                 <SummaryRow label="Venue" value={event.venue} />
                 <SummaryRow label="City" value={event.city} />
                 <SummaryRow label="Seats" value={`${event.capacity} · curated`} />
               </dl>
+              <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-paper/35">
+                {event.timeNote}
+              </p>
 
               <div className="mt-6 border-t border-paper/10 pt-6">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">Includes</div>
