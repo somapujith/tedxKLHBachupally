@@ -108,9 +108,8 @@ export function TeamCard({ member, index = 0 }) {
   return (
     <motion.article
       initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-50px' }}
-      transition={{ duration: 0.45, delay: (index % 4) * 0.06 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: (index % 8) * 0.05 }}
       className="group relative overflow-hidden border border-paper/10 bg-paper/[0.02] transition-all duration-300 hover:border-red/50 hover:-translate-y-1"
     >
       {/* Portrait */}
