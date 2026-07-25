@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { event, speakers, theme } from '../data/site'
 import { Countdown, SpeakerCard, Reveal, Section, Eyebrow } from '../components/ui'
+import { BinaryDrift, RedGlow, TornEdge } from '../components/texture'
 import heroImage from '../assets/tedxhero1.png'
 
 // Single, consistent "read more" CTA — small mono uppercase, red, trailing arrow.
@@ -36,7 +37,9 @@ export default function Home() {
       <section className="relative min-h-[85vh] flex items-center overflow-hidden">
         <img src={heroImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/10" />
-        <div className="relative w-full px-6 md:px-12 lg:px-20">
+        <BinaryDrift className="opacity-60" columns={12} />
+        <RedGlow className="-bottom-32 left-1/4" size={520} />
+        <div className="relative z-10 w-full px-6 md:px-12 lg:px-20">
           <div className="max-w-xl">
             <h1 className="font-display leading-[0.95] text-5xl md:text-7xl">
               Technology <span className="text-red">Evolves.</span>
@@ -62,6 +65,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <TornEdge position="bottom" />
       </section>
 
       {/* ABOUT — statement, stats, and a quiet "what is TEDx" footnote */}
