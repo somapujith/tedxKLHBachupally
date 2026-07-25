@@ -34,7 +34,7 @@ export default function EventDetail() {
         {event.date} · {event.venue}, {event.city}
       </div>
 
-      <div className="flex gap-8 border-b border-paper/10 mb-16 font-mono text-[11px] uppercase tracking-[0.2em] overflow-x-auto">
+      <div className="flex gap-5 md:gap-8 border-b border-paper/10 mb-16 font-mono text-[11px] uppercase tracking-[0.2em] overflow-x-auto [mask-image:linear-gradient(to_right,black_88%,transparent)] md:[mask-image:none]">
         {TABS.map((t) => (
           <button
             key={t.key}

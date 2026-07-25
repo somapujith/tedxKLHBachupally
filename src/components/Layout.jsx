@@ -3,10 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { nav, event } from '../data/site'
 import logo from '../assets/logo-white-tedx.svg'
 
-const footerSocial = [
-  { label: 'Instagram', href: 'https://www.instagram.com/tedxklhbachupally/' },
-  { label: 'LinkedIn', href: 'https://linkedin.com/company/tedxklhbachupally' },
-]
+const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
 
 function linkClass({ isActive }) {
   return [
@@ -154,17 +151,18 @@ export default function Layout({ children }) {
               An independently organized TED event, licensed by TED, curated and produced by students of KL University, Bachupally.
             </p>
             <div className="flex items-center gap-4 mt-6">
-              {footerSocial.map((s) => (
-                <a
-                  key={s.label}
-                  href={s.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-montserrat uppercase tracking-widest text-paper/50 hover:text-red transition-colors duration-200"
-                >
-                  {s.label}
-                </a>
-              ))}
+              <a
+                href={instagramUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Instagram"
+                className="text-paper/50 hover:text-red transition-colors duration-200"
+              >
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
+                  <path d="M12 2.2c3.2 0 3.6 0 4.85.07 1.17.05 2.16.25 2.91.53a5.9 5.9 0 0 1 2.13 1.39 5.9 5.9 0 0 1 1.39 2.13c.28.75.48 1.74.53 2.91.06 1.25.07 1.65.07 4.85s0 3.6-.07 4.85c-.05 1.17-.25 2.16-.53 2.91a5.9 5.9 0 0 1-1.39 2.13 5.9 5.9 0 0 1-2.13 1.39c-.75.28-1.74.48-2.91.53-1.25.06-1.65.07-4.85.07s-3.6 0-4.85-.07c-1.17-.05-2.16-.25-2.91-.53a5.9 5.9 0 0 1-2.13-1.39 5.9 5.9 0 0 1-1.39-2.13c-.28-.75-.48-1.74-.53-2.91C2.2 15.6 2.2 15.2 2.2 12s0-3.6.07-4.85c.05-1.17.25-2.16.53-2.91A5.9 5.9 0 0 1 4.19 2.11 5.9 5.9 0 0 1 6.32.72c.75-.28 1.74-.48 2.91-.53C10.4 0.13 10.8.12 12 .12zm0 1.98c-3.14 0-3.51 0-4.75.07-1 .04-1.7.2-2.2.4a3.9 3.9 0 0 0-1.44.94 3.9 3.9 0 0 0-.94 1.44c-.19.5-.35 1.2-.4 2.2C2.2 8.29 2.2 8.66 2.2 11.8s0 3.51.07 4.75c.05 1 .21 1.7.4 2.2.2.53.47.98.94 1.44.46.47.9.75 1.44.94.5.19 1.2.35 2.2.4 1.24.06 1.61.07 4.75.07s3.51 0 4.75-.07c1-.05 1.7-.21 2.2-.4.53-.2.98-.47 1.44-.94.47-.46.75-.9.94-1.44.19-.5.35-1.2.4-2.2.06-1.24.07-1.61.07-4.75s0-3.51-.07-4.75c-.05-1-.21-1.7-.4-2.2a3.9 3.9 0 0 0-.94-1.44 3.9 3.9 0 0 0-1.44-.94c-.5-.19-1.2-.35-2.2-.4C15.51 4.18 15.14 4.18 12 4.18z"/>
+                  <path d="M12 6.86a5.14 5.14 0 1 0 0 10.28 5.14 5.14 0 0 0 0-10.28zm0 8.48a3.34 3.34 0 1 1 0-6.68 3.34 3.34 0 0 1 0 6.68zM17.4 6.6a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0z"/>
+                </svg>
+              </a>
             </div>
           </div>
           <FooterCol

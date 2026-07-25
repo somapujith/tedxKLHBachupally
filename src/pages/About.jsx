@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { aboutTabs } from '../data/site'
 import { Eyebrow } from '../components/ui'
 
@@ -56,7 +56,7 @@ export default function About() {
       )}
 
       {data.social && (
-        <div className="flex flex-wrap gap-6 mt-16 pt-12 border-t border-paper/10 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/40">
+        <div className="flex flex-wrap gap-6 mt-16 pt-12 border-t border-paper/10 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/55">
           {data.social.map((s) => (
             <a
               key={s.label}
@@ -66,6 +66,17 @@ export default function About() {
               {s.label}
             </a>
           ))}
+        </div>
+      )}
+
+      {!data.stats && !data.social && (
+        <div className="mt-16 pt-12 border-t border-paper/10">
+          <Link
+            to="/team"
+            className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-red hover:underline focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
+          >
+            Meet the crew <span aria-hidden>→</span>
+          </Link>
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom'
 // Clean, minimal eyebrow — quiet muted label, no numbering.
 export function Eyebrow({ children, className = '' }) {
   return (
-    <div className={`font-mono text-[11px] uppercase tracking-[0.25em] text-paper/40 ${className}`}>
+    <div className={`font-mono text-[11px] uppercase tracking-[0.25em] text-paper/55 ${className}`}>
       {children}
     </div>
   )
@@ -73,7 +73,7 @@ export function SpeakerCard({ speaker }) {
     >
       <div className="flex items-baseline justify-between mb-3">
         <span className="font-display text-xl group-hover:text-red transition-colors">{speaker.name}</span>
-        <span className="font-mono text-[11px] uppercase tracking-widest text-paper/40">{speaker.category}</span>
+        <span className="font-mono text-[11px] uppercase tracking-widest text-paper/55">{speaker.category}</span>
       </div>
       <div className="text-sm text-paper/50 mb-1">{speaker.role}</div>
       <div className="text-sm text-paper/80">&ldquo;{speaker.talk}&rdquo;</div>

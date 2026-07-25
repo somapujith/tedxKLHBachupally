@@ -10,7 +10,8 @@ import Team from './pages/Team'
 import Blog from './pages/Blog'
 import Partners from './pages/Partners'
 import Sponsor from './pages/Sponsor'
-import { Register, Volunteer, Nominate } from './pages/ClosedPages'
+import Register from './pages/Register'
+import { Volunteer, Nominate } from './pages/ClosedPages'
 import NotFound from './pages/NotFound'
 
 export default function App() {

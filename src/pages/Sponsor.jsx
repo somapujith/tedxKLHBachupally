@@ -13,13 +13,13 @@ export default function Sponsor() {
         years.
       </p>
 
-      <div className="grid md:grid-cols-3 border-t border-l border-paper/10">
+      <div className="grid md:grid-cols-3 gap-x-12 gap-y-12 border-t border-paper/10">
         {sponsorTiers.map((t) => (
-          <Reveal key={t.tier} className="border-b border-r border-paper/10 p-8 flex flex-col">
+          <Reveal key={t.tier} className="pt-10">
             <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-red mb-2">{t.tier}</div>
-            <div className="text-sm text-paper/50 mb-6">{t.subtitle}</div>
+            <div className="text-sm text-paper/55 mb-6">{t.subtitle}</div>
             <div className="font-display text-3xl tracking-tight mb-8">{t.price}</div>
-            <ul className="space-y-3 text-sm text-paper/70 flex-1">
+            <ul className="space-y-3 text-sm text-paper/70">
               {t.benefits.map((b) => (
                 <li key={b} className="flex gap-3">
                   <span className="text-red" aria-hidden>—</span>
