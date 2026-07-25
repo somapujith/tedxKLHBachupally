@@ -14,7 +14,7 @@ export const event = {
   venue: 'KLH Bachupally Campus',
   city: 'Hyderabad, Telangana',
   address: 'KLH Bachupally Campus, Hyderabad, Telangana 500090',
-  capacity: 420,
+  capacity: 250,
   guests: 300,
   mapsUrl: 'https://maps.app.goo.gl/4XNEfijzH9evJFnj7',
   title: 'Understanding what makes us uniquely human in a rapidly changing world.',
