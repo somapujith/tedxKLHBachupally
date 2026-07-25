@@ -10,11 +10,13 @@ export const event = {
   edition: 'Edition 01',
   year: 2026,
   date: 'Saturday, August 22, 2026',
+  time: '9:30 AM – 3:00 PM',
+  timeNote: 'Timings may extend',
   isoDate: '2026-08-22T09:30:00+05:30',
   venue: 'KLH Bachupally Campus',
   city: 'Hyderabad, Telangana',
   address: 'KLH Bachupally Campus, Hyderabad, Telangana 500090',
-  capacity: 420,
+  capacity: 250,
   guests: 300,
   mapsUrl: 'https://maps.app.goo.gl/4XNEfijzH9evJFnj7',
   title: 'Understanding what makes us uniquely human in a rapidly changing world.',
@@ -106,15 +108,52 @@ export const aboutTabs = {
   },
 }
 
+// Real TEDxKLH Bachupally crew, grouped by department.
+// `photo` optional — drop a headshot URL/import to replace the generated monogram tile.
+// `dept` drives the department filter on the Team page.
+export const teamDepartments = [
+  'Hospitality',
+  'Sponsorship',
+  'Marketing',
+  'Productions',
+  'Web Development & Design',
+]
+
 export const team = [
-  { name: 'Sneha Reddy', role: 'Curator & Licensee', bio: 'A final-year Computer Science student passionate about technology and storytelling. Sneha secured the TEDx license for KLH to bridge the gap between technical innovation and human interest stories.' },
-  { name: 'Karthik Verma', role: 'Co-Curator', bio: 'Karthik is a designer and writer who specializes in speaker curation and shaping narratives. He believes that every great idea deserves a perfectly structured talk.' },
-  { name: 'Pranav Bose', role: 'Production Lead', bio: 'Pranav oversees the physical production, stage architecture, and lighting design. He specializes in creating cinematic environments that match the scale of the speakers’ ideas.' },
-  { name: 'Aditi Sharma', role: 'Speaker Experience', bio: 'Aditi is the main point of contact for the speakers, guiding them from initial drafts to final rehearsals and ensuring their time on the red dot is comfortable.' },
-  { name: 'Rahul Khanna', role: 'Design Director', bio: 'Rahul leads the visual design team, crafting the brand identity, website interface, and motion graphics that define the cinematic canvas theme.' },
-  { name: 'Ishita Patel', role: 'Partnerships', bio: 'Ishita manages relations with sponsors, community partners, and university stakeholders, aligning their visions with the educational mission of TEDx.' },
-  { name: 'Manoj Kumar', role: 'Technology', bio: 'Manoj manages the website development and registration portal, ensuring the digital experience of our audience is as seamless and immersive as the physical event.' },
-  { name: 'Sanya Kapoor', role: 'Marketing', bio: 'Sanya directs social media campaigns, public relations, and press engagements, sharing the core concepts behind the TEDxKLH events with the wider community.' },
+  // Hospitality
+  { name: 'Naga', dept: 'Hospitality', photo: null },
+  { name: 'Chervi', dept: 'Hospitality', photo: null },
+  { name: 'Tanmai', dept: 'Hospitality', photo: null },
+  { name: 'Yashwant', dept: 'Hospitality', photo: null },
+  { name: 'Dinesh', dept: 'Hospitality', photo: null },
+  { name: 'Tarun', dept: 'Hospitality', photo: null },
+  { name: 'Kaushik', dept: 'Hospitality', photo: null },
+  { name: 'Ganesh', dept: 'Hospitality', photo: null },
+  { name: 'Vamsi', dept: 'Hospitality', photo: null },
+  { name: 'Pujith', dept: 'Hospitality', photo: null },
+  { name: 'Divya', dept: 'Hospitality', photo: null },
+  // Sponsorship
+  { name: 'Vallabh', dept: 'Sponsorship', photo: null },
+  { name: 'Subramanyam', dept: 'Sponsorship', photo: null },
+  { name: 'Pranav', dept: 'Sponsorship', photo: null },
+  // Marketing
+  { name: 'Suhas G', dept: 'Marketing', photo: null },
+  { name: 'Srikar', dept: 'Marketing', photo: null },
+  { name: 'Sohit', dept: 'Marketing', photo: null },
+  { name: 'Pemesh', dept: 'Marketing', photo: null },
+  { name: 'Chakrika', dept: 'Marketing', photo: null },
+  { name: 'Rasagnya', dept: 'Marketing', photo: null },
+  { name: 'Akshitha', dept: 'Marketing', photo: null },
+  { name: 'Ashwika', dept: 'Marketing', photo: null },
+  { name: 'Anuradha', dept: 'Marketing', photo: null },
+  { name: 'Parinitha', dept: 'Marketing', photo: null },
+  // Productions
+  { name: 'GBS', dept: 'Productions', photo: null },
+  // Web Development & Design
+  { name: 'Suhas', dept: 'Web Development & Design', photo: null },
+  { name: 'Senthil', dept: 'Web Development & Design', photo: null },
+  { name: 'Adithya', dept: 'Web Development & Design', photo: null },
+  { name: 'Seshank Yennam', dept: 'Web Development & Design', photo: null },
 ]
 
 export const blogPosts = [

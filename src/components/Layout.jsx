@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { nav, event } from '../data/site'
+import { GrainOverlay } from './texture'
 import logo from '../assets/logo-white-tedx.svg'
 
 const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
@@ -16,6 +17,15 @@ function isNavActive(to, pathname) {
   if (to === '/about-tedxklh') return pathname.startsWith('/about-')
   if (to === '/events') return pathname.startsWith('/events')
   return pathname === to
+}
+
+// Reset scroll to the top on every route change.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
+  return null
 }
 
 export default function Layout({ children }) {
@@ -34,7 +44,9 @@ export default function Layout({ children }) {
   }, [menuOpen])
 
   return (
-    <div className="min-h-screen bg-ink text-paper flex flex-col">
+    <div className="relative min-h-screen bg-ink text-paper flex flex-col">
+      <ScrollToTop />
+      <GrainOverlay />
       <header className="sticky top-0 z-50 border-b border-paper/15 bg-ink/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4 md:py-5">
           <Link to="/" className="flex items-center gap-3 shrink-0" onClick={() => setMenuOpen(false)}>
@@ -128,7 +140,7 @@ export default function Layout({ children }) {
         </nav>
       </header>
 
-      <main className="flex-1">{children}</main>
+      <main className="relative z-10 flex-1">{children}</main>
 
       <footer className="border-t border-paper/20 mt-24 bg-ink">
         <div className="max-w-6xl mx-auto px-6 pt-16 pb-12 grid grid-cols-2 md:grid-cols-5 gap-10">

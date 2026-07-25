@@ -26,7 +26,7 @@ const ROUTES = [
   ['/about-tedxklh', /Built by students\./i],
   ['/about-ted', /About TED\./i],
   ['/about-tedx', /About TEDx\./i],
-  ['/team', /The crew\./i],
+  ['/team', /One stage\./i],
   ['/blog', /Notes from behind the red dot\./i],
   ['/partners', /The companies in the room\./i],
   ['/register', /Claim your seat\./i],

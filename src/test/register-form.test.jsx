@@ -64,17 +64,18 @@ describe('Register form — submit wiring', () => {
       if (url === '/api/register') {
         return {
           ok: true,
-          json: async () => ({
-            ok: true,
-            registration: { id: 'reg-1', email: 'guest@example.com', fullName: 'Guest One' },
-          }),
+          text: async () =>
+            JSON.stringify({
+              ok: true,
+              registration: { id: 'reg-1', email: 'guest@example.com', fullName: 'Guest One' },
+            }),
         }
       }
       if (url === '/api/payment/order') {
         // Return not-ok so the flow stops before the Razorpay SDK is needed.
         return {
           ok: false,
-          json: async () => ({ ok: false, error: 'stop-here-for-test' }),
+          text: async () => JSON.stringify({ ok: false, error: 'stop-here-for-test' }),
         }
       }
       throw new Error(`unexpected fetch: ${url}`)
@@ -86,7 +87,7 @@ describe('Register form — submit wiring', () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: '9876500000' } })
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'guest@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /guest/i }))
-    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to secure payment/i }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/register', expect.any(Object))
@@ -100,7 +101,7 @@ describe('Register form — submit wiring', () => {
   it('surfaces a server error message when registration fails', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: false,
-      json: async () => ({ ok: false, error: 'This email is already registered and paid for the event.' }),
+      text: async () => JSON.stringify({ ok: false, error: 'This email is already registered and paid for the event.' }),
     }))
     vi.stubGlobal('fetch', fetchMock)
 
@@ -109,7 +110,7 @@ describe('Register form — submit wiring', () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: '9876500000' } })
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'dup@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /guest/i }))
-    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to secure payment/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/already registered/i)
   })

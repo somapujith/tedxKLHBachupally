@@ -1,30 +1,86 @@
-import { team } from '../data/site'
-import { Eyebrow, Reveal } from '../components/ui'
+import { useMemo, useState } from 'react'
+import { team, teamDepartments } from '../data/site'
+import { Eyebrow, TeamCard } from '../components/ui'
+import { BinaryDrift, RedGlow } from '../components/texture'
+
+const ALL = 'All'
 
 export default function Team() {
-  return (
-    <div className="max-w-5xl mx-auto px-6 py-24 md:py-32">
-      <Eyebrow className="mb-5">Team</Eyebrow>
-      <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05] mb-6">The crew.</h1>
-      <p className="text-lg text-paper/70 leading-relaxed max-w-2xl mb-20">
-        A volunteer crew of {team.length} students runs every TEDxKLH Bachupally — from curation to lighting design
-        to the after-party playlist.
-      </p>
+  const [active, setActive] = useState(ALL)
 
-      <div className="border-t border-paper/10">
-        {team.map((member) => (
-          <Reveal
-            key={member.name}
-            className="grid md:grid-cols-[1fr_2fr] gap-2 md:gap-10 py-8 border-b border-paper/10"
-          >
-            <div>
-              <div className="font-display text-xl tracking-tight">{member.name}</div>
-              <div className="text-[11px] uppercase tracking-[0.2em] text-red mt-1">{member.role}</div>
-            </div>
-            <p className="text-paper/70 leading-relaxed">{member.bio}</p>
-          </Reveal>
-        ))}
-      </div>
+  const filters = useMemo(() => [ALL, ...teamDepartments], [])
+  const visible = useMemo(
+    () => (active === ALL ? team : team.filter((m) => m.dept === active)),
+    [active],
+  )
+
+  return (
+    <div>
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-paper/10 px-6">
+        <RedGlow className="-left-40 -top-40" size={560} />
+        <BinaryDrift className="opacity-70" columns={10} />
+        <div className="relative mx-auto max-w-6xl py-24 md:py-32">
+          <Eyebrow className="mb-5">Team · The crew behind the red dot</Eyebrow>
+          <h1 className="mb-6 max-w-4xl font-display text-4xl leading-[1.05] tracking-tight md:text-7xl">
+            {team.length} students. <span className="text-red">One stage.</span>
+          </h1>
+          <p className="max-w-2xl text-lg leading-relaxed text-paper/70">
+            Every TEDxKLH Bachupally is run entirely by a volunteer crew — from hospitality and
+            sponsorship to marketing, production, and the web you&rsquo;re reading this on.
+          </p>
+
+          {/* Department stat strip */}
+          <div className="mt-12 grid grid-cols-2 gap-px overflow-hidden border border-paper/10 bg-paper/10 sm:grid-cols-3 lg:grid-cols-5">
+            {teamDepartments.map((d) => (
+              <div key={d} className="bg-ink px-4 py-5">
+                <div className="font-display text-2xl tabular-nums">
+                  {String(team.filter((m) => m.dept === d).length).padStart(2, '0')}
+                </div>
+                <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.18em] text-paper/50">{d}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Filter + grid */}
+      <section className="px-6">
+        <div className="mx-auto max-w-6xl py-16 md:py-24">
+          <div className="mb-10 flex flex-wrap gap-2">
+            {filters.map((f) => {
+              const on = f === active
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setActive(f)}
+                  aria-pressed={on}
+                  className={[
+                    'border px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] transition-colors duration-200',
+                    on
+                      ? 'border-red bg-red text-ink'
+                      : 'border-paper/15 text-paper/60 hover:border-red/50 hover:text-red',
+                  ].join(' ')}
+                >
+                  {f}
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {visible.map((member, i) => (
+              <TeamCard key={`${member.dept}-${member.name}`} member={member} index={i} />
+            ))}
+          </div>
+
+          <p className="mt-10 font-mono text-[11px] uppercase tracking-[0.18em] text-paper/40">
+            Showing {visible.length} {visible.length === 1 ? 'member' : 'members'}
+            {active !== ALL && ` · ${active}`}
+          </p>
+        </div>
+      </section>
     </div>
   )
 }

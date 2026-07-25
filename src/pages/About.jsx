@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { aboutTabs } from '../data/site'
 import { Eyebrow } from '../components/ui'
+import { RedGlow } from '../components/texture'
 
 const TABS = [
   { key: 'ted', label: 'TED', path: '/about-ted' },
@@ -18,8 +19,10 @@ export default function About() {
   const data = aboutTabs[active]
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-24 md:py-32">
-      <div className="flex gap-8 mb-16 font-mono text-[11px] uppercase tracking-[0.25em]">
+    <div className="relative overflow-hidden">
+      <RedGlow className="left-1/2 -top-24 -translate-x-1/2" size={620} />
+      <div className="relative mx-auto max-w-3xl px-6 py-24 md:py-32">
+      <div className="relative flex gap-8 mb-16 font-mono text-[11px] uppercase tracking-[0.25em]">
         {TABS.map((t) => (
           <button
             key={t.key}
@@ -79,6 +82,7 @@ export default function About() {
           </Link>
         </div>
       )}
+      </div>
     </div>
   )
 }
