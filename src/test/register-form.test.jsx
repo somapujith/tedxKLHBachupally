@@ -86,7 +86,7 @@ describe('Register form — submit wiring', () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: '9876500000' } })
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'guest@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /guest/i }))
-    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to secure payment/i }))
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith('/api/register', expect.any(Object))
@@ -109,7 +109,7 @@ describe('Register form — submit wiring', () => {
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: '9876500000' } })
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'dup@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /guest/i }))
-    fireEvent.click(screen.getByRole('button', { name: /continue to payment/i }))
+    fireEvent.click(screen.getByRole('button', { name: /continue to secure payment/i }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/already registered/i)
   })

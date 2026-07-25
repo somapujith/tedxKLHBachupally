@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Eyebrow } from '../components/ui'
+import { RedGlow } from '../components/texture'
+import { event } from '../data/site'
 
 const RAZORPAY_SRC = 'https://checkout.razorpay.com/v1/checkout.js'
 
@@ -175,170 +177,186 @@ export default function Register() {
 
   if (success) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-24 md:py-32">
-        <Eyebrow className="mb-5">{success.paid ? 'Confirmed' : 'Registered'}</Eyebrow>
-        <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05] mb-6">
-          {success.paid ? "You're in." : "You're on the list."}
-        </h1>
-        <p className="text-lg text-paper/70 leading-relaxed mb-10">
-          {success.paid
-            ? 'Payment received. Your seat for TEDxKLH Bachupally is confirmed — a receipt is on its way to your email.'
-            : 'We saved your details for TEDxKLH Bachupally. Complete payment to confirm your seat.'}
-        </p>
-        <div className="border border-paper/15 p-6 space-y-3 text-sm">
-          <Row label="Email" value={success.registration?.email} />
-          <Row label="Status" value={success.paid ? 'Paid — confirmed' : 'Pending payment'} />
-          {success.registration?.razorpay_payment_id && (
-            <Row label="Payment ID" value={success.registration.razorpay_payment_id} />
-          )}
+      <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
+        <RedGlow className="left-1/2 top-10 -translate-x-1/2" size={520} />
+        <div className="relative">
+          <Eyebrow className="mb-5">{success.paid ? 'Confirmed' : 'Registered'}</Eyebrow>
+          <h1 className="mb-6 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">
+            {success.paid ? "You're in." : "You're on the list."}
+          </h1>
+          <p className="mb-10 text-lg leading-relaxed text-paper/70">
+            {success.paid
+              ? 'Payment received. Your seat for TEDxKLH Bachupally is confirmed — a receipt is on its way to your email.'
+              : 'We saved your details for TEDxKLH Bachupally. Complete payment to confirm your seat.'}
+          </p>
+          <div className="space-y-3 border border-paper/15 bg-paper/[0.02] p-6 text-sm">
+            <Row label="Email" value={success.registration?.email} />
+            <Row label="Status" value={success.paid ? 'Paid — confirmed' : 'Pending payment'} />
+            {success.registration?.razorpay_payment_id && (
+              <Row label="Payment ID" value={success.registration.razorpay_payment_id} />
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSuccess(null)}
+            className="mt-10 font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/60 transition-colors hover:text-red"
+          >
+            Register another person →
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setSuccess(null)}
-          className="mt-10 font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/60 hover:text-red transition-colors"
-        >
-          Register another person →
-        </button>
       </div>
     )
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-24 md:py-32">
-      <Eyebrow className="mb-5">Register</Eyebrow>
-      <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05] mb-6">
-        Claim your seat.
-      </h1>
-      <p className="text-lg text-paper/70 leading-relaxed mb-14">
-        Tell us who you are. We&rsquo;ll hold your registration, then take you to payment when you&rsquo;re ready.
-      </p>
+    <div className="relative overflow-hidden">
+      <RedGlow className="-right-40 -top-32" size={520} />
+      <div className="relative mx-auto max-w-5xl px-6 py-20 md:py-28">
+        <Eyebrow className="mb-5">Register · Edition 01</Eyebrow>
+        <h1 className="mb-6 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">
+          Claim your seat.
+        </h1>
+        <p className="mb-14 max-w-2xl text-lg leading-relaxed text-paper/70">
+          Three short steps. Tell us who you are, pick your pass, and pay securely — your
+          seat is confirmed the moment payment clears.
+        </p>
 
-      <form onSubmit={onSubmit} className="space-y-10" noValidate>
-        <fieldset className="space-y-8">
-          <legend className="font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40 mb-2">
-            Contact information
-          </legend>
+        <div className="grid gap-12 lg:grid-cols-[1fr_320px] lg:gap-16">
+          {/* Form column */}
+          <form onSubmit={onSubmit} className="space-y-12" noValidate>
+            {/* Step 1 — contact */}
+            <Step n="1" title="Who are you?">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <Field id="fullName" label="Full name" value={form.fullName} onChange={(v) => update('fullName', v)} autoComplete="name" required className="sm:col-span-2" />
+                <Field id="phone" label="Phone number" type="tel" value={form.phone} onChange={(v) => update('phone', v)} autoComplete="tel" required />
+                <Field id="email" label="Email address" type="email" value={form.email} onChange={(v) => update('email', v)} autoComplete="email" required />
+              </div>
+            </Step>
 
-          <Field
-            id="fullName"
-            label="Full name"
-            value={form.fullName}
-            onChange={(v) => update('fullName', v)}
-            autoComplete="name"
-            required
-          />
-          <Field
-            id="phone"
-            label="Phone number"
-            type="tel"
-            value={form.phone}
-            onChange={(v) => update('phone', v)}
-            autoComplete="tel"
-            required
-          />
-          <Field
-            id="email"
-            label="Email address"
-            type="email"
-            value={form.email}
-            onChange={(v) => update('email', v)}
-            autoComplete="email"
-            required
-          />
-        </fieldset>
+            {/* Step 2 — designation */}
+            <Step n="2" title="What brings you?">
+              <div className="grid grid-cols-3 gap-3">
+                {DESIGNATIONS.map((d) => {
+                  const active = form.designation === d.value
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => update('designation', d.value)}
+                      aria-pressed={active}
+                      className={[
+                        'border px-4 py-4 font-montserrat text-[11px] font-medium uppercase tracking-[0.18em] transition-colors',
+                        active
+                          ? 'border-red bg-red text-paper'
+                          : 'border-paper/20 text-paper/70 hover:border-paper/50 hover:text-paper',
+                      ].join(' ')}
+                    >
+                      {d.label}
+                    </button>
+                  )
+                })}
+              </div>
 
-        <fieldset>
-          <legend className="font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40 mb-5">
-            Designation
-          </legend>
-          <div className="grid grid-cols-3 gap-3">
-            {DESIGNATIONS.map((d) => {
-              const active = form.designation === d.value
-              return (
-                <button
-                  key={d.value}
-                  type="button"
-                  onClick={() => update('designation', d.value)}
-                  className={[
-                    'border px-4 py-3 font-montserrat text-[11px] font-medium uppercase tracking-[0.18em] transition-colors',
-                    active
-                      ? 'border-red bg-red text-paper'
-                      : 'border-paper/20 text-paper/70 hover:border-paper/50 hover:text-paper',
-                  ].join(' ')}
-                  aria-pressed={active}
-                >
-                  {d.label}
-                </button>
-              )
-            })}
-          </div>
-        </fieldset>
+              {needsCollege && (
+                <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label htmlFor="college" className="mb-2 block font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40">
+                      {form.designation === 'staff' ? 'Institution' : 'College'}
+                    </label>
+                    <select
+                      id="college"
+                      value={form.college}
+                      onChange={(e) => update('college', e.target.value)}
+                      required
+                      className="w-full appearance-none rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 font-body text-paper focus:border-red focus:outline-none"
+                    >
+                      <option value="" disabled className="bg-ink text-paper">Select campus</option>
+                      {CAMPUSES.map((c) => (
+                        <option key={c} value={c} className="bg-ink text-paper">{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {needsOtherCollege && (
+                    <Field id="collegeOther" label="College name" value={form.collegeOther} onChange={(v) => update('collegeOther', v)} required className="sm:col-span-2" />
+                  )}
+                </div>
+              )}
+            </Step>
 
-        {needsCollege && (
-          <fieldset className="space-y-8">
-            <legend className="font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40 mb-2">
-              {form.designation === 'staff' ? 'Institution' : 'College'}
-            </legend>
-            <div>
-              <label htmlFor="college" className="sr-only">
-                Campus
-              </label>
-              <select
-                id="college"
-                value={form.college}
-                onChange={(e) => update('college', e.target.value)}
-                required
-                className="w-full bg-transparent border-0 border-b border-paper/25 rounded-none px-0 py-3 font-body text-paper focus:outline-none focus:border-red appearance-none"
+            {/* Step 3 — pay */}
+            <Step n="3" title="Confirm & pay">
+              {error && (
+                <p role="alert" className="mb-4 border-l-2 border-red bg-red/5 px-4 py-3 text-sm text-red">
+                  {error}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={submitting || !form.designation}
+                className="w-full border border-red bg-red px-8 py-4 font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
               >
-                <option value="" disabled className="bg-ink text-paper">
-                  Select campus
-                </option>
-                {CAMPUSES.map((c) => (
-                  <option key={c} value={c} className="bg-ink text-paper">
-                    {c}
-                  </option>
-                ))}
-              </select>
+                {submitting ? 'Processing…' : 'Continue to secure payment →'}
+              </button>
+              <p className="mt-4 text-xs leading-relaxed text-paper/45">
+                Payments handled by Razorpay. We never see your card details. Your seat is
+                confirmed only after payment succeeds.
+              </p>
+            </Step>
+          </form>
+
+          {/* Summary aside */}
+          <aside className="lg:sticky lg:top-28 lg:self-start">
+            <div className="border border-paper/15 bg-paper/[0.02] p-6">
+              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-red">Your pass</div>
+              <div className="mt-3 font-display text-2xl leading-tight tracking-tight">
+                TEDxKLH Bachupally
+              </div>
+              <div className="mt-1 text-sm text-paper/55">Edition 01 · {event.year}</div>
+
+              <dl className="mt-6 space-y-3 border-t border-paper/10 pt-6 text-sm">
+                <SummaryRow label="Date" value={event.date} />
+                <SummaryRow label="Venue" value={event.venue} />
+                <SummaryRow label="City" value={event.city} />
+                <SummaryRow label="Seats" value={`${event.capacity} · curated`} />
+              </dl>
+
+              <div className="mt-6 border-t border-paper/10 pt-6">
+                <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">Includes</div>
+                <ul className="mt-3 space-y-2 text-sm text-paper/70">
+                  {['All 12 talks, live', 'Idea Lounge & installations', 'Speaker salons', 'Lunch & networking'].map((x) => (
+                    <li key={x} className="flex items-start gap-2">
+                      <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 bg-red" />
+                      {x}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            {needsOtherCollege && (
-              <Field
-                id="collegeOther"
-                label="College name"
-                value={form.collegeOther}
-                onChange={(v) => update('collegeOther', v)}
-                required
-              />
-            )}
-          </fieldset>
-        )}
-
-        {error && (
-          <p role="alert" className="text-sm text-red">
-            {error}
-          </p>
-        )}
-
-        <div className="pt-2 flex flex-col sm:flex-row sm:items-center gap-6">
-          <button
-            type="submit"
-            disabled={submitting || !form.designation}
-            className="border border-red px-8 py-3 font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] hover:bg-red transition-colors disabled:opacity-40 disabled:pointer-events-none"
-          >
-            {submitting ? 'Processing…' : 'Continue to payment →'}
-          </button>
-          <p className="text-xs text-paper/45 max-w-xs">
-            Secure payment via Razorpay. Your seat is confirmed once payment succeeds.
-          </p>
+          </aside>
         </div>
-      </form>
+      </div>
     </div>
   )
 }
 
-function Field({ id, label, value, onChange, type = 'text', autoComplete, required }) {
+function Step({ n, title, children }) {
   return (
-    <div>
-      <label htmlFor={id} className="block font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40 mb-2">
+    <section>
+      <div className="mb-6 flex items-center gap-3">
+        <span className="flex h-7 w-7 items-center justify-center border border-red font-mono text-xs text-red">
+          {n}
+        </span>
+        <h2 className="font-display text-xl tracking-tight">{title}</h2>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Field({ id, label, value, onChange, type = 'text', autoComplete, required, className = '' }) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="mb-2 block font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40">
         {label}
       </label>
       <input
@@ -348,8 +366,17 @@ function Field({ id, label, value, onChange, type = 'text', autoComplete, requir
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         required={required}
-        className="w-full bg-transparent border-0 border-b border-paper/25 rounded-none px-0 py-3 text-paper placeholder:text-paper/30 focus:outline-none focus:border-red transition-colors"
+        className="w-full rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 text-paper transition-colors placeholder:text-paper/30 focus:border-red focus:outline-none"
       />
+    </div>
+  )
+}
+
+function SummaryRow({ label, value }) {
+  return (
+    <div className="flex justify-between gap-4">
+      <dt className="font-mono text-[10px] uppercase tracking-[0.18em] text-paper/40">{label}</dt>
+      <dd className="text-right text-paper/80">{value}</dd>
     </div>
   )
 }
