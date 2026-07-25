@@ -90,6 +90,80 @@ export function StatusBanner({ title, body }) {
   )
 }
 
+// Deterministic initials from a full name (max 2 chars).
+function initials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase()
+}
+
+// Textured team member card — portrait (photo or generated monogram) + name + dept.
+// tedxkc treatment: grayscale->color on hover, binary corner, torn edge, red lift.
+export function TeamCard({ member, index = 0 }) {
+  const reduceMotion = useReducedMotion()
+  return (
+    <motion.article
+      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.45, delay: (index % 4) * 0.06 }}
+      className="group relative overflow-hidden border border-paper/10 bg-paper/[0.02] transition-all duration-300 hover:border-red/50 hover:-translate-y-1"
+    >
+      {/* Portrait */}
+      <div className="relative aspect-square overflow-hidden bg-ink">
+        {member.photo ? (
+          <img
+            src={member.photo}
+            alt={member.name}
+            loading="lazy"
+            className="h-full w-full object-cover grayscale contrast-125 transition-all duration-500 group-hover:grayscale-0 group-hover:scale-105"
+          />
+        ) : (
+          <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-ink to-[#171717]">
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 select-none overflow-hidden p-2 font-mono text-[9px] leading-3 tracking-widest text-red/[0.09]"
+            >
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i}>
+                  {(i * 3) % 2 ? '01001010' : '10110100'}
+                  {(i * 5) % 2 ? '0110' : '1001'}
+                </div>
+              ))}
+            </div>
+            <span className="font-display text-5xl tracking-tight text-paper/15 transition-colors duration-500 group-hover:text-red/45">
+              {initials(member.name)}
+            </span>
+          </div>
+        )}
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-3">
+          <svg viewBox="0 0 400 12" preserveAspectRatio="none" className="h-full w-full">
+            <path d="M0 12 L0 6 Q40 2 80 7 T160 5 Q210 1 260 8 T360 4 Q380 9 400 5 L400 12 Z" fill="#0A0A0A" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="relative px-4 py-4">
+        <div className="font-display text-base tracking-tight leading-tight">{member.name}</div>
+        {member.role ? (
+          <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
+        ) : (
+          <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">{member.dept}</div>
+        )}
+        {member.bio && <p className="mt-3 text-sm leading-relaxed text-paper/60">{member.bio}</p>}
+        <div aria-hidden className="pointer-events-none absolute right-4 top-4 font-mono text-[10px] text-paper/15">
+          {String(index + 1).padStart(2, '0')}
+        </div>
+      </div>
+    </motion.article>
+  )
+}
+
 export function Reveal({ children, className = '' }) {
   const reduceMotion = useReducedMotion()
   return (
