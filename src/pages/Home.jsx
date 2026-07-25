@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { event, speakers, schedule, theme, galleryTiles } from '../data/site'
+import { event, speakers, theme } from '../data/site'
 import { Countdown, SpeakerCard, Reveal, Section, Eyebrow } from '../components/ui'
 import heroImage from '../assets/tedxhero1.png'
 
@@ -47,7 +47,7 @@ export default function Home() {
               A single day of 12 ideas — staged, recorded, and released to the world. Built by students, attended by
               a city.
             </p>
-            <div className="mt-6 font-mono text-xs uppercase tracking-widest text-paper/60 space-y-1">
+            <div className="mt-6 font-body text-xs uppercase tracking-widest text-paper/60 space-y-1">
               <div>{event.date}</div>
               <div>{event.venue} · {event.city}</div>
             </div>
@@ -129,53 +129,6 @@ export default function Home() {
         </Reveal>
       </Section>
 
-      {/* RUN OF SHOW */}
-      <Section>
-        <Reveal>
-          <Eyebrow>Run of show</Eyebrow>
-          <h2 className="font-display text-3xl md:text-4xl mt-5">One day. Three sessions.</h2>
-        </Reveal>
-        <Reveal className="mt-10">
-          {schedule.map((item) => (
-            <div key={item.time} className="flex gap-8 py-4 border-t border-paper/10">
-              <div className="font-mono text-sm text-red w-14 shrink-0 pt-0.5">{item.time}</div>
-              <div>
-                <div className="text-paper/80">{item.label}</div>
-                {item.slugs && (
-                  <div className="font-mono text-[11px] uppercase tracking-widest text-paper/40 mt-1">
-                    {item.slugs.length} speakers
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          <div className="mt-8">
-            <ReadMore to="/events/1/schedule">Full schedule</ReadMore>
-          </div>
-        </Reveal>
-      </Section>
-
-      {/* SETTING — text-only venue block */}
-      <Section>
-        <Reveal>
-          <Eyebrow>Setting</Eyebrow>
-          <h2 className="font-display text-3xl md:text-4xl mt-5">The auditorium.</h2>
-          <div className="grid sm:grid-cols-2 gap-10 max-w-2xl mt-10">
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-widest text-paper/40 mb-3">Location</div>
-              <div className="text-paper/80 leading-relaxed">{event.address}</div>
-            </div>
-            <div>
-              <div className="font-mono text-[11px] uppercase tracking-widest text-paper/40 mb-3">Capacity</div>
-              <div className="text-paper/80">{event.capacity} seats</div>
-            </div>
-          </div>
-          <div className="mt-8">
-            <ReadMore href={event.mapsUrl}>Get directions</ReadMore>
-          </div>
-        </Reveal>
-      </Section>
-
       {/* COLLABORATION */}
       <Section>
         <Reveal>
@@ -189,25 +142,6 @@ export default function Home() {
           <div className="mt-8">
             <ReadMore to="/partners">View Partners & Sponsors</ReadMore>
           </div>
-        </Reveal>
-      </Section>
-
-      {/* ARCHIVE / GALLERY */}
-      <Section>
-        <Reveal className="flex items-end justify-between gap-6">
-          <h2 className="font-display text-3xl md:text-4xl">From the floor.</h2>
-          <ReadMore to="/events/1/gallery">Full gallery</ReadMore>
-        </Reveal>
-        <Reveal className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-10">
-          {galleryTiles.slice(0, 5).map((tile) => (
-            <Link
-              key={tile}
-              to="/events/1/gallery"
-              className="aspect-[4/5] border border-paper/15 flex items-end p-3 hover:border-red transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
-            >
-              <span className="font-mono text-[10px] uppercase tracking-widest text-paper/40">{tile}</span>
-            </Link>
-          ))}
         </Reveal>
       </Section>
 

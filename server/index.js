@@ -75,6 +75,13 @@ app.post('/api/payment/verify', async (req, res) => {
   }
 })
 
-app.listen(port, () => {
-  console.log(`TEDx API listening on http://localhost:${port}`)
-})
+// Export the app so tests can drive it with supertest. Only bind a port when this
+// file is the process entry point (node server/index.js), not when imported.
+export { app }
+
+const isEntry = process.argv[1] && process.argv[1].endsWith('server/index.js')
+if (isEntry) {
+  app.listen(port, () => {
+    console.log(`TEDx API listening on http://localhost:${port}`)
+  })
+}
