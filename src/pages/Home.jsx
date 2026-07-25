@@ -30,6 +30,14 @@ const stats = [
   ['∞', 'Ideas'],
 ]
 
+// A short, bespoke manifesto that only makes sense for this event — not filler.
+const manifesto = [
+  'No panels.',
+  'No keynote slides read aloud.',
+  'No idea older than the person telling it.',
+  'Eighteen minutes, one red dot, a city listening.',
+]
+
 export default function Home() {
   return (
     <div>
@@ -104,6 +112,30 @@ export default function Home() {
         </Reveal>
       </Section>
 
+      {/* MANIFESTO — bespoke, event-specific creed */}
+      <section className="relative overflow-hidden border-t border-paper/10 px-6">
+        <BinaryDrift className="opacity-40" columns={14} />
+        <div className="relative mx-auto max-w-5xl py-24 md:py-32">
+          <Eyebrow className="mb-8">What a TEDxKLH stage refuses to be</Eyebrow>
+          <div className="space-y-3">
+            {manifesto.map((line, i) => (
+              <Reveal key={i}>
+                <p
+                  className={[
+                    'font-display leading-[1.05] tracking-tight',
+                    i === manifesto.length - 1
+                      ? 'text-red text-3xl md:text-5xl mt-6'
+                      : 'text-2xl md:text-4xl text-paper/85',
+                  ].join(' ')}
+                >
+                  {line}
+                </p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* THEME */}
       <Section>
         <Reveal>
@@ -150,7 +182,8 @@ export default function Home() {
       </Section>
 
       {/* CLOSING CTA */}
-      <Section className="text-center">
+      <Section className="relative overflow-hidden text-center">
+        <RedGlow className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={620} />
         <Reveal>
           <Eyebrow className="text-paper/50">{event.date}</Eyebrow>
           <h2 className="font-display text-5xl md:text-6xl mt-5">Be in the room.</h2>

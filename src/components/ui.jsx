@@ -52,12 +52,25 @@ export function Countdown({ target }) {
   ]
   return (
     <div>
-      <Eyebrow className="mb-3">Countdown to stage</Eyebrow>
-      <div className="flex gap-8">
-        {units.map(([label, value]) => (
-          <div key={label}>
-            <div className="font-display text-4xl tabular-nums">{String(value).padStart(2, '0')}</div>
-            <div className="text-[11px] uppercase tracking-widest text-paper/50 mt-1">{label}</div>
+      <Eyebrow className="mb-4">The red dot goes live in</Eyebrow>
+      <div className="flex items-stretch gap-2 sm:gap-3">
+        {units.map(([label, value], i) => (
+          <div key={label} className="flex items-stretch">
+            <div className="relative min-w-[54px] border border-paper/15 bg-paper/[0.03] px-3 py-3 text-center sm:min-w-[68px] sm:px-4">
+              <span aria-hidden className="absolute left-0 top-0 h-px w-4 bg-red" />
+              <span aria-hidden className="absolute right-0 bottom-0 h-px w-4 bg-red" />
+              <div className="font-display text-3xl tabular-nums leading-none sm:text-4xl">
+                {String(value).padStart(2, '0')}
+              </div>
+              <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.2em] text-paper/45 sm:text-[10px]">
+                {label}
+              </div>
+            </div>
+            {i < units.length - 1 && (
+              <span aria-hidden className="self-center px-0.5 font-display text-2xl text-red/60 sm:px-1">
+                :
+              </span>
+            )}
           </div>
         ))}
       </div>
