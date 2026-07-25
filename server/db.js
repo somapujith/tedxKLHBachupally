@@ -19,11 +19,24 @@ export async function ensureRegistrationsTable(sql = getSql()) {
       college TEXT,
       college_other TEXT,
       payment_status TEXT NOT NULL DEFAULT 'pending',
+      amount INTEGER,
+      razorpay_order_id TEXT,
+      razorpay_payment_id TEXT,
+      paid_at TIMESTAMPTZ,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS registrations_email_unique
     ON registrations (LOWER(email))
+  `
+  // Columns for pre-existing tables (idempotent).
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS amount INTEGER`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS razorpay_order_id TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS razorpay_payment_id TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ`
+  await sql`
+    CREATE INDEX IF NOT EXISTS registrations_order_idx
+    ON registrations (razorpay_order_id)
   `
 }
