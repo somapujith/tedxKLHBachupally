@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom'
-import { Eyebrow } from '../components/ui'
+import { Eyebrow, Button } from '../components/ui'
 
 export default function NotFound() {
   return (
@@ -9,12 +8,15 @@ export default function NotFound() {
       <p className="text-lg text-paper/70 leading-relaxed mb-12">
         This page doesn't exist — but twelve ideas worth spreading do.
       </p>
-      <Link
-        to="/"
-        className="inline-flex items-center gap-2 border border-red px-6 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-red hover:bg-red hover:text-ink transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
-      >
-        <span aria-hidden>←</span> Back to the stage
-      </Link>
+      <Button to="/" variant="outline" className="px-6 py-3 text-[11px] !tracking-[0.2em]">
+        <span
+          aria-hidden
+          className="inline-block transition-transform duration-300 ease-out motion-reduce:transition-none group-hover/btn:-translate-x-1"
+        >
+          ←
+        </span>{' '}
+        Back to the stage
+      </Button>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Eyebrow } from '../components/ui'
+import { Eyebrow, Button } from '../components/ui'
 import { RedGlow } from '../components/texture'
 import { event } from '../data/site'
 
@@ -69,6 +69,7 @@ export default function Register() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
+  const [soldOut, setSoldOut] = useState(false)
 
   const needsCollege = form.designation === 'student' || form.designation === 'staff'
   const needsOtherCollege = needsCollege && form.college === 'Others'
@@ -101,6 +102,10 @@ export default function Register() {
         body: JSON.stringify(form),
       })
       const data = await readJson(res)
+      if (data.soldOut) {
+        setSoldOut(true)
+        return
+      }
       if (!res.ok || !data.ok) {
         throw new Error(data.error || 'Registration failed.')
       }
@@ -121,6 +126,10 @@ export default function Register() {
       body: JSON.stringify({ registrationId: registration.id }),
     })
     const orderData = await readJson(orderRes)
+    if (orderData.soldOut) {
+      setSoldOut(true)
+      return
+    }
     if (!orderRes.ok || !orderData.ok) {
       throw new Error(orderData.error || 'Could not start payment.')
     }
@@ -194,6 +203,24 @@ export default function Register() {
     setForm(initial)
   }
 
+  if (soldOut) {
+    return (
+      <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
+        <RedGlow className="left-1/2 top-10 -translate-x-1/2" size={520} />
+        <div className="relative">
+          <Eyebrow className="mb-5">Sold out</Eyebrow>
+          <h1 className="mb-6 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">
+            Every seat is claimed.
+          </h1>
+          <p className="text-lg leading-relaxed text-paper/70">
+            All seats for TEDxKLH Bachupally have been booked. No further registrations can be
+            accepted. Follow us for announcements about future events.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   if (success) {
     return (
       <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
@@ -204,9 +231,15 @@ export default function Register() {
             {success.paid ? "You're in." : "You're on the list."}
           </h1>
           <p className="mb-10 text-lg leading-relaxed text-paper/70">
-            {success.paid
-              ? 'Payment received. Your seat for TEDxKLH Bachupally is confirmed — a receipt is on its way to your email.'
-              : 'We saved your details for TEDxKLH Bachupally. Complete payment to confirm your seat.'}
+            {success.paid ? (
+              <>
+                Payment confirmed. A confirmation email with your QR pass has been sent to{' '}
+                <span className="text-paper">{success.registration?.email}</span>. Show the QR at
+                the gate to claim your pass — if it isn&apos;t in your inbox, check your spam folder.
+              </>
+            ) : (
+              'We saved your details for TEDxKLH Bachupally. Complete payment to confirm your seat.'
+            )}
           </p>
           <div className="space-y-3 border border-paper/15 bg-paper/[0.02] p-6 text-sm">
             <Row label="Email" value={success.registration?.email} />
@@ -309,13 +342,14 @@ export default function Register() {
                   {error}
                 </p>
               )}
-              <button
+              <Button
                 type="submit"
+                variant="primary"
                 disabled={submitting || !form.designation}
-                className="w-full border border-red bg-red px-8 py-4 font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
+                className="w-full !font-montserrat text-[11px] font-medium !tracking-[0.2em] sm:w-auto"
               >
                 {submitting ? 'Processing…' : 'Continue to secure payment →'}
-              </button>
+              </Button>
               <p className="mt-4 text-xs leading-relaxed text-paper/45">
                 Payments handled by Razorpay. We never see your card details. Your seat is
                 confirmed only after payment succeeds.

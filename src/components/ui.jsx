@@ -116,7 +116,7 @@ function initials(name) {
 
 // Textured team member card — portrait (photo or generated monogram) + name + dept.
 // tedxkc treatment: grayscale->color on hover, binary corner, torn edge, red lift.
-export function TeamCard({ member, index = 0 }) {
+export function TeamCard({ member, index = 0, showIndex = false }) {
   const reduceMotion = useReducedMotion()
   return (
     <motion.article
@@ -132,6 +132,7 @@ export function TeamCard({ member, index = 0 }) {
             src={member.photo}
             alt={member.name}
             loading="lazy"
+            style={member.photoPos ? { objectPosition: member.photoPos } : undefined}
             className="h-full w-full object-cover grayscale contrast-125 transition-all duration-500 group-hover:grayscale-0 group-hover:scale-105"
           />
         ) : (
@@ -147,7 +148,7 @@ export function TeamCard({ member, index = 0 }) {
                 </div>
               ))}
             </div>
-            <span className="font-display text-5xl tracking-tight text-paper/15 transition-colors duration-500 group-hover:text-red/45">
+            <span className="font-display text-5xl tracking-tight text-paper/30 transition-colors duration-500 group-hover:text-red/45">
               {initials(member.name)}
             </span>
           </div>
@@ -168,11 +169,103 @@ export function TeamCard({ member, index = 0 }) {
           <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">{member.dept}</div>
         )}
         {member.bio && <p className="mt-3 text-sm leading-relaxed text-paper/60">{member.bio}</p>}
-        <div aria-hidden className="pointer-events-none absolute right-4 top-4 font-mono text-[10px] text-paper/15">
-          {String(index + 1).padStart(2, '0')}
-        </div>
+        {showIndex && (
+          <div aria-hidden className="pointer-events-none absolute right-4 top-4 font-mono text-[10px] text-paper/15">
+            {String(index + 1).padStart(2, '0')}
+          </div>
+        )}
       </div>
     </motion.article>
+  )
+}
+
+// Shared CTA button. Sharp corners, mono uppercase label, brand red.
+// Hover = a red panel sweeps in from the left (outline) / a darker sheen sweeps
+// across (primary), plus the trailing arrow nudges right. Sweep is a transform on
+// a pseudo-layer so it stays GPU-cheap and is fully disabled under reduced motion.
+//
+// Props:
+//   variant   'primary' (red solid) | 'outline' (red border, transparent)  — default 'primary'
+//   to        when given, renders a react-router <Link>; otherwise a <button>
+//   type      forwarded to <button> (e.g. 'submit'); ignored for links
+//   className appended last so callers can tweak width/margins
+//   ...rest   forwarded (onClick, disabled, aria-*, etc.)
+export function Button({
+  variant = 'primary',
+  to,
+  type,
+  className = '',
+  children,
+  ...rest
+}) {
+  const base =
+    'group/btn relative inline-flex items-center justify-center gap-2 overflow-hidden ' +
+    'px-8 py-4 font-mono text-xs uppercase tracking-widest ' +
+    'transition-colors duration-300 ease-out ' +
+    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red focus-visible:ring-offset-2 focus-visible:ring-offset-ink ' +
+    'disabled:cursor-not-allowed disabled:opacity-40 disabled:pointer-events-none'
+
+  // motion-reduce fallbacks give a plain color hover, since the animated sweep
+  // layer is hidden under prefers-reduced-motion (see the sweep span below).
+  const variants = {
+    primary: 'border border-red bg-red text-paper motion-reduce:hover:bg-red/90',
+    outline:
+      'border border-red bg-transparent text-red hover:text-ink motion-reduce:hover:bg-red',
+  }
+
+  // The sweep layer: sits behind the label, scales in from the left on hover.
+  // primary -> a subtle ink sheen; outline -> a solid red fill.
+  const sweep =
+    variant === 'primary'
+      ? 'bg-ink/25'
+      : 'bg-red'
+
+  const cls = `${base} ${variants[variant]} ${className}`.trim()
+
+  const content = (
+    <>
+      <span
+        aria-hidden
+        className={`absolute inset-0 -z-0 origin-left scale-x-0 transition-transform duration-300 ease-out motion-reduce:transition-none motion-reduce:hidden group-hover/btn:scale-x-100 ${sweep}`}
+      />
+      <span className="relative z-10 flex items-center gap-2">
+        {typeof children === 'string' && children.includes('→') ? (
+          <ButtonLabel>{children}</ButtonLabel>
+        ) : (
+          children
+        )}
+      </span>
+    </>
+  )
+
+  if (to) {
+    return (
+      <Link to={to} className={cls} {...rest}>
+        {content}
+      </Link>
+    )
+  }
+  return (
+    <button type={type ?? 'button'} className={cls} {...rest}>
+      {content}
+    </button>
+  )
+}
+
+// Splits a trailing "→" out of the label so the arrow can nudge on hover
+// independently, without a translate on the whole text block.
+function ButtonLabel({ children }) {
+  const text = children.replace(/\s*→\s*$/, '')
+  return (
+    <>
+      <span>{text}</span>
+      <span
+        aria-hidden
+        className="inline-block transition-transform duration-300 ease-out motion-reduce:transition-none group-hover/btn:translate-x-1"
+      >
+        →
+      </span>
+    </>
   )
 }
 

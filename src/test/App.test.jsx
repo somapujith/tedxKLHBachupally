@@ -24,7 +24,13 @@ describe('App routing', () => {
 
   it('renders the team page', () => {
     renderAt('/team')
-    expect(screen.getByText(/The crew/i)).toBeInTheDocument()
+    expect(screen.getByText(/One team\./i)).toBeInTheDocument()
+  })
+
+  it('renders the contact page', () => {
+    renderAt('/contact')
+    expect(screen.getByText(/Say hello\./i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/Message/i)).toBeInTheDocument()
   })
 
   it('renders a speaker detail page', () => {

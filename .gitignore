@@ -10,3 +10,7 @@ dist
 *.key
 rzp-key.csv
 *-key.csv
+
+# Personal media / form exports — keep out of repo
+Submit your image (File responses)/
+WhatsApp Image *.jpeg

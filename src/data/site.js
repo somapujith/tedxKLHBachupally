@@ -1,9 +1,37 @@
+import photoNaga from '../assets/images/team/naga.jpg'
+import photoTanmai from '../assets/images/team/tanmai.jpg'
+import photoYashwant from '../assets/images/team/yashwant.jpg'
+import photoKaushik from '../assets/images/team/kaushik.jpg'
+import photoVamsi from '../assets/images/team/vamsi.jpg'
+import photoPujith from '../assets/images/team/pujith.jpg'
+import photoDivya from '../assets/images/team/divya.jpg'
+import photoVallabh from '../assets/images/team/vallabh.jpg'
+import photoSuhasG from '../assets/images/team/suhas-g.jpg'
+import photoSohit from '../assets/images/team/sohit.jpg'
+import photoPemesh from '../assets/images/team/pemesh.jpg'
+import photoChakrika from '../assets/images/team/chakrika.jpg'
+import photoRasagnya from '../assets/images/team/rasagnya.jpg'
+import photoAkshitha from '../assets/images/team/akshitha.jpg'
+import photoAshwika from '../assets/images/team/ashwika.jpg'
+import photoAnuradha from '../assets/images/team/anuradha.jpg'
+import photoParinitha from '../assets/images/team/parinitha.jpg'
+import photoSuhasWeb from '../assets/images/team/suhas-web.jpg'
+import photoAdithya from '../assets/images/team/adithya.jpg'
+import photoSeshank from '../assets/images/team/seshank.jpg'
+import photoSreya from '../assets/images/team/sreya.jpg'
+import photoKrishnanjaneyulu from '../assets/images/team/krishnanjaneyulu.jpg'
+import photoDhanvin from '../assets/images/team/dhanvin.jpg'
+import photoMahathi from '../assets/images/team/mahathi.jpg'
+import photoSanuhya from '../assets/images/team/sanuhya.jpg'
+import photoShreyas from '../assets/images/team/shreyas.jpg'
+
 export const nav = [
   { label: 'Theme', to: '/theme' },
   { label: 'Events', to: '/events' },
   { label: 'Speakers', to: '/speakers' },
   { label: 'Team', to: '/team' },
   { label: 'About', to: '/about-tedxklh' },
+  { label: 'Contact', to: '/contact' },
 ]
 
 export const event = {
@@ -119,41 +147,49 @@ export const teamDepartments = [
   'Web Development & Design',
 ]
 
+// Leadership shown first on the Team page, one headed row per role.
+export const teamLeadership = [
+  { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
+  { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
+  { name: 'Akash', role: 'Co-organiser', photo: null },
+]
+
 export const team = [
   // Hospitality
-  { name: 'Naga', dept: 'Hospitality', photo: null },
+  { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
+  { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
   { name: 'Chervi', dept: 'Hospitality', photo: null },
-  { name: 'Tanmai', dept: 'Hospitality', photo: null },
-  { name: 'Yashwant', dept: 'Hospitality', photo: null },
-  { name: 'Dinesh', dept: 'Hospitality', photo: null },
+  { name: 'Tanmai', dept: 'Hospitality', photo: photoTanmai, photoPos: '70% 25%' },
+  { name: 'Yashwant', dept: 'Hospitality', photo: photoYashwant },
+  { name: 'Dhanvin', dept: 'Hospitality', photo: photoDhanvin },
   { name: 'Tarun', dept: 'Hospitality', photo: null },
-  { name: 'Kaushik', dept: 'Hospitality', photo: null },
   { name: 'Ganesh', dept: 'Hospitality', photo: null },
-  { name: 'Vamsi', dept: 'Hospitality', photo: null },
-  { name: 'Pujith', dept: 'Hospitality', photo: null },
-  { name: 'Divya', dept: 'Hospitality', photo: null },
+  { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
+  { name: 'Pujith', dept: 'Hospitality', photo: photoPujith },
+  { name: 'Divya', dept: 'Hospitality', photo: photoDivya, photoPos: '50% 15%' },
+  { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   // Sponsorship
-  { name: 'Vallabh', dept: 'Sponsorship', photo: null },
-  { name: 'Subramanyam', dept: 'Sponsorship', photo: null },
-  { name: 'Pranav', dept: 'Sponsorship', photo: null },
+  { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
+  { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
+  { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
-  { name: 'Suhas G', dept: 'Marketing', photo: null },
+  { name: 'Suhas G', dept: 'Marketing', photo: photoSuhasG },
   { name: 'Srikar', dept: 'Marketing', photo: null },
-  { name: 'Sohit', dept: 'Marketing', photo: null },
-  { name: 'Pemesh', dept: 'Marketing', photo: null },
-  { name: 'Chakrika', dept: 'Marketing', photo: null },
-  { name: 'Rasagnya', dept: 'Marketing', photo: null },
-  { name: 'Akshitha', dept: 'Marketing', photo: null },
-  { name: 'Ashwika', dept: 'Marketing', photo: null },
-  { name: 'Anuradha', dept: 'Marketing', photo: null },
-  { name: 'Parinitha', dept: 'Marketing', photo: null },
+  { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
+  { name: 'Pemesh', dept: 'Marketing', photo: photoPemesh },
+  { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
+  { name: 'Rasagnya', dept: 'Marketing', photo: photoRasagnya },
+  { name: 'Akshitha', dept: 'Marketing', photo: photoAkshitha },
+  { name: 'Ashwika', dept: 'Marketing', photo: photoAshwika },
+  { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
+  { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
   // Productions
-  { name: 'GBS', dept: 'Productions', photo: null },
+  { name: 'GBS Team', dept: 'Productions', photo: null },
   // Web Development & Design
-  { name: 'Suhas', dept: 'Web Development & Design', photo: null },
+  { name: 'Suhas', dept: 'Web Development & Design', photo: photoSuhasWeb },
   { name: 'Senthil', dept: 'Web Development & Design', photo: null },
-  { name: 'Adithya', dept: 'Web Development & Design', photo: null },
-  { name: 'Seshank Yennam', dept: 'Web Development & Design', photo: null },
+  { name: 'Adithya', dept: 'Web Development & Design', photo: photoAdithya },
+  { name: 'Seshank Yennam', dept: 'Web Development & Design', photo: photoSeshank },
 ]
 
 export const blogPosts = [

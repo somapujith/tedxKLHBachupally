@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { event, speakers, theme } from '../data/site'
-import { Countdown, SpeakerCard, Reveal, Section, Eyebrow } from '../components/ui'
+import { Countdown, SpeakerCard, Reveal, Section, Eyebrow, Button } from '../components/ui'
 import { BinaryDrift, RedGlow, TornEdge } from '../components/texture'
 import heroImage from '../assets/tedxhero1.png'
 
@@ -48,7 +48,6 @@ export default function Home() {
         <BinaryDrift className="opacity-60" columns={12} />
         <div className="relative z-10 w-full px-6 md:px-12 lg:px-20">
           <div className="max-w-xl">
-            <Eyebrow className="mb-5">TEDxKLH Bachupally · Edition 01 · {event.year}</Eyebrow>
             <h1 className="font-display text-5xl leading-[0.95] md:text-7xl">
               Technology <span className="text-red">Evolves.</span>
               <br />
@@ -62,12 +61,9 @@ export default function Home() {
               <div>{event.date} · {event.time}</div>
               <div>{event.venue} · {event.city}</div>
             </div>
-            <Link
-              to="/register"
-              className="mt-8 inline-block border border-red px-6 py-3 font-mono text-xs uppercase tracking-widest transition-colors hover:bg-red focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
-            >
+            <Button to="/register" variant="outline" className="mt-8 px-6 py-3">
               Reserve a seat →
-            </Link>
+            </Button>
             <div className="mt-10">
               <Countdown target={event.isoDate} />
             </div>
@@ -155,28 +151,30 @@ export default function Home() {
         </Reveal>
       </Section>
 
-      {/* ── CLOSING: PARTNERS LINE + CTA ───────────────────────── */}
-      {/* Partners folded into one confident line above the final call — no standalone section. */}
+      {/* ── CLOSING: FINAL CALL ────────────────────────────────── */}
+      {/* Reads top-down as one beat: label → statement → terms → CTA → trust footer. */}
       <Section className="relative overflow-hidden text-center" divider={false}>
-        <RedGlow className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={620} />
-        <Reveal>
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/45">
+        <RedGlow className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={680} />
+        <Reveal className="mx-auto max-w-xl">
+          <Eyebrow>The last step</Eyebrow>
+          <h2 className="mt-6 font-display text-5xl leading-[1.02] md:text-6xl">
+            Be in the room.
+          </h2>
+          <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-paper/60">
+            {event.capacity} seats, curated. Apply once — we confirm within seven days,
+            and your seat is held the moment you do.
+          </p>
+
+          <Button to="/register" variant="primary" className="mt-10">
+            Reserve a seat →
+          </Button>
+
+          <p className="mx-auto mt-14 max-w-sm border-t border-paper/10 pt-8 font-mono text-[11px] uppercase leading-relaxed tracking-[0.18em] text-paper/40">
             Backed by the institutions and brands who fund independent ideas ·{' '}
             <Link to="/partners" className="text-red hover:underline">
               our partners
             </Link>
           </p>
-          <h2 className="mt-8 font-display text-5xl md:text-6xl">Be in the room.</h2>
-          <p className="mx-auto mt-6 max-w-md text-lg text-paper/60">
-            {event.capacity} seats, curated. Apply once — we confirm within seven days, and
-            your seat is held the moment you do.
-          </p>
-          <Link
-            to="/register"
-            className="mt-10 inline-block border border-red bg-red px-8 py-4 font-mono text-xs uppercase tracking-widest text-paper transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
-          >
-            Reserve a seat →
-          </Link>
         </Reveal>
       </Section>
     </div>
