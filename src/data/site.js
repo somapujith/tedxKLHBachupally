@@ -101,38 +101,34 @@ export const theme = {
   ],
 }
 
-export const aboutTabs = {
+// Single-page About content (hero + TED/TEDx section + our-chapter section).
+export const aboutPage = {
   ted: {
-    eyebrow: '01 / About · The mothership',
-    h1: 'About TED.',
+    heading: 'About TED & TEDx',
     paragraphs: [
-      'TED is a nonprofit, nonpartisan organization dedicated to discovering, debating and spreading ideas that spark conversation, deepen understanding and drive meaningful change.',
-      'Our organization is devoted to curiosity, reason, wonder and the pursuit of knowledge — without an agenda. We welcome people from every discipline and culture who seek a deeper understanding of the world and connection with others, and we invite everyone to engage with ideas and activate them in your community.',
-      'TED began in 1984 as a conference where Technology, Entertainment and Design converged, but today it spans a multitude of worldwide communities and initiatives exploring everything from science and business to education, arts and global issues.',
+      'TED is a nonprofit devoted to Ideas Worth Spreading. It started out in 1984 as a conference bringing together people from three worlds — Technology, Entertainment and Design — and its scope has only grown broader since.',
+      'TEDx is a grassroots initiative created in the spirit of that mission. TEDx events bring the spirit of TED to local communities around the globe, organized by passionate people who uncover new ideas and spark conversations where they live. Each event combines live speakers with recorded TED Talks, and is organized independently under a free license granted by TED.',
     ],
-    social: [
-      { label: 'Facebook', href: 'https://facebook.com/TED' },
-      { label: 'Instagram', href: 'https://instagram.com/ted' },
-      { label: 'LinkedIn', href: 'https://linkedin.com/company/ted-conferences' },
-      { label: 'X', href: 'https://x.com/TEDTalks' },
-    ],
-  },
-  tedx: {
-    eyebrow: '02 / About · The x stands for independent',
-    h1: 'About TEDx.',
-    intro: 'TEDx is a program of local, self-organized events that bring people together to share a TED-like experience.',
-    body: 'At a TEDx event, TED Talks video and live speakers combine to spark deep discussion and connection. These local, self-organized events are branded TEDx, where x = independently organized TED event. The TED Conference provides general guidance for the TEDx program, but individual TEDx events are self-organized.',
     stats: [
-      { value: '3,000+', label: 'Events every year' },
+      { value: '1984', label: 'TED founded' },
+      { value: '3,000+', label: 'TEDx events a year' },
       { value: '170+', label: 'Countries' },
       { value: '100k+', label: 'Talks published' },
-      { value: '1', label: 'License per event' },
     ],
   },
-  tedxklh: {
-    eyebrow: '03 / About · Our chapter',
-    h1: 'Built by students.',
-    body: "TEDxKLH Bachupally is a fully student-curated TEDx licensee, hosted on the Bachupally campus of KL University. We're staging our first edition and building toward becoming one of South India's most ambitious independent TEDx programs.",
+  chapter: {
+    label: 'About us',
+    heading: 'TEDxKLH Bachupally is an independently organized TEDx event.',
+    paragraphs: [
+      'Hosted on the Bachupally campus of KL University, TEDxKLH is fully student-curated — every speaker scouted, every frame designed and every seat filled by students.',
+      'We are staging our first edition and building toward becoming one of South India’s most ambitious independent TEDx programs.',
+    ],
+    stats: [
+      { value: '250', label: 'Seats' },
+      { value: '1', label: 'Stage, one day' },
+      { value: '100%', label: 'Student-run' },
+      { value: '01', label: 'First edition' },
+    ],
   },
 }
 

@@ -24,7 +24,7 @@ async function readJson(res) {
   }
 }
 
-const initial = { name: '', email: '', phone: '', subject: '', message: '' }
+const initial = { name: '', email: '', phone: '', subject: '', message: '', website: '' }
 
 export default function Contact() {
   const [form, setForm] = useState(initial)
@@ -93,6 +93,18 @@ export default function Contact() {
             </div>
           ) : (
             <form onSubmit={onSubmit} className="space-y-8" noValidate>
+              {/* Honeypot — invisible to humans, bots fill it and get silently dropped */}
+              <div aria-hidden="true" className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+                <label htmlFor="website">Website</label>
+                <input
+                  id="website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={form.website}
+                  onChange={(e) => update('website', e.target.value)}
+                />
+              </div>
               <div className="grid gap-6 sm:grid-cols-2">
                 <Field id="name" label="Your name" value={form.name} onChange={(v) => update('name', v)} autoComplete="name" required className="sm:col-span-2" />
                 <Field id="email" label="Email address" type="email" value={form.email} onChange={(v) => update('email', v)} autoComplete="email" required />
