@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { nav, event } from '../data/site'
+import { Button } from './ui'
 import { GrainOverlay } from './texture'
+import ColorBends from './ColorBends'
 import logo from '../assets/logo-white-tedx.svg'
 
 const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
-
-function linkClass({ isActive }) {
-  return [
-    'py-1 no-underline transition-colors duration-200',
-    isActive ? 'text-red' : 'text-paper/70 hover:text-red/70',
-  ].join(' ')
-}
 
 function isNavActive(to, pathname) {
   if (to === '/about-tedxklh') return pathname.startsWith('/about-')
@@ -47,36 +42,70 @@ export default function Layout({ children }) {
     <div className="relative min-h-screen bg-ink text-paper flex flex-col">
       <ScrollToTop />
       <GrainOverlay />
-      <header className="sticky top-0 z-50 border-b border-paper/15 bg-ink/90 backdrop-blur-md">
+      {location.pathname !== '/' && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 opacity-30 [mask-image:linear-gradient(to_bottom,transparent_5%,black_55%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_5%,black_55%)]"
+        >
+          <ColorBends
+            colors={['#E62B1E', '#7a1410', '#2b0503']}
+            rotation={30}
+            speed={0.15}
+            scale={1.5}
+            frequency={1.4}
+            warpStrength={1}
+            mouseInfluence={0.15}
+            parallax={0.3}
+            noise={0.1}
+            iterations={2}
+            intensity={0.9}
+            bandWidth={6}
+            transparent
+          />
+        </div>
+      )}
+      <header className="sticky top-0 z-50 border-b border-paper/10 bg-ink/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4 md:py-5">
           <Link to="/" className="flex items-center gap-3 shrink-0" onClick={() => setMenuOpen(false)}>
-            <img src={logo} alt="TEDxKLH Bachupally" className="h-12 md:h-14 w-auto" />
+            <img src={logo} alt="TEDxKLH Bachupally" className="h-11 md:h-12 w-auto" />
           </Link>
 
           <nav
             aria-label="Primary"
-            className="hidden md:flex items-center gap-10 font-montserrat text-[11px] font-medium uppercase tracking-[0.2em]"
+            className="hidden md:flex items-center gap-9 font-body text-[11px] font-medium uppercase tracking-[0.22em]"
           >
-            {nav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) =>
-                  linkClass({ isActive: isActive || isNavActive(item.to, location.pathname) })
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+            {nav.map((item) => {
+              const active = isNavActive(item.to, location.pathname)
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={[
+                    'relative py-1 no-underline transition-colors duration-200',
+                    active ? 'text-paper' : 'text-paper/55 hover:text-paper',
+                  ].join(' ')}
+                >
+                  {item.label}
+                  {active && (
+                    <span
+                      aria-hidden
+                      className="absolute -bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-red"
+                    />
+                  )}
+                </NavLink>
+              )
+            })}
           </nav>
 
           <div className="flex items-center gap-3">
-            <Link
+            <Button
               to="/register"
-              className="border border-red px-4 py-2 text-[11px] font-montserrat font-medium uppercase tracking-[0.2em] hover:bg-red transition-colors duration-200"
+              variant="outline"
+              className="px-4 py-2 !font-body text-[11px] font-medium !tracking-[0.2em]"
             >
               Register
-            </Link>
+            </Button>
             <button
               type="button"
               className="md:hidden relative h-10 w-10 flex items-center justify-center"
@@ -119,7 +148,7 @@ export default function Layout({ children }) {
             menuOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0 border-t-0',
           ].join(' ')}
         >
-          <div className="flex flex-col font-montserrat text-[11px] font-medium uppercase tracking-[0.2em]">
+          <div className="flex flex-col font-body text-[11px] font-medium uppercase tracking-[0.2em]">
             {nav.map((item) => {
               const active = isNavActive(item.to, location.pathname)
               return (
@@ -128,10 +157,11 @@ export default function Layout({ children }) {
                   to={item.to}
                   onClick={() => setMenuOpen(false)}
                   className={[
-                    'px-6 py-4 border-t border-paper/10 transition-colors duration-200',
-                    active ? 'text-red' : 'text-paper/70 hover:text-red/70',
+                    'flex items-center gap-2.5 px-6 py-4 border-t border-paper/10 transition-colors duration-200',
+                    active ? 'text-paper' : 'text-paper/55 hover:text-paper',
                   ].join(' ')}
                 >
+                  {active && <span aria-hidden className="h-1 w-1 rounded-full bg-red" />}
                   {item.label}
                 </Link>
               )
@@ -193,6 +223,11 @@ export default function Layout({ children }) {
                 <a href="mailto:hello@tedxklhbachupally.in" className="hover:text-red transition-colors">
                   hello@tedxklhbachupally.in
                 </a>
+              </p>
+              <p>
+                <Link to="/contact" className="hover:text-red transition-colors">
+                  Contact us
+                </Link>
               </p>
             </address>
           </div>

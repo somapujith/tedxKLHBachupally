@@ -1,9 +1,37 @@
+import photoNaga from '../assets/images/team/naga.jpg'
+import photoTanmai from '../assets/images/team/tanmai.jpg'
+import photoYashwant from '../assets/images/team/yashwant.jpg'
+import photoKaushik from '../assets/images/team/kaushik.jpg'
+import photoVamsi from '../assets/images/team/vamsi.jpg'
+import photoPujith from '../assets/images/team/pujith.jpg'
+import photoDivya from '../assets/images/team/divya.jpg'
+import photoVallabh from '../assets/images/team/vallabh.jpg'
+import photoSuhasG from '../assets/images/team/suhas-g.jpg'
+import photoSohit from '../assets/images/team/sohit.jpg'
+import photoPemesh from '../assets/images/team/pemesh.jpg'
+import photoChakrika from '../assets/images/team/chakrika.jpg'
+import photoRasagnya from '../assets/images/team/rasagnya.jpg'
+import photoAkshitha from '../assets/images/team/akshitha.jpg'
+import photoAshwika from '../assets/images/team/ashwika.jpg'
+import photoAnuradha from '../assets/images/team/anuradha.jpg'
+import photoParinitha from '../assets/images/team/parinitha.jpg'
+import photoSuhasWeb from '../assets/images/team/suhas-web.jpg'
+import photoAdithya from '../assets/images/team/adithya.jpg'
+import photoSeshank from '../assets/images/team/seshank.jpg'
+import photoSreya from '../assets/images/team/sreya.jpg'
+import photoKrishnanjaneyulu from '../assets/images/team/krishnanjaneyulu.jpg'
+import photoDhanvin from '../assets/images/team/dhanvin.jpg'
+import photoMahathi from '../assets/images/team/mahathi.jpg'
+import photoSanuhya from '../assets/images/team/sanuhya.jpg'
+import photoShreyas from '../assets/images/team/shreyas.jpg'
+
 export const nav = [
   { label: 'Theme', to: '/theme' },
   { label: 'Events', to: '/events' },
   { label: 'Speakers', to: '/speakers' },
   { label: 'Team', to: '/team' },
   { label: 'About', to: '/about-tedxklh' },
+  { label: 'Contact', to: '/contact' },
 ]
 
 export const event = {
@@ -73,38 +101,34 @@ export const theme = {
   ],
 }
 
-export const aboutTabs = {
+// Single-page About content (hero + TED/TEDx section + our-chapter section).
+export const aboutPage = {
   ted: {
-    eyebrow: '01 / About · The mothership',
-    h1: 'About TED.',
+    heading: 'About TED & TEDx',
     paragraphs: [
-      'TED is a nonprofit, nonpartisan organization dedicated to discovering, debating and spreading ideas that spark conversation, deepen understanding and drive meaningful change.',
-      'Our organization is devoted to curiosity, reason, wonder and the pursuit of knowledge — without an agenda. We welcome people from every discipline and culture who seek a deeper understanding of the world and connection with others, and we invite everyone to engage with ideas and activate them in your community.',
-      'TED began in 1984 as a conference where Technology, Entertainment and Design converged, but today it spans a multitude of worldwide communities and initiatives exploring everything from science and business to education, arts and global issues.',
+      'TED is a nonprofit devoted to Ideas Worth Spreading. It started out in 1984 as a conference bringing together people from three worlds — Technology, Entertainment and Design — and its scope has only grown broader since.',
+      'TEDx is a grassroots initiative created in the spirit of that mission. TEDx events bring the spirit of TED to local communities around the globe, organized by passionate people who uncover new ideas and spark conversations where they live. Each event combines live speakers with recorded TED Talks, and is organized independently under a free license granted by TED.',
     ],
-    social: [
-      { label: 'Facebook', href: 'https://facebook.com/TED' },
-      { label: 'Instagram', href: 'https://instagram.com/ted' },
-      { label: 'LinkedIn', href: 'https://linkedin.com/company/ted-conferences' },
-      { label: 'X', href: 'https://x.com/TEDTalks' },
-    ],
-  },
-  tedx: {
-    eyebrow: '02 / About · The x stands for independent',
-    h1: 'About TEDx.',
-    intro: 'TEDx is a program of local, self-organized events that bring people together to share a TED-like experience.',
-    body: 'At a TEDx event, TED Talks video and live speakers combine to spark deep discussion and connection. These local, self-organized events are branded TEDx, where x = independently organized TED event. The TED Conference provides general guidance for the TEDx program, but individual TEDx events are self-organized.',
     stats: [
-      { value: '3,000+', label: 'Events every year' },
+      { value: '1984', label: 'TED founded' },
+      { value: '3,000+', label: 'TEDx events a year' },
       { value: '170+', label: 'Countries' },
       { value: '100k+', label: 'Talks published' },
-      { value: '1', label: 'License per event' },
     ],
   },
-  tedxklh: {
-    eyebrow: '03 / About · Our chapter',
-    h1: 'Built by students.',
-    body: "TEDxKLH Bachupally is a fully student-curated TEDx licensee, hosted on the Bachupally campus of KL University. We're staging our first edition and building toward becoming one of South India's most ambitious independent TEDx programs.",
+  chapter: {
+    label: 'About us',
+    heading: 'TEDxKLH Bachupally is an independently organized TEDx event.',
+    paragraphs: [
+      'Hosted on the Bachupally campus of KL University, TEDxKLH is fully student-curated — every speaker scouted, every frame designed and every seat filled by students.',
+      'We are staging our first edition and building toward becoming one of South India’s most ambitious independent TEDx programs.',
+    ],
+    stats: [
+      { value: '250', label: 'Seats' },
+      { value: '1', label: 'Stage, one day' },
+      { value: '100%', label: 'Student-run' },
+      { value: '01', label: 'First edition' },
+    ],
   },
 }
 
@@ -119,41 +143,49 @@ export const teamDepartments = [
   'Web Development & Design',
 ]
 
+// Leadership shown first on the Team page, one headed row per role.
+export const teamLeadership = [
+  { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
+  { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
+  { name: 'Akash', role: 'Co-organiser', photo: null },
+]
+
 export const team = [
   // Hospitality
-  { name: 'Naga', dept: 'Hospitality', photo: null },
+  { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
+  { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
   { name: 'Chervi', dept: 'Hospitality', photo: null },
-  { name: 'Tanmai', dept: 'Hospitality', photo: null },
-  { name: 'Yashwant', dept: 'Hospitality', photo: null },
-  { name: 'Dinesh', dept: 'Hospitality', photo: null },
+  { name: 'Tanmai', dept: 'Hospitality', photo: photoTanmai, photoPos: '70% 25%' },
+  { name: 'Yashwant', dept: 'Hospitality', photo: photoYashwant },
+  { name: 'Dhanvin', dept: 'Hospitality', photo: photoDhanvin },
   { name: 'Tarun', dept: 'Hospitality', photo: null },
-  { name: 'Kaushik', dept: 'Hospitality', photo: null },
   { name: 'Ganesh', dept: 'Hospitality', photo: null },
-  { name: 'Vamsi', dept: 'Hospitality', photo: null },
-  { name: 'Pujith', dept: 'Hospitality', photo: null },
-  { name: 'Divya', dept: 'Hospitality', photo: null },
+  { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
+  { name: 'Pujith', dept: 'Hospitality', photo: photoPujith },
+  { name: 'Divya', dept: 'Hospitality', photo: photoDivya, photoPos: '50% 15%' },
+  { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   // Sponsorship
-  { name: 'Vallabh', dept: 'Sponsorship', photo: null },
-  { name: 'Subramanyam', dept: 'Sponsorship', photo: null },
-  { name: 'Pranav', dept: 'Sponsorship', photo: null },
+  { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
+  { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
+  { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
-  { name: 'Suhas G', dept: 'Marketing', photo: null },
+  { name: 'Suhas G', dept: 'Marketing', photo: photoSuhasG },
   { name: 'Srikar', dept: 'Marketing', photo: null },
-  { name: 'Sohit', dept: 'Marketing', photo: null },
-  { name: 'Pemesh', dept: 'Marketing', photo: null },
-  { name: 'Chakrika', dept: 'Marketing', photo: null },
-  { name: 'Rasagnya', dept: 'Marketing', photo: null },
-  { name: 'Akshitha', dept: 'Marketing', photo: null },
-  { name: 'Ashwika', dept: 'Marketing', photo: null },
-  { name: 'Anuradha', dept: 'Marketing', photo: null },
-  { name: 'Parinitha', dept: 'Marketing', photo: null },
+  { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
+  { name: 'Pemesh', dept: 'Marketing', photo: photoPemesh },
+  { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
+  { name: 'Rasagnya', dept: 'Marketing', photo: photoRasagnya },
+  { name: 'Akshitha', dept: 'Marketing', photo: photoAkshitha },
+  { name: 'Ashwika', dept: 'Marketing', photo: photoAshwika },
+  { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
+  { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
   // Productions
-  { name: 'GBS', dept: 'Productions', photo: null },
+  { name: 'GBS Team', dept: 'Productions', photo: null },
   // Web Development & Design
-  { name: 'Suhas', dept: 'Web Development & Design', photo: null },
+  { name: 'Suhas', dept: 'Web Development & Design', photo: photoSuhasWeb },
   { name: 'Senthil', dept: 'Web Development & Design', photo: null },
-  { name: 'Adithya', dept: 'Web Development & Design', photo: null },
-  { name: 'Seshank Yennam', dept: 'Web Development & Design', photo: null },
+  { name: 'Adithya', dept: 'Web Development & Design', photo: photoAdithya },
+  { name: 'Seshank Yennam', dept: 'Web Development & Design', photo: photoSeshank },
 ]
 
 export const blogPosts = [

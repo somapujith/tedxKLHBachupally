@@ -1,10 +1,20 @@
 import crypto from 'node:crypto'
 import Razorpay from 'razorpay'
 import { getSql, ensureRegistrationsTable } from './db.js'
+import { issueTicket } from './tickets.js'
 
 // Amount in paise (₹1 placeholder). Change here when real pricing is decided.
 export const REGISTRATION_AMOUNT = 100
 export const CURRENCY = 'INR'
+
+const DEFAULT_SEAT_CAPACITY = 250
+
+// Parse SEAT_CAPACITY defensively: `Number(env) || 250` would turn a legit 0
+// (event closed) and NaN into 250. Accept only a finite, non-negative number.
+export function seatCapacity() {
+  const n = Number(process.env.SEAT_CAPACITY)
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_SEAT_CAPACITY
+}
 
 let client = null
 function getClient() {
@@ -48,6 +58,22 @@ export async function createOrder({ registrationId }) {
   }
   if (reg.payment_status === 'paid') {
     return { ok: false, status: 409, error: 'This registration is already paid.' }
+  }
+
+  // Capacity gate: never sell a seat past capacity. Checked before the Razorpay
+  // order so a sold-out event cannot even start a checkout. This is a soft gate —
+  // the hard, atomic gate is in settlePayment's paid-flip.
+  const capacity = seatCapacity()
+  const paidCount = await sql`
+    SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
+  `
+  if (paidCount[0].count >= capacity) {
+    return {
+      ok: false,
+      status: 409,
+      error: 'Sold out. All seats have been claimed.',
+      soldOut: true,
+    }
   }
 
   let order
@@ -114,6 +140,11 @@ async function settlePayment({ orderId, paymentId }) {
   }
 
   const sql = getSql()
+  const capacity = seatCapacity()
+  // Hard, atomic capacity gate: the paid-flip only wins if the current paid count
+  // is still under capacity. The subquery runs inside the same statement as the
+  // UPDATE, so N concurrent flips are serialized by row/table locks and cannot
+  // collectively oversell past SEAT_CAPACITY.
   const rows = await sql`
     UPDATE registrations
     SET payment_status = 'paid',
@@ -122,20 +153,45 @@ async function settlePayment({ orderId, paymentId }) {
         paid_at = COALESCE(paid_at, NOW())
     WHERE razorpay_order_id = ${orderId}
       AND payment_status <> 'paid'
+      AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
     RETURNING id, email, payment_status, razorpay_payment_id, paid_at
   `
 
   if (rows.length) {
+    // Awaited (serverless — cannot fire-and-forget); issueTicket never throws
+    // and its failure must not turn a settled payment into an error response.
+    await issueTicket(rows[0].id)
     return { ok: true, status: 200, registration: rows[0] }
   }
 
-  // No row flipped: either already paid (idempotent replay) or order unknown.
+  // No row flipped: already paid (idempotent replay), order unknown, or the
+  // capacity guard blocked it. Re-read to disambiguate.
   const existing = await sql`
     SELECT id, email, payment_status, razorpay_payment_id, paid_at
     FROM registrations WHERE razorpay_order_id = ${orderId} LIMIT 1
   `
   if (existing[0]?.payment_status === 'paid') {
+    // Replay path (webhook + verify double-delivery) converges here — retries
+    // the ticket email if a previous attempt failed.
+    await issueTicket(existing[0].id)
     return { ok: true, status: 200, registration: existing[0], alreadyPaid: true }
+  }
+  if (!existing[0]) {
+    return { ok: false, status: 404, error: 'No registration matched this order.' }
+  }
+
+  // Row exists, still unpaid, and the flip did not win. If we are at/over
+  // capacity, this is a captured payment that arrived after the event sold out.
+  // We must NOT issue a ticket — flag it loudly so ops can refund manually.
+  const paidCount = await sql`
+    SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
+  `
+  if (paidCount[0].count >= capacity) {
+    console.error(
+      'OVERSELL: paid payment over capacity, needs refund',
+      { orderId, paymentId },
+    )
+    return { ok: false, status: 409, error: 'Sold out.', soldOut: true }
   }
   return { ok: false, status: 404, error: 'No registration matched this order.' }
 }

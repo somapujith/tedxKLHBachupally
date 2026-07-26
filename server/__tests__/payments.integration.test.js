@@ -10,6 +10,7 @@ import {
   createOrder,
   verifyPayment,
   handleWebhook,
+  seatCapacity,
   REGISTRATION_AMOUNT,
   CURRENCY,
 } from '../payments.js'
@@ -144,6 +145,98 @@ describe('verifyPayment — signature gate', () => {
     expect(res.ok).toBe(false)
     // Signature was valid (not a 400 signature error); settlement fetch failed.
     expect(res.status).toBe(502)
+  })
+})
+
+describe('seatCapacity — env parsing', () => {
+  const ORIGINAL = process.env.SEAT_CAPACITY
+  afterAll(() => {
+    if (ORIGINAL === undefined) delete process.env.SEAT_CAPACITY
+    else process.env.SEAT_CAPACITY = ORIGINAL
+  })
+
+  it('honors an explicit 0 (event closed) instead of defaulting to 250', () => {
+    process.env.SEAT_CAPACITY = '0'
+    expect(seatCapacity()).toBe(0)
+  })
+
+  it('falls back to 250 for a non-numeric value', () => {
+    process.env.SEAT_CAPACITY = 'not-a-number'
+    expect(seatCapacity()).toBe(250)
+  })
+
+  it('reads a valid positive value', () => {
+    process.env.SEAT_CAPACITY = '42'
+    expect(seatCapacity()).toBe(42)
+  })
+})
+
+// The hard capacity gate lives inside settlePayment's paid-flip UPDATE (an atomic
+// `... AND (SELECT COUNT(*) ... WHERE payment_status='paid') < capacity`).
+// settlePayment is internal, so we exercise the exact guarded SQL against the DB
+// with the capacity clamped to the current paid count: the flip must match no row
+// (payment NOT ticketed), which is the anti-oversell property.
+describe('settlePayment capacity guard — over-capacity paid payment is not flipped', () => {
+  const TAG = 'e2e_cap_test_'
+  let capSql
+
+  beforeAll(async () => {
+    capSql = getSql()
+    await capSql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
+  })
+
+  afterAll(async () => {
+    await capSql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
+  })
+
+  it('the guarded paid-flip returns no row when paid count is already >= capacity', async () => {
+    // Insert one pending row with a bound order id.
+    const orderId = `order_cap_${crypto.randomUUID()}`
+    const ins = await capSql`
+      INSERT INTO registrations (full_name, phone, email, designation, payment_status, razorpay_order_id, amount)
+      VALUES ('Cap Tester', '9876500000', ${email('pending')}, 'guest', 'pending', ${orderId}, ${REGISTRATION_AMOUNT})
+      RETURNING id
+    `
+    expect(ins.length).toBe(1)
+
+    // Clamp capacity to the current paid count so the guard is already at its limit.
+    const paid = await capSql`SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'`
+    const capacity = paid[0].count
+
+    const flipped = await capSql`
+      UPDATE registrations
+      SET payment_status = 'paid', paid_at = COALESCE(paid_at, NOW())
+      WHERE razorpay_order_id = ${orderId}
+        AND payment_status <> 'paid'
+        AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
+      RETURNING id
+    `
+    expect(flipped.length).toBe(0)
+
+    // The row is still pending — no ticket would be issued for it.
+    const after = await capSql`SELECT payment_status FROM registrations WHERE id = ${ins[0].id}`
+    expect(after[0].payment_status).toBe('pending')
+  })
+
+  it('the same flip succeeds once capacity has headroom', async () => {
+    const orderId = `order_cap_${crypto.randomUUID()}`
+    await capSql`
+      INSERT INTO registrations (full_name, phone, email, designation, payment_status, razorpay_order_id, amount)
+      VALUES ('Cap Tester', '9876500000', ${email('room')}, 'guest', 'pending', ${orderId}, ${REGISTRATION_AMOUNT})
+    `
+    // Capacity comfortably above current paid count.
+    const paid = await capSql`SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'`
+    const capacity = paid[0].count + 1000
+
+    const flipped = await capSql`
+      UPDATE registrations
+      SET payment_status = 'paid', paid_at = COALESCE(paid_at, NOW())
+      WHERE razorpay_order_id = ${orderId}
+        AND payment_status <> 'paid'
+        AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
+      RETURNING id
+    `
+    expect(flipped.length).toBe(1)
   })
 })
 

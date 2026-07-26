@@ -78,7 +78,8 @@ export function RedGlow({ className = '', size = 480 }) {
       style={{
         width: size,
         height: size,
-        background: 'radial-gradient(circle, rgba(230,43,30,0.35) 0%, rgba(230,43,30,0) 70%)',
+        background:
+          'radial-gradient(circle, rgba(230,43,30,0.22) 0%, rgba(230,43,30,0.1) 45%, rgba(230,43,30,0) 80%)',
       }}
     />
   )
