@@ -182,7 +182,9 @@ export function Reveal({ children, className = '' }) {
     <motion.div
       initial={reduceMotion ? false : { opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-80px' }}
+      // amount:0 fires as soon as any part enters (or is already in) the viewport,
+      // so above-the-fold blocks reveal on mount instead of waiting for a scroll.
+      viewport={{ once: true, amount: 0, margin: '0px 0px -10% 0px' }}
       transition={{ duration: 0.5 }}
       className={className}
     >
