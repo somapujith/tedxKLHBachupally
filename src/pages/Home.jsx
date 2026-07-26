@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { event, speakers, theme } from '../data/site'
 import { Countdown, SpeakerCard, Reveal, Section, Eyebrow, Button } from '../components/ui'
-import { BinaryDrift, RedGlow, TornEdge } from '../components/texture'
+import { BinaryDrift, TornEdge } from '../components/texture'
+import LiquidEther from '../components/LiquidEther'
 import heroImage from '../assets/tedxhero1.png'
 
 // Single, consistent "read more" CTA — small mono uppercase, red, trailing arrow.
@@ -153,30 +154,45 @@ export default function Home() {
 
       {/* ── CLOSING: FINAL CALL ────────────────────────────────── */}
       {/* Reads top-down as one beat: label → statement → terms → CTA → trust footer. */}
-      <Section className="relative overflow-hidden text-center" divider={false}>
-        <RedGlow className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={680} />
-        <Reveal className="mx-auto max-w-xl">
-          <Eyebrow>The last step</Eyebrow>
-          <h2 className="mt-6 font-display text-5xl leading-[1.02] md:text-6xl">
-            Be in the room.
-          </h2>
-          <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-paper/60">
-            {event.capacity} seats, curated. Apply once — we confirm within seven days,
-            and your seat is held the moment you do.
-          </p>
+      <section className="relative overflow-hidden px-6 text-center">
+        <div className="absolute inset-0" aria-hidden="true">
+          <LiquidEther
+            colors={['#e62b1e', '#ff6f61', '#7a0f0a']}
+            mouseForce={10}
+            cursorSize={75}
+            resolution={0.5}
+            autoDemo={true}
+            autoSpeed={0.5}
+            autoIntensity={2.2}
+            takeoverDuration={0.25}
+            autoResumeDelay={3000}
+            autoRampDuration={0.6}
+          />
+        </div>
+        <div className="relative mx-auto max-w-5xl py-24 md:py-32">
+          <Reveal className="mx-auto max-w-2xl rounded-2xl border border-paper/15 bg-ink/70 px-8 py-16 backdrop-blur-md md:px-14">
+            <Eyebrow>The last step</Eyebrow>
+            <h2 className="mt-6 font-display text-5xl leading-[1.02] md:text-6xl">
+              Be in the room.
+            </h2>
+            <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-paper/60">
+              {event.capacity} seats, curated. Apply once — we confirm within seven days,
+              and your seat is held the moment you do.
+            </p>
 
-          <Button to="/register" variant="primary" className="mt-10">
-            Reserve a seat →
-          </Button>
+            <Button to="/register" variant="primary" className="mt-10">
+              Reserve a seat →
+            </Button>
 
-          <p className="mx-auto mt-14 max-w-sm border-t border-paper/10 pt-8 font-mono text-[11px] uppercase leading-relaxed tracking-[0.18em] text-paper/40">
-            Backed by the institutions and brands who fund independent ideas ·{' '}
-            <Link to="/partners" className="text-red hover:underline">
-              our partners
-            </Link>
-          </p>
-        </Reveal>
-      </Section>
+            <p className="mx-auto mt-14 max-w-sm border-t border-paper/10 pt-8 font-mono text-[11px] uppercase leading-relaxed tracking-[0.18em] text-paper/40">
+              Backed by the institutions and brands who fund independent ideas ·{' '}
+              <Link to="/partners" className="text-red hover:underline">
+                our partners
+              </Link>
+            </p>
+          </Reveal>
+        </div>
+      </section>
     </div>
   )
 }

@@ -12,10 +12,11 @@ export default function Theme() {
       <section className="relative flex min-h-[420px] items-center justify-center overflow-hidden md:min-h-[560px]">
         <img
           src={themeHero}
-          alt=""
+          alt="Giant red TEDx letters on a chalkboard wall covered in hand-drawn ideas"
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/70 via-ink/55 to-ink" />
+        <div className="absolute inset-0 bg-ink/30" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-ink md:h-32" />
         <BinaryDrift className="opacity-40" columns={12} />
         <Reveal className="relative px-6 py-24 text-center md:py-32">
           <div className="mb-7 flex items-center justify-center gap-4">

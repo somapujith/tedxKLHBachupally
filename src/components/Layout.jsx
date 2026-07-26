@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { nav, event } from '../data/site'
 import { Button } from './ui'
 import { GrainOverlay } from './texture'
+import ColorBends from './ColorBends'
 import logo from '../assets/logo-white-tedx.svg'
 
 const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
@@ -41,6 +42,28 @@ export default function Layout({ children }) {
     <div className="relative min-h-screen bg-ink text-paper flex flex-col">
       <ScrollToTop />
       <GrainOverlay />
+      {location.pathname !== '/' && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-0 opacity-30 [mask-image:linear-gradient(to_bottom,transparent_5%,black_55%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_5%,black_55%)]"
+        >
+          <ColorBends
+            colors={['#E62B1E', '#7a1410', '#2b0503']}
+            rotation={30}
+            speed={0.15}
+            scale={1.5}
+            frequency={1.4}
+            warpStrength={1}
+            mouseInfluence={0.15}
+            parallax={0.3}
+            noise={0.1}
+            iterations={2}
+            intensity={0.9}
+            bandWidth={6}
+            transparent
+          />
+        </div>
+      )}
       <header className="sticky top-0 z-50 border-b border-paper/10 bg-ink/90 backdrop-blur-md">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4 md:py-5">
           <Link to="/" className="flex items-center gap-3 shrink-0" onClick={() => setMenuOpen(false)}>
