@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { event, speakers, theme } from '../data/site'
 import { Countdown, SpeakerCard, Reveal, Section, Eyebrow, Button } from '../components/ui'
@@ -40,6 +41,7 @@ const manifesto = [
 ]
 
 export default function Home() {
+  const closingBoxRef = useRef(null)
   return (
     <div>
       {/* ── HERO ───────────────────────────────────────────────── */}
@@ -161,6 +163,8 @@ export default function Home() {
             mouseForce={10}
             cursorSize={75}
             resolution={0.5}
+            isBounce={true}
+            obstacleRef={closingBoxRef}
             autoDemo={true}
             autoSpeed={0.5}
             autoIntensity={2.2}
@@ -170,7 +174,10 @@ export default function Home() {
           />
         </div>
         <div className="relative mx-auto max-w-5xl py-24 md:py-32">
-          <Reveal className="mx-auto max-w-2xl rounded-2xl border border-paper/15 bg-ink/70 px-8 py-16 backdrop-blur-md md:px-14">
+          <div
+            ref={closingBoxRef}
+            className="mx-auto max-w-2xl rounded-2xl border border-paper/15 bg-ink px-8 py-16 md:px-14"
+          >
             <Eyebrow>The last step</Eyebrow>
             <h2 className="mt-6 font-display text-5xl leading-[1.02] md:text-6xl">
               Be in the room.
@@ -190,7 +197,7 @@ export default function Home() {
                 our partners
               </Link>
             </p>
-          </Reveal>
+          </div>
         </div>
       </section>
     </div>

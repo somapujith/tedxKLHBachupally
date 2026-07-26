@@ -21,7 +21,8 @@ export default function LiquidEther({
   autoIntensity = 2.2,
   takeoverDuration = 0.25,
   autoResumeDelay = 1000,
-  autoRampDuration = 0.6
+  autoRampDuration = 0.6,
+  obstacleRef = null
 }) {
   const mountRef = useRef(null);
   const webglRef = useRef(null);
@@ -371,10 +372,19 @@ export default function LiquidEther({
     uniform sampler2D velocity;
     uniform float dt;
     uniform bool isBFECC;
+    uniform bool hasObstacle;
+    uniform vec2 obstacleMin;
+    uniform vec2 obstacleMax;
     uniform vec2 fboSize;
     uniform vec2 px;
     varying vec2 uv;
     void main(){
+    if(hasObstacle &&
+       uv.x > obstacleMin.x && uv.x < obstacleMax.x &&
+       uv.y > obstacleMin.y && uv.y < obstacleMax.y){
+        gl_FragColor = vec4(0.0);
+        return;
+    }
     vec2 ratio = max(fboSize.x, fboSize.y) / fboSize;
     if(isBFECC == false){
         vec2 vel = texture2D(velocity, uv).xy;
@@ -534,7 +544,10 @@ export default function LiquidEther({
               fboSize: { value: simProps.fboSize },
               velocity: { value: simProps.src.texture },
               dt: { value: simProps.dt },
-              isBFECC: { value: true }
+              isBFECC: { value: true },
+              hasObstacle: { value: false },
+              obstacleMin: { value: new THREE.Vector2(0, 0) },
+              obstacleMax: { value: new THREE.Vector2(0, 0) }
             }
           },
           output: simProps.dst
@@ -560,10 +573,17 @@ export default function LiquidEther({
         this.line = new THREE.LineSegments(boundaryG, boundaryM);
         this.scene.add(this.line);
       }
-      update({ dt, isBounce, BFECC }) {
+      update({ dt, isBounce, BFECC, obstacle }) {
         this.uniforms.dt.value = dt;
         this.line.visible = isBounce;
         this.uniforms.isBFECC.value = BFECC;
+        if (obstacle) {
+          this.uniforms.hasObstacle.value = true;
+          this.uniforms.obstacleMin.value.set(obstacle.minX, obstacle.minY);
+          this.uniforms.obstacleMax.value.set(obstacle.maxX, obstacle.maxY);
+        } else {
+          this.uniforms.hasObstacle.value = false;
+        }
         super.update();
       }
     }
@@ -859,7 +879,8 @@ export default function LiquidEther({
         this.advection.update({
           dt: this.options.dt,
           isBounce: this.options.isBounce,
-          BFECC: this.options.BFECC
+          BFECC: this.options.BFECC,
+          obstacle: this.options.obstacle
         });
         this.externalForce.update({
           cursor_size: this.options.cursor_size,
@@ -964,10 +985,30 @@ export default function LiquidEther({
         Common.resize();
         this.output.resize();
       }
+      updateObstacle() {
+        const el = obstacleRef && obstacleRef.current;
+        const sim = this.output?.simulation;
+        if (!sim) return;
+        if (!el || !this.props.$wrapper) {
+          sim.options.obstacle = null;
+          return;
+        }
+        const cr = this.props.$wrapper.getBoundingClientRect();
+        if (cr.width === 0 || cr.height === 0) return;
+        const or = el.getBoundingClientRect();
+        // sim uv space: origin bottom-left, so flip y
+        sim.options.obstacle = {
+          minX: (or.left - cr.left) / cr.width,
+          maxX: (or.right - cr.left) / cr.width,
+          minY: 1 - (or.bottom - cr.top) / cr.height,
+          maxY: 1 - (or.top - cr.top) / cr.height
+        };
+      }
       render() {
         if (this.autoDriver) this.autoDriver.update();
         Mouse.update();
         Common.update();
+        this.updateObstacle();
         this.output.update();
       }
       loop() {
