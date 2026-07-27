@@ -9,11 +9,11 @@ export default function Theme() {
   return (
     <div className="relative overflow-hidden">
       {/* Key-art hero — headline is baked into the artwork; capped so it fits without scroll */}
-      <section className="relative overflow-hidden bg-ink">
+      <section className="relative h-[calc(100vh-6rem)] overflow-hidden bg-ink">
         <img
           src={themeHero}
           alt="Technology Evolves. Humanity Leads. — TEDxKLH Bachupally"
-          className="mx-auto block max-h-[calc(100vh-6rem)] w-full object-contain"
+          className="h-full w-full object-cover object-center"
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-ink md:h-28" />
       </section>
