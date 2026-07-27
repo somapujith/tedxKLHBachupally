@@ -1,34 +1,32 @@
 import { Link } from 'react-router-dom'
 import { theme } from '../data/site'
 import { Eyebrow, Reveal } from '../components/ui'
-import { BinaryDrift, RedGlow } from '../components/texture'
-// Giant red TEDx letters against a chalkboard wall of ideas
-import themeHero from '../assets/images/about/theme-hero.jpg'
+import { RedGlow } from '../components/texture'
+// Theme key art: "Technology Evolves. Humanity Leads." over the KLH Bachupally campus
+import themeHero from '../assets/images/about/theme-hero.png'
 
 export default function Theme() {
   return (
     <div className="relative overflow-hidden">
-      {/* Full-bleed photo hero */}
-      <section className="relative flex min-h-[420px] items-center justify-center overflow-hidden md:min-h-[560px]">
+      {/* Full-bleed key-art hero — headline is baked into the artwork */}
+      <section className="relative overflow-hidden">
         <img
           src={themeHero}
-          alt="Giant red TEDx letters on a chalkboard wall covered in hand-drawn ideas"
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          alt="Technology Evolves. Humanity Leads. — TEDxKLH Bachupally"
+          className="block w-full"
         />
-        <div className="absolute inset-0 bg-ink/30" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-ink md:h-32" />
-        <BinaryDrift className="opacity-40" columns={12} />
-        <Reveal className="relative px-6 py-24 text-center md:py-32">
-          <div className="mb-7 flex items-center justify-center gap-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-b from-transparent to-ink md:h-28" />
+      </section>
+
+      {/* Framing line under the key art */}
+      <section className="relative px-6 pt-12 text-center md:pt-16">
+        <Reveal>
+          <div className="mb-5 flex items-center justify-center gap-4">
             <span aria-hidden className="h-px w-10 bg-red md:w-16" />
             <Eyebrow>{theme.eyebrow}</Eyebrow>
             <span aria-hidden className="h-px w-10 bg-red md:w-16" />
           </div>
-          <h1 className="mx-auto max-w-5xl font-display font-black leading-[0.98] tracking-tight drop-shadow-[0_2px_24px_rgba(0,0,0,0.8)]">
-            <span className="block text-4xl md:text-7xl">{theme.h1[0]}</span>
-            <span className="mt-3 block text-4xl text-red md:mt-5 md:text-7xl">{theme.h1[1]}</span>
-          </h1>
-          <p className="mx-auto mt-7 max-w-xl text-sm leading-relaxed text-paper/60 md:text-base">
+          <p className="mx-auto max-w-xl text-sm leading-relaxed text-paper/60 md:text-base">
             Every generation negotiates with its tools. Ours is the first asked to negotiate with
             something that answers back.
           </p>
