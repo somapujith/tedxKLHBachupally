@@ -4,6 +4,11 @@
 #
 # Secrets (sync: false) are NOT stored in git — set each in the Render dashboard
 # under the service's Environment tab before the first deploy.
+#
+# IMPORTANT: the service's "Root Directory" setting must be BLANK (repo root).
+# There is no server/package.json, so `npm ci` and the start command only resolve
+# from the repo root. Setting Root Directory to "server" makes Render look for
+# server/server/index.js and the deploy exits with MODULE_NOT_FOUND.
 services:
   - type: web
     name: tedx-api
@@ -11,7 +16,7 @@ services:
     plan: free
     region: singapore
     buildCommand: npm ci
-    startCommand: node server/index.js
+    startCommand: npm start
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:
