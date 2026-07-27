@@ -25,7 +25,7 @@ export default function About() {
   return (
     <div className="relative overflow-hidden">
       {/* Full-bleed photo hero */}
-      <section className="relative flex min-h-[420px] items-center justify-center overflow-hidden md:min-h-[560px]">
+      <section className="relative flex min-h-[calc(100vh-6rem)] items-center justify-center overflow-hidden">
         <img
           src={aboutHero}
           alt=""
