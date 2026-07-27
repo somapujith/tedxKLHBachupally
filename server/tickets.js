@@ -87,6 +87,14 @@ async function claimEmailSend(sql, id, { force }) {
 // to NULL — that rollback is precisely why the registrations row alone cannot
 // tell you an email was ever attempted.
 export async function issueTicket(registrationId, { force = false, triggeredBy = 'system' } = {}) {
+  // Tracked outside the try so the catch knows whether a send was claimed and
+  // therefore whether it must be released. Without this, an exception thrown
+  // AFTER the claim (a missing signing secret, a QR encode failure) left
+  // ticket_email_sent_at stamped with no email ever sent — the row then reads as
+  // delivered, no retry can re-claim it, and the "paid but never emailed" query
+  // silently skips that attendee. A claim that did not result in a send is a
+  // lie, so it is always rolled back.
+  let claimedReg = null
   try {
     const sql = getSql()
     const rows = await sql`
@@ -111,6 +119,7 @@ export async function issueTicket(registrationId, { force = false, triggeredBy =
     if (!claimed) {
       return { ok: true, emailed: false }
     }
+    claimedReg = reg
 
     const token = signTicket(reg, reg.ticket_jti)
     const qrPngBuffer = await QRCode.toBuffer(token, { width: 480, margin: 2 })
@@ -154,6 +163,27 @@ export async function issueTicket(registrationId, { force = false, triggeredBy =
     return { ok: true, emailed: true }
   } catch (err) {
     console.error('issueTicket failed:', err)
+    // Release the claim and record why. Both are best-effort and individually
+    // guarded: if the database is what failed in the first place, these will
+    // fail too, and neither may mask the original error.
+    if (claimedReg) {
+      try {
+        await getSql()`UPDATE registrations SET ticket_email_sent_at = NULL WHERE id = ${claimedReg.id}`
+      } catch (rollbackErr) {
+        console.error('Could not release the email claim:', rollbackErr?.message || rollbackErr)
+      }
+      await recordEmail({
+        registrationId: claimedReg.id,
+        toEmail: claimedReg.email,
+        fullName: claimedReg.full_name,
+        status: 'failed',
+        // The thrown message, verbatim. Previously this path recorded nothing at
+        // all, so a failure before the provider call was invisible in the log —
+        // the exact blind spot that made this bug take a production 502 to find.
+        error: String(err?.message || err),
+        triggeredBy,
+      })
+    }
     return { ok: false }
   }
 }
