@@ -133,7 +133,11 @@ export async function issueTicket(registrationId, { force = false, triggeredBy =
         // rejection; keeping them apart stops a misconfigured deploy from
         // reading as hundreds of bounced emails.
         status: sent.skipped ? 'skipped' : 'failed',
-        error: sent.skipped ? 'RESEND_API_KEY is not configured.' : sent.error || 'Email send failed.',
+        // The provider's own message (sent.detail), not our generic one — this
+        // column is the only durable record of WHY a pass never arrived.
+        error: sent.skipped
+          ? 'RESEND_API_KEY is not configured.'
+          : sent.detail || sent.error || 'Email send failed.',
         triggeredBy,
       })
       return { ok: true, emailed: false }

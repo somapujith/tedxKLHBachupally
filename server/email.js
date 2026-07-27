@@ -187,15 +187,21 @@ export async function sendTicketEmail({ to, fullName, qrPngBuffer, registrationI
 
     if (error) {
       console.error('Ticket email rejected by Resend:', error.name, error.message)
-      return { ok: false, error: 'Email send failed.' }
+      // `detail` carries the provider's own words into email_log. Collapsing
+      // every failure to "Email send failed." is what made the first outage
+      // undiagnosable: the log proved a send was rejected but not why, and the
+      // real reason (domain_not_verified, a test-mode recipient restriction, an
+      // invalid key) lived only in a console line nobody was tailing. This value
+      // is read back only by a superadmin, never returned to a public client.
+      return { ok: false, error: 'Email send failed.', detail: `${error.name}: ${error.message}` }
     }
     if (!data?.id) {
       console.error('Ticket email returned no message id.')
-      return { ok: false, error: 'Email send failed.' }
+      return { ok: false, error: 'Email send failed.', detail: 'Provider returned no message id.' }
     }
     return { ok: true, id: data.id }
   } catch (err) {
     console.error('Ticket email send failed:', err?.message || err)
-    return { ok: false, error: 'Email send failed.' }
+    return { ok: false, error: 'Email send failed.', detail: String(err?.message || err) }
   }
 }
