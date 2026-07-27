@@ -26,6 +26,7 @@ import photoSanuhya from '../assets/images/team/sanuhya.jpg'
 import photoShreyas from '../assets/images/team/shreyas.jpg'
 import photoShareef from '../assets/images/team/shareef.png'
 import photoSrikar from '../assets/images/team/srikar.jpg'
+import photoTarun from '../assets/images/team/tarun.jpg'
 
 export const nav = [
   { label: 'Theme', to: '/theme' },
@@ -161,7 +162,7 @@ export const team = [
   { name: 'Tanmai', dept: 'Hospitality', photo: photoTanmai, photoPos: '70% 25%' },
   { name: 'Yashwant', dept: 'Hospitality', photo: photoYashwant },
   { name: 'Dhanvin', dept: 'Hospitality', photo: photoDhanvin },
-  { name: 'Tarun', dept: 'Hospitality', photo: null },
+  { name: 'Tarun', dept: 'Hospitality', photo: photoTarun },
   { name: 'Ganesh', dept: 'Hospitality', photo: null },
   { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
   { name: 'Pujith', dept: 'Hospitality', photo: photoPujith },
