@@ -13,6 +13,8 @@
 // NOT idempotent, so those are sent with retries: 0 — a network blip must not
 // silently create two rows or two orders.
 
+import { apiUrl } from './apiBase.js'
+
 const DEFAULT_TIMEOUT_MS = 15000
 
 class ApiError extends Error {
@@ -95,7 +97,7 @@ export async function apiFetch(path, options = {}) {
 
     let res
     try {
-      res = await fetch(path, { ...init, signal: controller.signal })
+      res = await fetch(apiUrl(path), { ...init, signal: controller.signal })
     } catch {
       // Network failure or timeout abort. Retry if attempts remain.
       lastError = new ApiError(

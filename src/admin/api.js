@@ -2,6 +2,8 @@
 // All admin endpoints may return non-JSON on a crash, so parsing never throws
 // raw JSON errors at the UI; it degrades to a clean {ok:false, error} shape.
 
+import { apiUrl } from '../lib/apiBase.js'
+
 const TOKEN_KEY = 'tedx_admin_token'
 const NAME_KEY = 'tedx_admin_name'
 
@@ -44,7 +46,7 @@ async function readJson(res) {
 export async function adminFetch(path, options = {}) {
   let res
   try {
-    res = await fetch(path, {
+    res = await fetch(apiUrl(path), {
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -67,7 +69,7 @@ export async function adminFetch(path, options = {}) {
 }
 
 export async function login(username, password) {
-  const res = await fetch('/api/admin/login', {
+  const res = await fetch(apiUrl('/api/admin/login'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),

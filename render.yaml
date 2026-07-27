@@ -1,0 +1,45 @@
+# Render blueprint — Express API for TEDxKLH Bachupally.
+# The frontend deploys separately on Vercel and calls this service via
+# VITE_API_BASE_URL. Render injects PORT automatically; server/index.js reads it.
+#
+# Secrets (sync: false) are NOT stored in git — set each in the Render dashboard
+# under the service's Environment tab before the first deploy.
+services:
+  - type: web
+    name: tedx-api
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci
+    startCommand: node server/index.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # --- Database (Neon) ---
+      - key: DATABASE_URL
+        sync: false
+      # --- Auth / tickets (long random secrets) ---
+      - key: ADMIN_JWT_SECRET
+        sync: false
+      - key: TICKET_JWT_SECRET
+        sync: false
+      # --- CORS allow-lists: set BOTH to the Vercel frontend origin ---
+      # e.g. https://tedx-klh-bachupally.vercel.app
+      - key: ADMIN_ALLOWED_ORIGIN
+        sync: false
+      - key: PUBLIC_ALLOWED_ORIGIN
+        sync: false
+      # --- Razorpay ---
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      # --- Email (Mailchimp Transactional) ---
+      - key: MAILCHIMP_TRANSACTIONAL_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        sync: false
