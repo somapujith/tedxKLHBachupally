@@ -89,6 +89,19 @@ describe('createOrder (real Razorpay test API)', () => {
     expect(res.status).toBe(404)
   })
 
+  // The 404 case above passes a well-formed uuid, so it never reached the driver
+  // with bad input. `id` is a uuid column: a malformed value makes Postgres throw
+  // (22P02) instead of matching no rows, which the route turned into a 500.
+  it.each([
+    ['a non-uuid string', 'not-a-uuid'],
+    ['a numeric id', 999999999],
+    ['a sql-ish payload', "' OR 1=1 --"],
+  ])('rejects %s with 400, not a thrown 500', async (_label, id) => {
+    const res = await createOrder({ registrationId: id })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
+  })
+
   it('creates a Razorpay order and binds it to the registration', async () => {
     const reg = await createRegistration(validReg('order'))
     const res = await createOrder({ registrationId: reg.registration.id })

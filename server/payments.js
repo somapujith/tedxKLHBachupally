@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import Razorpay from 'razorpay'
-import { getSql, ensureSchemaOnce, withDbRetry } from './db.js'
+import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
 
 // Razorpay's SDK has no built-in timeout — a slow API call would otherwise hang
@@ -79,6 +79,11 @@ function safeEqual(expected, actual) {
 export async function createOrder({ registrationId }) {
   if (!registrationId) {
     return { ok: false, status: 400, error: 'Missing registration id.' }
+  }
+  // Shape-check before the query: a non-uuid id makes Postgres throw rather than
+  // return zero rows, turning a client mistake into a 500. See isUuid().
+  if (!isUuid(registrationId)) {
+    return { ok: false, status: 400, error: 'Invalid registration id.' }
   }
 
   const sql = getSql()

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { getSql } from './db.js'
+import { getSql, isUuid } from './db.js'
 import { verifyTicket, issueTicket } from './tickets.js'
 import { seatCapacity } from './payments.js'
 
@@ -201,6 +201,11 @@ export async function checkInTicket({ token, adminName }) {
 export async function resendTicket({ registrationId }) {
   if (!registrationId) {
     return { ok: false, status: 400, error: 'Missing registration id.' }
+  }
+  // Same uuid shape gate as createOrder — a malformed id must be a 400, not a
+  // thrown Postgres error surfacing as a 500. See isUuid().
+  if (!isUuid(registrationId)) {
+    return { ok: false, status: 400, error: 'Invalid registration id.' }
   }
 
   const sql = getSql()

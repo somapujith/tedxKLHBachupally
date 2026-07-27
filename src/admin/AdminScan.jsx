@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
-import { Eyebrow } from '../components/ui'
 import { adminFetch, getToken } from './api'
+import { Button, Card, Field } from './ui'
 
 const READER_ID = 'admin-qr-reader'
 const DUPLICATE_WINDOW_MS = 3000
@@ -104,60 +104,60 @@ export default function AdminScan() {
   }
 
   return (
-    <div className="min-h-screen bg-ink text-paper">
-      <header className="sticky top-0 z-40 border-b border-paper/15 bg-ink/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
-          <div>
-            <Eyebrow>Gate check-in</Eyebrow>
-            <div className="mt-1 font-display text-xl tracking-tight">Scan passes</div>
+    <div className="min-h-screen bg-ink font-body text-paper">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-ink/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-2xl items-center justify-between gap-4 px-4 sm:px-6">
+          <div className="flex items-center gap-2.5">
+            <span aria-hidden className="h-2 w-2 rounded-full bg-red" />
+            <span className="text-sm font-semibold tracking-tight">Gate check-in</span>
           </div>
           <Link
             to="/admin"
-            className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/55 transition-colors hover:text-red"
+            className="rounded-lg px-2.5 py-1.5 text-sm text-paper/55 transition-colors hover:bg-white/[0.06] hover:text-paper"
           >
-            ← Dashboard
+            Close
           </Link>
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-6 py-8 space-y-6">
-        {/* Viewfinder — html5-qrcode injects its video here. */}
-        <div className={result ? 'hidden' : ''}>
-          <div id={READER_ID} className="w-full overflow-hidden border border-paper/20 bg-black" />
-          {!cameraError && (
-            <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">
-              {busy ? 'Checking ticket…' : 'Point the camera at the attendee’s QR pass'}
-            </p>
-          )}
+      <main className="mx-auto max-w-2xl space-y-4 px-4 py-7 sm:px-6">
+        {/* Viewfinder — html5-qrcode injects its video into READER_ID. The square
+            wrapper reserves the space so the frame does not collapse to a hairline
+            while the camera is still starting. */}
+        <div className={result || cameraError ? 'hidden' : 'space-y-3'}>
+          <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-black">
+            <div className="absolute inset-0 grid place-items-center text-sm text-paper/35">Starting camera…</div>
+            <div
+              id={READER_ID}
+              className="relative h-full w-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
+            />
+          </div>
+          <p className="text-center text-sm text-paper/45">
+            {busy ? 'Checking ticket…' : 'Point the camera at the attendee’s QR pass'}
+          </p>
         </div>
 
         {cameraError && !result && (
-          <div className="space-y-4 border border-amber-400/40 bg-amber-400/5 p-5">
-            <p className="text-sm leading-relaxed text-amber-200">{cameraError}</p>
+          <Card className="space-y-4 p-5">
+            <p className="rounded-lg border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm leading-relaxed text-amber-200">
+              {cameraError}
+            </p>
             <form onSubmit={onManualSubmit} className="space-y-3">
-              <label
-                htmlFor="manual-token"
-                className="block font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40"
-              >
-                Ticket code
-              </label>
-              <textarea
-                id="manual-token"
-                rows={3}
-                value={manualToken}
-                onChange={(e) => setManualToken(e.target.value)}
-                placeholder="Paste the QR token here"
-                className="w-full resize-y rounded-none border border-paper/25 bg-transparent px-3 py-2 font-mono text-sm text-paper placeholder:text-paper/30 focus:border-red focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={busy || !manualToken.trim()}
-                className="w-full border border-red bg-red px-6 py-3 font-mono text-xs uppercase tracking-widest text-paper transition-opacity disabled:opacity-40"
-              >
+              <Field id="manual-token" label="Ticket code">
+                <textarea
+                  id="manual-token"
+                  rows={3}
+                  value={manualToken}
+                  onChange={(e) => setManualToken(e.target.value)}
+                  placeholder="Paste the QR token here"
+                  className="w-full resize-y rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 font-mono text-sm text-paper transition-colors placeholder:text-paper/30 hover:border-white/20 focus:border-red/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red/60 focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
+                />
+              </Field>
+              <Button type="submit" variant="primary" size="lg" disabled={busy || !manualToken.trim()} className="w-full">
                 {busy ? 'Checking…' : 'Check in'}
-              </button>
+              </Button>
             </form>
-          </div>
+          </Card>
         )}
 
         {result && <ScanResult result={result} onNext={scanNext} />}
@@ -166,63 +166,94 @@ export default function AdminScan() {
   )
 }
 
-function ScanResult({ result, onNext }) {
-  const panels = {
-    verified: {
-      frame: 'border-emerald-500 bg-emerald-500/10',
-      badge: 'text-emerald-400',
-      title: '✓ VERIFIED',
-    },
-    used: {
-      frame: 'border-red bg-red/10',
-      badge: 'text-red',
-      title: '✗ ALREADY USED',
-    },
-    invalid: {
-      frame: 'border-red bg-red/10',
-      badge: 'text-red',
-      title: '✗ INVALID TICKET',
-    },
+function fmtCheckedIn(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  return Number.isNaN(d.getTime())
+    ? String(value)
+    : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })
+}
+
+const PANELS = {
+  verified: {
+    frame: 'border-emerald-400/30 bg-emerald-400/[0.07]',
+    accent: 'text-emerald-300',
+    chip: 'bg-emerald-400/15 text-emerald-300',
+    title: 'Verified',
+    glyph: 'check',
+  },
+  used: {
+    frame: 'border-amber-400/30 bg-amber-400/[0.07]',
+    accent: 'text-amber-300',
+    chip: 'bg-amber-400/15 text-amber-300',
+    title: 'Already checked in',
+    glyph: 'alert',
+  },
+  invalid: {
+    frame: 'border-red/30 bg-red/[0.08]',
+    accent: 'text-red',
+    chip: 'bg-red/15 text-red',
+    title: 'Invalid ticket',
+    glyph: 'cross',
+  },
+}
+
+function Glyph({ kind }) {
+  const paths = {
+    check: <path d="M5 12.5l4.5 4.5L19 7.5" strokeLinecap="round" strokeLinejoin="round" />,
+    alert: (
+      <>
+        <path d="M12 7v6" strokeLinecap="round" />
+        <circle cx="12" cy="17" r="1" fill="currentColor" stroke="none" />
+      </>
+    ),
+    cross: <path d="M7 7l10 10M17 7L7 17" strokeLinecap="round" />,
   }
-  const p = panels[result.kind] ?? panels.invalid
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="h-8 w-8" aria-hidden>
+      {paths[kind]}
+    </svg>
+  )
+}
+
+function ScanResult({ result, onNext }) {
+  const panel = PANELS[result.kind] ?? PANELS.invalid
   const attendee = result.attendee ?? {}
 
   return (
-    <div className={`border-4 p-8 text-center ${p.frame}`} role="status" aria-live="assertive">
-      <div className={`font-display text-4xl font-bold tracking-tight sm:text-5xl ${p.badge}`}>
-        {p.title}
+    <div className={`rounded-2xl border p-6 text-center sm:p-8 ${panel.frame}`} role="status" aria-live="assertive">
+      <div className={`mx-auto flex h-14 w-14 items-center justify-center rounded-full ${panel.chip}`}>
+        <Glyph kind={panel.glyph} />
       </div>
 
+      <div className={`mt-4 text-2xl font-semibold tracking-tight sm:text-3xl ${panel.accent}`}>{panel.title}</div>
+
       {result.kind === 'verified' && (
-        <div className="mt-6 space-y-2">
-          <div className="font-display text-3xl tracking-tight text-paper">{attendee.full_name ?? '—'}</div>
-          <div className="font-mono text-sm uppercase tracking-[0.2em] text-paper/60">
-            {attendee.designation ?? '—'}
+        <div className="mt-5">
+          <div className="text-2xl font-semibold tracking-tight text-paper sm:text-3xl">
+            {attendee.full_name ?? '—'}
           </div>
+          <div className="mt-1 text-sm capitalize text-paper/50">{attendee.designation ?? '—'}</div>
         </div>
       )}
 
       {result.kind === 'used' && (
-        <div className="mt-6 space-y-2 text-paper/80">
-          <div className="font-display text-2xl tracking-tight text-paper">{attendee.full_name ?? '—'}</div>
-          <div className="text-sm">
-            Checked in {attendee.checked_in_at ? new Date(attendee.checked_in_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '—'}
+        <div className="mt-5">
+          <div className="text-xl font-semibold tracking-tight text-paper sm:text-2xl">
+            {attendee.full_name ?? '—'}
+          </div>
+          <div className="mt-1 text-sm text-paper/50">
+            {fmtCheckedIn(attendee.checked_in_at)}
             {attendee.checked_in_by ? ` · by ${attendee.checked_in_by}` : ''}
           </div>
         </div>
       )}
 
-      {result.kind === 'invalid' && (
-        <p className="mt-4 text-sm text-paper/70">{result.error}</p>
-      )}
+      {result.kind === 'invalid' && <p className="mt-4 text-sm text-paper/60">{result.error}</p>}
 
-      <button
-        type="button"
-        onClick={onNext}
-        className="mt-8 w-full border border-paper/40 px-6 py-4 font-mono text-xs uppercase tracking-widest text-paper transition-colors hover:border-paper hover:bg-paper/10"
-      >
-        Scan next →
-      </button>
+      <Button variant="primary" size="lg" onClick={onNext} className="mt-7 w-full">
+        Scan next
+      </Button>
     </div>
   )
 }

@@ -23,9 +23,12 @@ const ROUTES = [
   ['/events/1/gallery', /Understanding what makes us uniquely/i],
   ['/events/1/experience', /Idea Lounge/i],
   ['/theme', /The machine learned to dream\./i],
-  ['/about-tedxklh', /Built by students\./i],
-  ['/about-ted', /About TED\./i],
-  ['/about-tedx', /About TEDx\./i],
+  // The three about-* URLs are aliases of ONE consolidated About page (the nav
+  // links only to /about-tedxklh; the other two exist so old links keep working),
+  // so they assert the same page content on purpose — see the alias test below.
+  ['/about-tedxklh', /About TED & TEDx/i],
+  ['/about-ted', /About TED & TEDx/i],
+  ['/about-tedx', /About TED & TEDx/i],
   ['/team', /One stage\./i],
   ['/blog', /Notes from behind the red dot\./i],
   ['/partners', /The companies in the room\./i],
@@ -46,12 +49,16 @@ describe('every route renders its own page content', () => {
     expect(screen.getByText(/There's no talk here\./i)).toBeInTheDocument()
   })
 
-  it('the about tab routes render DISTINCT content (not the same page)', () => {
-    renderAt('/about-ted')
-    expect(screen.getByText('About TED.')).toBeInTheDocument()
-    renderAt('/about-tedx')
-    expect(screen.getByText('About TEDx.')).toBeInTheDocument()
-    renderAt('/about-tedxklh')
-    expect(screen.getByText('Built by students.')).toBeInTheDocument()
+  // The About page was consolidated from three tab pages into one. The two legacy
+  // URLs must keep resolving to that page rather than falling through to the 404
+  // route — this fails the moment someone deletes an alias from App.jsx.
+  it('the legacy about-* URLs are aliases of the one About page, not 404s', () => {
+    for (const path of ['/about-ted', '/about-tedx', '/about-tedxklh']) {
+      const { unmount } = renderAt(path)
+      expect(screen.getByRole('heading', { name: /is a student-run ideas community/i }))
+        .toBeInTheDocument()
+      expect(screen.queryByText(/There's no talk here\./i)).not.toBeInTheDocument()
+      unmount()
+    }
   })
 })

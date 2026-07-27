@@ -19,7 +19,10 @@ describe('App routing', () => {
 
   it('renders the theme page', () => {
     renderAt('/theme')
-    expect(screen.getByText(/EVOLVES/i)).toBeInTheDocument()
+    // The theme headline is baked into the key-art image, so it is reachable as
+    // alt text rather than as a text node. Asserting the alt keeps the headline
+    // covered AND fails if the artwork is swapped for one that drops it.
+    expect(screen.getByAltText(/Technology Evolves\. Humanity Leads\./i)).toBeInTheDocument()
   })
 
   it('renders the team page', () => {
@@ -38,14 +41,11 @@ describe('App routing', () => {
     expect(screen.getByText('Ananya Rao')).toBeInTheDocument()
   })
 
-  it('renders distinct content per About tab route', () => {
-    renderAt('/about-ted')
-    expect(screen.getByText('About TED.')).toBeInTheDocument()
-
-    renderAt('/about-tedx')
-    expect(screen.getByText('About TEDx.')).toBeInTheDocument()
-
-    renderAt('/about-tedxklh')
-    expect(screen.getByText('Built by students.')).toBeInTheDocument()
+  it('serves the consolidated About page on every legacy about-* URL', () => {
+    for (const path of ['/about-ted', '/about-tedx', '/about-tedxklh']) {
+      const { unmount } = renderAt(path)
+      expect(screen.getByText('About TED & TEDx')).toBeInTheDocument()
+      unmount()
+    }
   })
 })

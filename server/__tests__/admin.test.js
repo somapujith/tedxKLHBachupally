@@ -4,7 +4,7 @@
 import 'dotenv/config'
 import crypto from 'node:crypto'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import { loginAdmin, requireAdmin, checkInTicket } from '../admin.js'
+import { loginAdmin, requireAdmin, checkInTicket, resendTicket } from '../admin.js'
 import { signTicket } from '../tickets.js'
 
 const ORIGINAL_ADMIN_SECRET = process.env.ADMIN_JWT_SECRET
@@ -55,6 +55,27 @@ describe.skipIf(!hasDb)('loginAdmin — unknown user (uniform 401)', () => {
     expect(res.error).toMatch(/invalid credentials/i)
     // No account-enumeration signal leaks (no "user not found" vs "bad password").
     expect(res.token).toBeUndefined()
+  })
+})
+
+// `registrations.id` is a uuid column, so a malformed id makes Postgres throw
+// (22P02) rather than match no rows — which the route surfaced as a 500. These
+// run without a DB because the shape gate returns before any query is issued.
+describe('resendTicket — registration id shape gate', () => {
+  it('returns 400 when the id is missing', async () => {
+    const res = await resendTicket({ registrationId: null })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
+  })
+
+  it.each([
+    ['a non-uuid string', 'not-a-uuid'],
+    ['a numeric id', 999999999],
+    ['a sql-ish payload', "' OR 1=1 --"],
+  ])('rejects %s with 400, not a thrown 500', async (_label, id) => {
+    const res = await resendTicket({ registrationId: id })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
   })
 })
 

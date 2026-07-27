@@ -1,5 +1,16 @@
 import { neon } from '@neondatabase/serverless'
 
+// `registrations.id` is a uuid column, so Postgres rejects any non-uuid value with
+// a 22P02 invalid_text_representation error rather than simply matching no rows.
+// Callers that take an id straight off a request body must therefore check the
+// shape BEFORE querying: without this, a client sending `id: "abc"` (a stale or
+// tampered value, or a scripted probe) turns a plain "not found" into a thrown
+// driver error — surfacing as a 500 and logging a Postgres stack on every hit.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export function isUuid(value) {
+  return typeof value === 'string' && UUID_RE.test(value)
+}
+
 // A single neon() client per cold start. The Neon serverless driver talks to the
 // DB over stateless HTTP (no persistent TCP pool), so this is safe to reuse and
 // avoids re-parsing the connection string on every query. Under a 500-user burst

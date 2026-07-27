@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminFetch, getToken } from './api'
+import { Alert, Card, Label, RefreshBar } from './ui'
 
 function fmtRupees(paise) {
   const n = Number(paise)
@@ -8,9 +9,16 @@ function fmtRupees(paise) {
   return `₹${(n / 100).toLocaleString('en-IN')}`
 }
 
+function pct(part, whole) {
+  const a = Number(part)
+  const b = Number(whole)
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= 0) return null
+  return Math.min(100, Math.round((a / b) * 100))
+}
+
 // Stats + breakdowns only. The registrations list lives on its own screen
-// (AdminRegistrations); the shared chrome (top bar, bottom nav) is provided by
-// AdminShell, so this screen renders just its content into the shell's <Outlet/>.
+// (AdminRegistrations); the shared chrome (top bar, page title, bottom nav) is
+// provided by AdminShell, so this screen renders just its content.
 export default function AdminDashboard() {
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
@@ -19,6 +27,7 @@ export default function AdminDashboard() {
   const [refreshedAt, setRefreshedAt] = useState(null)
 
   const load = useCallback(async () => {
+    setLoading(true)
     const res = await adminFetch('/api/admin/stats')
     if (res.ok) setStats(res.data.stats)
     setError(res.ok ? '' : res.data.error || 'Could not load stats.')
@@ -42,90 +51,85 @@ export default function AdminDashboard() {
     return () => clearInterval(id)
   }, [load])
 
+  const filled = pct(stats?.paid, stats?.capacity)
+
   return (
-    <div className="space-y-8 md:space-y-12">
-      {error && (
-        <p role="alert" className="border-l-2 border-red bg-red/5 px-4 py-3 text-sm text-red">
-          {error}
-        </p>
-      )}
+    <div className="space-y-6">
+      {error && <Alert>{error}</Alert>}
 
-      <StatCards stats={stats} />
+      <RefreshBar left="Auto-refreshes every 30 seconds" refreshedAt={refreshedAt} loading={loading} onRefresh={load} />
 
-      <div className="grid gap-6 md:grid-cols-2 md:gap-8">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat
+          label="Paid seats"
+          value={stats ? String(stats.paid ?? 0) : null}
+          sub={stats?.capacity ? `of ${stats.capacity} capacity` : null}
+          progress={filled}
+        />
+        <Stat label="Checked in" value={stats ? String(stats.checkedIn ?? 0) : null} sub="At the gate" />
+        <Stat label="Pending" value={stats ? String(stats.pending ?? 0) : null} sub="Payment not completed" />
+        <Stat label="Revenue" value={stats ? fmtRupees(stats.revenue) : null} sub="Collected via Razorpay" />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
         <Breakdown title="By designation" items={stats?.byDesignation} nameKey="designation" />
         <Breakdown title="By college" items={stats?.byCollege} nameKey="college" />
       </div>
 
-      <div className="flex items-center justify-between">
-        <Link
-          to="/admin/registrations"
-          className="border border-paper/25 px-4 py-2 font-mono text-[11px] uppercase tracking-[0.18em] text-paper/70 transition-colors hover:border-red hover:text-red"
-        >
-          View registrations →
-        </Link>
-        <div className="flex items-center gap-3">
-          {refreshedAt && (
-            <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-paper/30">
-              {refreshedAt.toLocaleTimeString('en-IN')}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={load}
-            className="border border-paper/25 px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-paper/70 transition-colors hover:border-red hover:text-red"
-          >
-            {loading ? 'Loading…' : 'Refresh'}
-          </button>
-        </div>
-      </div>
+      <Link
+        to="/admin/registrations"
+        className="inline-flex h-10 items-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-paper/80 transition-colors hover:bg-white/[0.08] hover:text-paper"
+      >
+        View all registrations
+      </Link>
     </div>
   )
 }
 
-function StatCards({ stats }) {
-  const cards = [
-    { label: 'Paid seats', value: stats ? `${stats.paid ?? 0} / ${stats.capacity ?? '—'}` : '—' },
-    { label: 'Checked in', value: stats ? stats.checkedIn ?? 0 : '—' },
-    { label: 'Pending', value: stats ? stats.pending ?? 0 : '—' },
-    { label: 'Revenue', value: stats ? fmtRupees(stats.revenue) : '—' },
-  ]
+function Stat({ label, value, sub, progress }) {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-      {cards.map((c) => (
-        <div key={c.label} className="relative border border-paper/15 bg-paper/[0.02] p-4 sm:p-5">
-          <span aria-hidden className="absolute left-0 top-0 h-px w-5 bg-red" />
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/45">{c.label}</div>
-          <div className="mt-2 font-display text-2xl tabular-nums tracking-tight sm:text-3xl">{c.value}</div>
+    <Card className="p-4 sm:p-5">
+      <Label>{label}</Label>
+      <div className="mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums sm:text-3xl">
+        {value ?? <span className="inline-block h-6 w-16 animate-pulse rounded bg-white/10 align-middle" />}
+      </div>
+      {typeof progress === 'number' && (
+        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
+          <div className="h-full rounded-full bg-red transition-[width] duration-500" style={{ width: `${progress}%` }} />
         </div>
-      ))}
-    </div>
+      )}
+      {sub && <div className="mt-2 text-xs text-paper/40">{sub}</div>}
+    </Card>
   )
 }
 
 function Breakdown({ title, items, nameKey }) {
   const list = Array.isArray(items) ? items : []
   const max = Math.max(1, ...list.map((i) => Number(i.count) || 0))
+
   return (
-    <div className="border border-paper/15 bg-paper/[0.02] p-5">
-      <div className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/45">{title}</div>
-      {list.length === 0 && <p className="text-sm text-paper/40">No data yet.</p>}
-      <ul className="space-y-3">
-        {list.map((item) => {
-          const count = Number(item.count) || 0
-          return (
-            <li key={item[nameKey] ?? '—'}>
-              <div className="mb-1 flex items-baseline justify-between gap-4 text-sm">
-                <span className="truncate text-paper/80">{item[nameKey] ?? '—'}</span>
-                <span className="font-mono text-xs tabular-nums text-paper/55">{count}</span>
-              </div>
-              <div className="h-1 w-full bg-paper/10">
-                <div className="h-1 bg-red" style={{ width: `${(count / max) * 100}%` }} />
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </div>
+    <Card className="p-5">
+      <Label>{title}</Label>
+      {list.length === 0 ? (
+        <p className="mt-4 text-sm text-paper/35">No data yet.</p>
+      ) : (
+        <ul className="mt-4 space-y-3.5">
+          {list.map((item) => {
+            const count = Number(item.count) || 0
+            return (
+              <li key={item[nameKey] ?? '—'}>
+                <div className="mb-1.5 flex items-baseline justify-between gap-4 text-sm">
+                  <span className="truncate capitalize text-paper/75">{item[nameKey] ?? '—'}</span>
+                  <span className="flex-none tabular-nums text-paper/45">{count}</span>
+                </div>
+                <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.07]">
+                  <div className="h-full rounded-full bg-red/70" style={{ width: `${(count / max) * 100}%` }} />
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Card>
   )
 }

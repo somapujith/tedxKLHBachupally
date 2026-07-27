@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Eyebrow, Button } from '../components/ui'
 import { getToken, login } from './api'
+import { Alert, Button, Card, Field, Input } from './ui'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
@@ -37,70 +37,48 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-ink text-paper flex items-center justify-center px-6">
-      <div className="w-full max-w-sm border border-paper/15 bg-paper/[0.02] p-8">
-        <Eyebrow className="mb-3">TEDxKLH Bachupally · Admin</Eyebrow>
-        <h1 className="mb-8 font-display text-3xl tracking-tight">Sign in.</h1>
+    <div className="flex min-h-screen items-center justify-center bg-ink px-5 py-12 font-body text-paper">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex items-center gap-2.5">
+          <span aria-hidden className="h-2 w-2 rounded-full bg-red" />
+          <span className="text-sm font-semibold tracking-tight">TEDxKLH</span>
+          <span className="text-sm text-paper/35">Admin</span>
+        </div>
 
-        <form onSubmit={onSubmit} className="space-y-6" noValidate>
-          <LoginField
-            id="admin-username"
-            label="Username"
-            value={form.username}
-            autoComplete="username"
-            onChange={(v) => update('username', v)}
-          />
-          <LoginField
-            id="admin-password"
-            label="Password"
-            type="password"
-            value={form.password}
-            autoComplete="current-password"
-            onChange={(v) => update('password', v)}
-          />
+        <Card className="p-6">
+          <h1 className="text-xl font-semibold tracking-tight">Sign in</h1>
+          <p className="mt-1 text-sm text-paper/45">Authorized crew only.</p>
 
-          {error && (
-            <p role="alert" className="border-l-2 border-red bg-red/5 px-4 py-3 text-sm text-red">
-              {error}
-            </p>
-          )}
+          <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
+            <Field id="admin-username" label="Username">
+              <Input
+                id="admin-username"
+                value={form.username}
+                autoComplete="username"
+                onChange={(e) => update('username', e.target.value)}
+                required
+              />
+            </Field>
 
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={submitting}
-            className="w-full !font-montserrat text-[11px] font-medium !tracking-[0.2em]"
-          >
-            {submitting ? 'Signing in…' : 'Sign in →'}
-          </Button>
-        </form>
+            <Field id="admin-password" label="Password">
+              <Input
+                id="admin-password"
+                type="password"
+                value={form.password}
+                autoComplete="current-password"
+                onChange={(e) => update('password', e.target.value)}
+                required
+              />
+            </Field>
 
-        <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/35">
-          Authorized crew only
-        </p>
+            {error && <Alert>{error}</Alert>}
+
+            <Button type="submit" variant="primary" size="lg" disabled={submitting} className="w-full">
+              {submitting ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+        </Card>
       </div>
-    </div>
-  )
-}
-
-function LoginField({ id, label, value, onChange, type = 'text', autoComplete }) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-2 block font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40"
-      >
-        {label}
-      </label>
-      <input
-        id={id}
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete={autoComplete}
-        required
-        className="w-full rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 text-paper transition-colors focus:border-red focus:outline-none"
-      />
     </div>
   )
 }
