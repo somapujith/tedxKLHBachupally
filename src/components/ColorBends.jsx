@@ -173,11 +173,25 @@ export default function ColorBends({
     const mesh = new THREE.Mesh(geometry, material)
     scene.add(mesh)
 
-    const renderer = new THREE.WebGLRenderer({
-      antialias: false,
-      powerPreference: 'high-performance',
-      alpha: true,
-    })
+    // Creating a WebGL context THROWS where one is unavailable — old hardware,
+    // hardware acceleration switched off, locked-down corporate browsers, and
+    // headless environments. Unguarded, that exception escapes this effect and
+    // unmounts the entire page. This component draws a decorative, aria-hidden
+    // background, so the only correct failure is to quietly render nothing and
+    // leave the site fully usable.
+    let renderer
+    try {
+      renderer = new THREE.WebGLRenderer({
+        antialias: false,
+        powerPreference: 'high-performance',
+        alpha: true,
+      })
+    } catch (err) {
+      console.warn('ColorBends: WebGL unavailable, skipping background.', err?.message || err)
+      geometry.dispose()
+      material.dispose()
+      return
+    }
     rendererRef.current = renderer
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))

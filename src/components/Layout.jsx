@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import { nav, event } from '../data/site'
+import { useBackendWarmup } from '../hooks/useBackendWarmup'
 import { Button } from './ui'
 import { GrainOverlay } from './texture'
 import ColorBends from './ColorBends'
@@ -33,6 +34,12 @@ export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const lenisRef = useRef(null)
+
+  // Poke the API on every public route change (and on a keep-alive tick) so the
+  // Render instance is already booted by the time anyone reaches /register. The
+  // register page still verifies before submitting — this only moves the cold
+  // start off the checkout path and into the browsing time before it.
+  useBackendWarmup()
 
   // Smooth momentum scrolling for the whole app. Respects reduced-motion.
   useEffect(() => {

@@ -3,9 +3,10 @@ import express from 'express'
 import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { createRegistration } from './registrations.js'
-import { ensureRegistrationsTable } from './db.js'
+import { ensureSchemaOnce, getSql } from './db.js'
 import { createOrder, verifyPayment, handleWebhook } from './payments.js'
 import { createContactMessage } from './contact.js'
+import { startKeepAlive } from './keepAlive.js'
 import {
   loginAdmin,
   requireAdmin,
@@ -18,21 +19,48 @@ import {
 const app = express()
 const port = Number(process.env.PORT) || 3001
 
-// Admin CORS allow-list from env (comma-separated). Only the request Origin is
-// echoed back, and only when it matches; unset/unknown origins fall back to the
-// first configured origin so browsers get a concrete value, never '*'.
-const adminOrigins = String(process.env.ADMIN_ALLOWED_ORIGIN || '')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean)
-
-function corsOrigin(origin, callback) {
-  if (adminOrigins.length === 0) return callback(null, true) // dev: no list set
-  if (origin && adminOrigins.includes(origin)) return callback(null, origin)
-  return callback(null, adminOrigins[0])
+// CORS allow-lists from env (comma-separated). Only the request Origin is echoed
+// back, and only when it matches; unset/unknown origins fall back to the first
+// configured origin so browsers get a concrete value, never '*'.
+//
+// There are TWO lists, and conflating them breaks the public site. The admin
+// panel and the public site are documented in .env.example as DIFFERENT hosts
+// (admin.tedxklhbachupally.com vs tedxklhbachupally.com). Serving the admin
+// origin to a public caller means the browser rejects every /api/register,
+// /api/payment and /api/health call the main site makes — and because a
+// CORS-blocked probe is indistinguishable from an unreachable backend, the
+// register page's queue gate would hold every visitor for its full ceiling
+// before failing. Public routes therefore get the public list, mirroring the
+// scoping that server/http.js already applies to the Vercel handlers.
+function parseOrigins(value) {
+  return String(value || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean)
 }
 
-app.use(cors({ origin: corsOrigin, credentials: true }))
+const adminOrigins = parseOrigins(process.env.ADMIN_ALLOWED_ORIGIN)
+// Falls back to the admin list when unset, so a single-origin deploy still works.
+const publicOrigins = parseOrigins(
+  process.env.PUBLIC_ALLOWED_ORIGIN || process.env.ADMIN_ALLOWED_ORIGIN,
+)
+
+function originChecker(allowList) {
+  return (origin, callback) => {
+    if (allowList.length === 0) return callback(null, true) // dev: no list set
+    if (origin && allowList.includes(origin)) return callback(null, origin)
+    return callback(null, allowList[0])
+  }
+}
+
+const adminCors = cors({ origin: originChecker(adminOrigins), credentials: true })
+const publicCors = cors({ origin: originChecker(publicOrigins), credentials: true })
+
+// One middleware that dispatches, rather than two stacked ones — stacking would
+// let the second overwrite the first's Access-Control-Allow-Origin header.
+app.use((req, res, next) =>
+  (req.path.startsWith('/api/admin') ? adminCors : publicCors)(req, res, next),
+)
 
 // Rate limiters (Express/self-host only). NOTE: express-rate-limit's default store
 // is in-memory and per-instance — on Vercel's serverless deployment it does NOT
@@ -71,13 +99,33 @@ app.post(
 
 app.use(express.json())
 
+// Warm-up / liveness probe. The public site pings this on every route change and
+// on a keep-alive interval (src/lib/backendHealth.js) so a spun-down Render
+// instance is already booted by the time someone reaches the register page, and
+// render.yaml points its healthCheckPath here.
+//
+// Two competing requirements, and getting the balance wrong breaks something:
+//
+//   - It must be CHEAP, because it is called constantly. ensureSchemaOnce()
+//     memoizes the ~15 DDL round-trips so they happen once per process, not on
+//     every ping.
+//   - It must still be TRUE. Memoized DDL alone would mean that after the first
+//     success this endpoint never touches the database again — it would answer
+//     "connected" with Neon completely down, Render would never restart the
+//     instance, and the register page's gate would wave users through to a 500.
+//
+// So: schema once, then one trivial round-trip every time. That is a single
+// cheap query that still proves the database is actually reachable right now.
 app.get('/api/health', async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store')
   try {
-    await ensureRegistrationsTable()
+    const sql = getSql()
+    await ensureSchemaOnce(sql)
+    await sql`SELECT 1`
     res.json({ ok: true, db: 'connected' })
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ ok: false, db: 'error' })
+    console.error('Health check failed:', err)
+    res.status(503).json({ ok: false, db: 'error' })
   }
 })
 
@@ -218,5 +266,8 @@ const isEntry = process.argv[1] && process.argv[1].endsWith('server/index.js')
 if (isEntry) {
   app.listen(port, () => {
     console.log(`TEDx API listening on http://localhost:${port}`)
+    // Started only for the real server process, never on import — the test suite
+    // imports `app` via supertest and must not spawn a background pinger.
+    startKeepAlive()
   })
 }

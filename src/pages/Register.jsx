@@ -1,8 +1,11 @@
 import { useRef, useState } from 'react'
 import { Eyebrow, Button } from '../components/ui'
 import { RedGlow } from '../components/texture'
+import QueueOverlay from '../components/QueueOverlay'
 import { event } from '../data/site'
 import { apiFetch } from '../lib/api'
+import { markBackendWarm } from '../lib/backendHealth'
+import { useBackendQueue } from '../hooks/useBackendQueue'
 
 const RAZORPAY_SRC = 'https://checkout.razorpay.com/v1/checkout.js'
 
@@ -60,6 +63,11 @@ export default function Register() {
   // two Razorpay orders per person under a 500-user click storm.
   const inFlight = useRef(false)
 
+  // Gate on backend liveness before we take anyone's money. The API spins down
+  // when idle and takes 30-60s to boot; without this, a submit against a cold
+  // instance is a dead button. `queue` drives the holding screen while it boots.
+  const { queue, waitForTurn } = useBackendQueue()
+
   const needsCollege = form.designation === 'student' || form.designation === 'staff'
   const needsOtherCollege = needsCollege && form.college === 'Others'
 
@@ -86,6 +94,18 @@ export default function Register() {
     setSubmitting(true)
 
     try {
+      // 0. Wait for the backend to be confirmed up. Returns immediately when the
+      // warm-up service already has a fresh answer (the normal case for anyone who
+      // browsed the site first); otherwise it shows the queue screen while the
+      // instance boots. Nothing is sent until this resolves true, so a cold
+      // backend can never produce a half-submitted registration.
+      const ready = await waitForTurn()
+      if (!ready) {
+        throw new Error(
+          'Our booking desk is taking longer than usual to open. Your details are still here — press the button again to rejoin the queue.',
+        )
+      }
+
       // 1. Save the registration (pending payment). retries: 0 — creating a
       // registration is NOT idempotent; a retry after a network blip could make
       // a second row. A 429 surfaces as a clean "slow down" message instead.
@@ -104,6 +124,11 @@ export default function Register() {
       if (!ok) {
         throw new Error(data.error || 'Registration failed.')
       }
+
+      // A real 200 from the API is stronger evidence of liveness than any health
+      // check, so refresh the warm window before the payment call rather than
+      // letting it expire mid-checkout and re-queue someone already committed.
+      markBackendWarm()
 
       // 2. Create a Razorpay order for it, then open Checkout.
       await startPayment(data.registration)
@@ -271,6 +296,9 @@ export default function Register() {
 
   return (
     <div className="relative overflow-hidden">
+      {/* Holding screen while a cold backend boots. Only mounts when the submit
+          gate actually had to wait — a warm backend goes straight to payment. */}
+      {queue && <QueueOverlay {...queue} />}
       <RedGlow className="-right-40 -top-32" size={520} />
       <div className="relative mx-auto max-w-5xl px-6 py-20 md:py-28">
         <Eyebrow className="mb-5">Register · Edition 01</Eyebrow>
@@ -288,9 +316,13 @@ export default function Register() {
             {/* Step 1 — contact */}
             <Step n="1" title="Who are you?">
               <div className="grid gap-6 sm:grid-cols-2">
-                <Field id="fullName" label="Full name" value={form.fullName} onChange={(v) => update('fullName', v)} autoComplete="name" required className="sm:col-span-2" />
-                <Field id="phone" label="Phone number" type="tel" value={form.phone} onChange={(v) => update('phone', v)} autoComplete="tel" required />
-                <Field id="email" label="Email address" type="email" value={form.email} onChange={(v) => update('email', v)} autoComplete="email" required />
+                {/* Locked while a submit is in flight. The running onSubmit
+                    captured these values already, so an edit made during the
+                    queue would be shown on screen but silently discarded —
+                    sending the ticket to an address the user thinks they fixed. */}
+                <Field id="fullName" label="Full name" value={form.fullName} onChange={(v) => update('fullName', v)} autoComplete="name" required disabled={submitting} className="sm:col-span-2" />
+                <Field id="phone" label="Phone number" type="tel" value={form.phone} onChange={(v) => update('phone', v)} autoComplete="tel" required disabled={submitting} />
+                <Field id="email" label="Email address" type="email" value={form.email} onChange={(v) => update('email', v)} autoComplete="email" required disabled={submitting} />
               </div>
             </Step>
 
@@ -305,6 +337,7 @@ export default function Register() {
                       type="button"
                       onClick={() => update('designation', d.value)}
                       aria-pressed={active}
+                      disabled={submitting}
                       className={[
                         'border px-4 py-4 font-montserrat text-[11px] font-medium uppercase tracking-[0.18em] transition-colors',
                         active
@@ -329,7 +362,8 @@ export default function Register() {
                       value={form.college}
                       onChange={(e) => update('college', e.target.value)}
                       required
-                      className="w-full appearance-none rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 font-body text-paper focus:border-red focus:outline-none"
+                      disabled={submitting}
+                      className="w-full appearance-none rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 font-body text-paper focus:border-red focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <option value="" disabled className="bg-ink text-paper">Select campus</option>
                       {CAMPUSES.map((c) => (
@@ -338,7 +372,7 @@ export default function Register() {
                     </select>
                   </div>
                   {needsOtherCollege && (
-                    <Field id="collegeOther" label="College name" value={form.collegeOther} onChange={(v) => update('collegeOther', v)} required className="sm:col-span-2" />
+                    <Field id="collegeOther" label="College name" value={form.collegeOther} onChange={(v) => update('collegeOther', v)} required disabled={submitting} className="sm:col-span-2" />
                   )}
                 </div>
               )}
@@ -419,7 +453,7 @@ function Step({ n, title, children }) {
   )
 }
 
-function Field({ id, label, value, onChange, type = 'text', autoComplete, required, className = '' }) {
+function Field({ id, label, value, onChange, type = 'text', autoComplete, required, disabled, className = '' }) {
   return (
     <div className={className}>
       <label htmlFor={id} className="mb-2 block font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-paper/40">
@@ -432,7 +466,8 @@ function Field({ id, label, value, onChange, type = 'text', autoComplete, requir
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         required={required}
-        className="w-full rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 text-paper transition-colors placeholder:text-paper/30 focus:border-red focus:outline-none"
+        disabled={disabled}
+        className="w-full rounded-none border-0 border-b border-paper/25 bg-transparent px-0 py-3 text-paper transition-colors placeholder:text-paper/30 focus:border-red focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       />
     </div>
   )

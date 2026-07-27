@@ -24,6 +24,8 @@ import photoDhanvin from '../assets/images/team/dhanvin.jpg'
 import photoMahathi from '../assets/images/team/mahathi.jpg'
 import photoSanuhya from '../assets/images/team/sanuhya.jpg'
 import photoShreyas from '../assets/images/team/shreyas.jpg'
+import photoShareef from '../assets/images/team/shareef.png'
+import photoSrikar from '../assets/images/team/srikar.jpg'
 
 export const nav = [
   { label: 'Theme', to: '/theme' },
@@ -148,6 +150,7 @@ export const teamLeadership = [
   { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
   { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
   { name: 'Akash', role: 'Co-organiser', photo: null },
+  { name: 'Shareef', role: 'Head of Department — CS&IT', photo: photoShareef },
 ]
 
 export const team = [
@@ -170,7 +173,7 @@ export const team = [
   { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
   { name: 'Suhas G', dept: 'Marketing', photo: photoSuhasG },
-  { name: 'Srikar', dept: 'Marketing', photo: null },
+  { name: 'Srikar', dept: 'Marketing', photo: photoSrikar },
   { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
   { name: 'Pemesh', dept: 'Marketing', photo: photoPemesh },
   { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },

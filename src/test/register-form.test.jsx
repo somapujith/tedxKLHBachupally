@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Register from '../pages/Register'
+import { markBackendWarm, resetBackendHealth } from '../lib/backendHealth'
 
 function renderForm() {
   return render(
@@ -13,6 +14,11 @@ function renderForm() {
 
 beforeEach(() => {
   vi.restoreAllMocks()
+  // These cases cover form behaviour, not the cold-start queue. Start from a
+  // known-warm backend so submit takes the fast path straight to /api/register;
+  // the queue gate itself is covered in backend-queue.test.jsx.
+  resetBackendHealth()
+  markBackendWarm()
 })
 
 afterEach(() => {
