@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 // Clean, minimal eyebrow — quiet muted label, no numbering.
@@ -38,7 +38,51 @@ function timeLeft(target) {
   }
 }
 
+// One digit slot. When the character changes, the old glyph rolls up and out
+// while the new one falls in from the top — a smooth mechanical odometer.
+function FallingDigit({ char, reduce }) {
+  return (
+    <span className="relative inline-block h-[1em] w-[0.62em] overflow-hidden text-center align-baseline tabular-nums">
+      {reduce ? (
+        <span className="absolute inset-0">{char}</span>
+      ) : (
+        <AnimatePresence initial={false} mode="popLayout">
+          <motion.span
+            key={char}
+            className="absolute inset-0"
+            initial={{ y: '-105%', opacity: 0 }}
+            animate={{ y: '0%', opacity: 1 }}
+            exit={{ y: '105%', opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 30, mass: 0.7 }}
+          >
+            {char}
+          </motion.span>
+        </AnimatePresence>
+      )}
+    </span>
+  )
+}
+
+// A two-digit unit (days/hrs/min/sec). Only the digits that actually change
+// animate, so seconds tick every beat while minutes roll only on carry.
+function CountUnit({ label, value, reduce }) {
+  const digits = String(value).padStart(2, '0').split('')
+  return (
+    <div className="text-center">
+      <div className="flex justify-center font-display text-4xl leading-none text-paper sm:text-5xl">
+        {digits.map((d, i) => (
+          <FallingDigit key={i} char={d} reduce={reduce} />
+        ))}
+      </div>
+      <div className="mt-3 font-mono text-[9px] uppercase tracking-[0.28em] text-paper/40 sm:text-[10px]">
+        {label}
+      </div>
+    </div>
+  )
+}
+
 export function Countdown({ target }) {
+  const reduce = useReducedMotion()
   const [t, setT] = useState(() => timeLeft(target))
   useEffect(() => {
     const id = setInterval(() => setT(timeLeft(target)), 1000)
@@ -52,28 +96,23 @@ export function Countdown({ target }) {
   ]
   return (
     <div>
-      <Eyebrow className="mb-4">The red dot goes live in</Eyebrow>
-      <div className="flex items-stretch gap-2 sm:gap-3">
+      <Eyebrow className="mb-5">The red dot goes live in</Eyebrow>
+      <div className="flex items-start gap-4 sm:gap-6">
         {units.map(([label, value], i) => (
-          <div key={label} className="flex items-stretch">
-            <div className="relative min-w-[54px] border border-paper/15 bg-paper/[0.03] px-3 py-3 text-center sm:min-w-[68px] sm:px-4">
-              <span aria-hidden className="absolute left-0 top-0 h-px w-4 bg-red" />
-              <span aria-hidden className="absolute right-0 bottom-0 h-px w-4 bg-red" />
-              <div className="font-display text-3xl tabular-nums leading-none sm:text-4xl">
-                {String(value).padStart(2, '0')}
-              </div>
-              <div className="mt-2 font-mono text-[9px] uppercase tracking-[0.2em] text-paper/45 sm:text-[10px]">
-                {label}
-              </div>
-            </div>
+          <div key={label} className="flex items-start gap-4 sm:gap-6">
+            <CountUnit label={label} value={value} reduce={reduce} />
             {i < units.length - 1 && (
-              <span aria-hidden className="self-center px-0.5 font-display text-2xl text-red/60 sm:px-1">
+              <span
+                aria-hidden
+                className="pt-1 font-display text-3xl leading-none text-red/45 sm:text-4xl"
+              >
                 :
               </span>
             )}
           </div>
         ))}
       </div>
+      <div aria-hidden className="mt-5 h-px w-full max-w-[19rem] bg-gradient-to-r from-red/60 via-paper/10 to-transparent" />
     </div>
   )
 }
