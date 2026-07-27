@@ -5,3 +5,10 @@
   height: 100%;
   touch-action: none;
 }
+
+/* Static-gradient fallback for machines without usable WebGL. */
+.liquid-ether-fallback {
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+}

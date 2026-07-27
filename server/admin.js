@@ -52,22 +52,10 @@ export async function loginAdmin({ username, password }) {
 }
 
 // Set an allow-listed CORS origin header on a Vercel response. Echoes the request
-// Origin only when it is in ADMIN_ALLOWED_ORIGIN (comma-separated); otherwise
-// falls back to the first configured origin. Never emits '*' for admin endpoints.
-// If the env var is unset (local dev), falls back to '*' so dev is not blocked.
-export function setAdminCors(req, res) {
-  const configured = String(process.env.ADMIN_ALLOWED_ORIGIN || '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean)
-  const origin = req.headers?.origin
-  let allow = '*'
-  if (configured.length) {
-    allow = origin && configured.includes(origin) ? origin : configured[0]
-    res.setHeader('Vary', 'Origin')
-  }
-  res.setHeader('Access-Control-Allow-Origin', allow)
-}
+// NOTE: admin CORS is now applied by withApi({ scope: 'admin' }) in server/http.js
+// for the Vercel handlers, and by the Express cors() middleware in server/index.js
+// for the self-host path. The former standalone setAdminCors() helper was removed
+// as dead code once every api/admin/* handler moved to the withApi wrapper.
 
 // Plain function (not Express middleware) so both Express routes and Vercel
 // handlers can gate on it.

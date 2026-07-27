@@ -1,28 +1,10 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Eyebrow, Button } from '../components/ui'
 import { RedGlow } from '../components/texture'
 import { event } from '../data/site'
+import { apiFetch } from '../lib/api'
 
 const RAZORPAY_SRC = 'https://checkout.razorpay.com/v1/checkout.js'
-
-// Parse a fetch Response as JSON, but never throw the cryptic
-// "Unexpected end of JSON input" when the server returns an empty body
-// (e.g. an unhandled 500, or the API not running). Return a clean error instead.
-async function readJson(res) {
-  const text = await res.text()
-  if (!text) {
-    throw new Error(
-      res.ok
-        ? 'Server returned an empty response.'
-        : 'The registration service is unavailable right now. Please try again shortly.',
-    )
-  }
-  try {
-    return JSON.parse(text)
-  } catch {
-    throw new Error('Server returned an invalid response. Please try again.')
-  }
-}
 
 // Load the Razorpay Checkout script on demand. If the SDK is already present,
 // resolve immediately. Otherwise (re)inject a fresh tag — a stale tag from a
@@ -71,6 +53,13 @@ export default function Register() {
   const [success, setSuccess] = useState(null)
   const [soldOut, setSoldOut] = useState(false)
 
+  // Hard double-submit guard. The `submitting` state disables the button, but a
+  // fast double-click (or Enter held) can fire onSubmit twice before React
+  // re-renders the disabled button. A ref flips synchronously, so the second
+  // call is rejected immediately — this is what prevents two registrations /
+  // two Razorpay orders per person under a 500-user click storm.
+  const inFlight = useRef(false)
+
   const needsCollege = form.designation === 'student' || form.designation === 'staff'
   const needsOtherCollege = needsCollege && form.college === 'Others'
 
@@ -91,22 +80,28 @@ export default function Register() {
 
   async function onSubmit(e) {
     e.preventDefault()
+    if (inFlight.current) return // reject a concurrent double-submit synchronously
+    inFlight.current = true
     setError('')
     setSubmitting(true)
 
     try {
-      // 1. Save the registration (pending payment).
-      const res = await fetch('/api/register', {
+      // 1. Save the registration (pending payment). retries: 0 — creating a
+      // registration is NOT idempotent; a retry after a network blip could make
+      // a second row. A 429 surfaces as a clean "slow down" message instead.
+      const { ok, status, data } = await apiFetch('/api/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: form,
+        retries: 0,
       })
-      const data = await readJson(res)
       if (data.soldOut) {
         setSoldOut(true)
         return
       }
-      if (!res.ok || !data.ok) {
+      if (status === 429) {
+        throw new Error('You are going too fast. Please wait a moment and try again.')
+      }
+      if (!ok) {
         throw new Error(data.error || 'Registration failed.')
       }
 
@@ -116,21 +111,27 @@ export default function Register() {
       setError(err.message || 'Something went wrong.')
     } finally {
       setSubmitting(false)
+      inFlight.current = false
     }
   }
 
   async function startPayment(registration) {
-    const orderRes = await fetch('/api/payment/order', {
+    // retries: 0 — orders.create on the server is not idempotent (a retry could
+    // mint a second order). The button lock + inFlight ref already prevent user
+    // duplicates; we do not add network-level retries on top.
+    const { ok, status, data: orderData } = await apiFetch('/api/payment/order', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ registrationId: registration.id }),
+      body: { registrationId: registration.id },
+      retries: 0,
     })
-    const orderData = await readJson(orderRes)
     if (orderData.soldOut) {
       setSoldOut(true)
       return
     }
-    if (!orderRes.ok || !orderData.ok) {
+    if (status === 429) {
+      throw new Error('Too many attempts. Please wait a moment and try again.')
+    }
+    if (!ok) {
       throw new Error(orderData.error || 'Could not start payment.')
     }
 
@@ -186,18 +187,26 @@ export default function Register() {
   }
 
   async function verifyAndFinish(response, registration) {
-    const verifyRes = await fetch('/api/payment/verify', {
+    // retries: 2 — verify is idempotent server-side (settlePayment's paid-flip
+    // is guarded and converges on replay), so retrying a transient failure here
+    // is safe and important: the user has ALREADY PAID at this point. Losing the
+    // verify to a network blip would leave them charged with no ticket. A longer
+    // timeout too, since settlement fetches from Razorpay + issues the ticket.
+    const { ok, data: verifyData } = await apiFetch('/api/payment/verify', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: {
         razorpay_order_id: response.razorpay_order_id,
         razorpay_payment_id: response.razorpay_payment_id,
         razorpay_signature: response.razorpay_signature,
-      }),
+      },
+      retries: 2,
+      timeoutMs: 20000,
     })
-    const verifyData = await readJson(verifyRes)
-    if (!verifyRes.ok || !verifyData.ok) {
-      throw new Error(verifyData.error || 'Payment could not be verified.')
+    if (!ok) {
+      throw new Error(
+        verifyData.error ||
+          'Payment received but confirmation is delayed. Your ticket will arrive by email shortly.',
+      )
     }
     setSuccess({ registration: { ...registration, ...verifyData.registration }, paid: true })
     setForm(initial)

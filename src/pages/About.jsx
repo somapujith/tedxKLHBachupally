@@ -4,6 +4,7 @@ import { Eyebrow, Reveal } from '../components/ui'
 import { RedGlow } from '../components/texture'
 import heroPoster from '../assets/images/about/tedx-hero-poster.jpg'
 import tedStage from '../assets/images/about/ted-stage.webp'
+import aboutHero from '../assets/images/about/about-hero.png'
 
 function StatStrip({ stats }) {
   return (
@@ -24,9 +25,9 @@ export default function About() {
   return (
     <div className="relative overflow-hidden">
       {/* Full-bleed photo hero */}
-      <section className="relative flex min-h-[420px] items-center justify-center overflow-hidden md:min-h-[560px]">
+      <section className="relative flex min-h-[calc(100vh-6rem)] items-center justify-center overflow-hidden">
         <img
-          src={heroPoster}
+          src={aboutHero}
           alt=""
           className="absolute inset-0 h-full w-full object-cover object-center"
         />

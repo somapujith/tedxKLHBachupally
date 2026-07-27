@@ -1,4 +1,4 @@
-import { getSql, ensureRegistrationsTable } from './db.js'
+import { getSql, ensureSchemaOnce, withDbRetry } from './db.js'
 
 const CAMPUSES = [
   'KLH Bachupally Campus',
@@ -46,7 +46,7 @@ export async function createRegistration(body) {
   }
 
   const sql = getSql()
-  await ensureRegistrationsTable(sql)
+  await ensureSchemaOnce(sql)
 
   const college = data.designation === 'guest' ? null : data.college
   const collegeOther =
@@ -55,10 +55,12 @@ export async function createRegistration(body) {
   try {
     // A paid registration blocks re-registration. A pending one is resumable:
     // update the details and hand the same row back so the user can complete payment.
-    const existing = await sql`
+    // withDbRetry only retries transient network/5xx errors; a 23505 unique
+    // violation from the INSERT below is deterministic and propagates on attempt 1.
+    const existing = await withDbRetry(() => sql`
       SELECT id, payment_status FROM registrations
       WHERE LOWER(email) = ${data.email} LIMIT 1
-    `
+    `)
     if (existing[0]?.payment_status === 'paid') {
       return {
         ok: false,

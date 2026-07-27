@@ -17,3 +17,5 @@ WhatsApp Image *.jpeg
 
 # stray root key-art source copies (real asset lives in src/assets)
 /theme*.png
+/aboutimage.png
+/stage image.png
