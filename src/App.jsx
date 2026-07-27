@@ -19,7 +19,9 @@ import NotFound from './pages/NotFound'
 
 // Admin pages are lazy so html5-qrcode & co. stay out of the public bundle.
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
+const AdminShell = lazy(() => import('./admin/AdminShell'))
 const AdminDashboard = lazy(() => import('./admin/AdminDashboard'))
+const AdminRegistrations = lazy(() => import('./admin/AdminRegistrations'))
 const AdminScan = lazy(() => import('./admin/AdminScan'))
 
 // Public pages keep the site chrome (nav + footer); admin routes render bare.
@@ -43,8 +45,13 @@ export default function App() {
   return (
     <Routes>
       <Route path="/admin/login" element={<AdminRoute page={AdminLogin} />} />
-      <Route path="/admin" element={<AdminRoute page={AdminDashboard} />} />
+      {/* Scanner renders bare (immersive full-screen, no bottom nav). */}
       <Route path="/admin/scan" element={<AdminRoute page={AdminScan} />} />
+      {/* Tabbed screens share the mobile shell (top bar + bottom nav). */}
+      <Route path="/admin" element={<AdminRoute page={AdminShell} />}>
+        <Route index element={<AdminRoute page={AdminDashboard} />} />
+        <Route path="registrations" element={<AdminRoute page={AdminRegistrations} />} />
+      </Route>
 
       <Route element={<PublicShell />}>
         <Route path="/" element={<Home />} />
