@@ -146,6 +146,93 @@ export async function ensureAdminsTable(sql = getSql()) {
     CREATE UNIQUE INDEX IF NOT EXISTS admins_username_unique
     ON admins (LOWER(username))
   `
+  // Role gate. Defaults to 'admin' so every pre-existing row keeps exactly the
+  // access it had; 'superadmin' is additive (audit log, email log, admin
+  // management) and is only ever granted explicitly.
+  await sql`ALTER TABLE admins ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'admin'`
+  // Deactivation instead of deletion, so an admin who scanned attendees keeps a
+  // resolvable identity in the audit trail after they lose access.
+  await sql`ALTER TABLE admins ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT TRUE`
+  await sql`ALTER TABLE admins ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ`
+  await sql`ALTER TABLE admins ADD COLUMN IF NOT EXISTS created_by TEXT`
+  // Added separately from the column so a table that already has the column
+  // still gets the constraint. The column default keeps existing rows valid.
+  await sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'admins_role_check') THEN
+        ALTER TABLE admins ADD CONSTRAINT admins_role_check
+          CHECK (role IN ('admin', 'superadmin'));
+      END IF;
+    END $$
+  `
+}
+
+// Append-only record of every privileged action. Deliberately denormalised —
+// admin_username and target_name are copied in at write time so the trail still
+// reads correctly after an admin is renamed or a registration is removed.
+export async function ensureAuditLogTable(sql = getSql()) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS admin_audit_log (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      admin_id UUID,
+      admin_username TEXT NOT NULL,
+      admin_role TEXT,
+      action TEXT NOT NULL,
+      result TEXT NOT NULL DEFAULT 'success',
+      target_type TEXT,
+      target_id TEXT,
+      target_name TEXT,
+      detail TEXT,
+      ip TEXT,
+      user_agent TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx
+    ON admin_audit_log (created_at DESC)
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS admin_audit_log_admin_idx
+    ON admin_audit_log (LOWER(admin_username), created_at DESC)
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS admin_audit_log_action_idx
+    ON admin_audit_log (action, created_at DESC)
+  `
+}
+
+// Every outbound ticket email — sent, failed or skipped — with who triggered it.
+// registrations.ticket_email_sent_at only holds the LAST successful send; this
+// keeps the full history, including the failures that column rolls back to NULL.
+export async function ensureEmailLogTable(sql = getSql()) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS email_log (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      registration_id UUID,
+      to_email TEXT NOT NULL,
+      full_name TEXT,
+      email_type TEXT NOT NULL DEFAULT 'ticket',
+      status TEXT NOT NULL,
+      provider_message_id TEXT,
+      error TEXT,
+      triggered_by TEXT NOT NULL DEFAULT 'system',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS email_log_created_idx
+    ON email_log (created_at DESC)
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS email_log_registration_idx
+    ON email_log (registration_id, created_at DESC)
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS email_log_status_idx
+    ON email_log (status, created_at DESC)
+  `
 }
 
 // Ensure the registrations schema AT MOST ONCE per cold start. The DDL is
@@ -157,9 +244,16 @@ export async function ensureAdminsTable(sql = getSql()) {
 let schemaReady = null
 export function ensureSchemaOnce(sql = getSql()) {
   if (schemaReady) return schemaReady
-  schemaReady = ensureRegistrationsTable(sql).catch((err) => {
-    schemaReady = null
-    throw err
-  })
+  // Admins is included so a deploy that never ran db:migrate still self-heals:
+  // loginAdmin selects the role/is_active columns directly, and without this a
+  // pre-existing admins table would 42703 every login until someone migrated.
+  // Health pings call this constantly, but the promise is memoized — the DDL
+  // still runs once per cold start.
+  schemaReady = Promise.all([ensureRegistrationsTable(sql), ensureAdminsTable(sql)]).catch(
+    (err) => {
+      schemaReady = null
+      throw err
+    },
+  )
   return schemaReady
 }

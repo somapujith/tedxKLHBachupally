@@ -6,6 +6,7 @@ import { apiUrl } from '../lib/apiBase.js'
 
 const TOKEN_KEY = 'tedx_admin_token'
 const NAME_KEY = 'tedx_admin_name'
+const ROLE_KEY = 'tedx_admin_role'
 
 export function getToken() {
   return sessionStorage.getItem(TOKEN_KEY) || ''
@@ -15,14 +16,28 @@ export function getAdminName() {
   return sessionStorage.getItem(NAME_KEY) || 'Admin'
 }
 
-function setSession(token, displayName) {
+function getAdminRole() {
+  return sessionStorage.getItem(ROLE_KEY) || 'admin'
+}
+
+// Drives which tabs and screens are OFFERED — never what is allowed. The stored
+// role is just a copy in sessionStorage and a user can edit it; every superadmin
+// endpoint re-checks the role inside the signed JWT server-side and answers 403
+// regardless of what the browser believes.
+export function isSuperAdmin() {
+  return getAdminRole() === 'superadmin'
+}
+
+function setSession(token, displayName, role) {
   sessionStorage.setItem(TOKEN_KEY, token)
   sessionStorage.setItem(NAME_KEY, displayName)
+  sessionStorage.setItem(ROLE_KEY, role === 'superadmin' ? 'superadmin' : 'admin')
 }
 
 export function clearSession() {
   sessionStorage.removeItem(TOKEN_KEY)
   sessionStorage.removeItem(NAME_KEY)
+  sessionStorage.removeItem(ROLE_KEY)
 }
 
 // Parse a Response body as JSON without ever throwing "Unexpected end of
@@ -78,7 +93,11 @@ export async function login(username, password) {
   if (!res.ok || !data.ok || !data.token) {
     throw new Error(data.error || 'Invalid username or password.')
   }
-  setSession(data.token, data.admin?.displayName || data.admin?.username || 'Admin')
+  setSession(
+    data.token,
+    data.admin?.displayName || data.admin?.username || 'Admin',
+    data.admin?.role,
+  )
   return data.admin
 }
 

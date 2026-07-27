@@ -1,6 +1,8 @@
 import { NavLink } from 'react-router-dom'
+import { isSuperAdmin } from './api'
 
-// Fixed mobile bottom nav: Dashboard · Scan · Registrations.
+// Fixed mobile bottom nav: Dashboard · Scan · Registrations
+// (· Activity · Admins for a superadmin).
 // Flat bar, three equal targets — the scanner reads as primary through a solid
 // red chip instead of a floating raised circle. Hidden at md+ where the desktop
 // top header takes over. Safe-area padding clears the iPhone home indicator.
@@ -43,6 +45,26 @@ function ScanIcon() {
   )
 }
 
+function LogIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
+      <path d="M12 8v4l2.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="8.5" />
+    </svg>
+  )
+}
+
+function TeamIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
+      <circle cx="9" cy="8.5" r="3.2" />
+      <path d="M3.5 19.5a5.5 5.5 0 0 1 11 0" strokeLinecap="round" />
+      <path d="M16 6.2a3.2 3.2 0 0 1 0 6" strokeLinecap="round" />
+      <path d="M17.5 14.6a5.5 5.5 0 0 1 3 4.9" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function Tab({ to, label, icon, accent = false }) {
   return (
     <NavLink to={to} end className="flex flex-1 flex-col items-center justify-center gap-1 py-2.5">
@@ -71,16 +93,21 @@ function Tab({ to, label, icon, accent = false }) {
 }
 
 export default function BottomNav() {
+  // Five targets is the most this bar can hold legibly on a small phone, so the
+  // superadmin labels are short ones and the max width grows with the count.
+  const superAdmin = isSuperAdmin()
   return (
     <nav
       aria-label="Admin"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-ink/90 backdrop-blur-xl md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="mx-auto flex max-w-md items-stretch px-2">
+      <div className={`mx-auto flex items-stretch px-2 ${superAdmin ? 'max-w-lg' : 'max-w-md'}`}>
         <Tab to="/admin" label="Dashboard" icon={<DashIcon />} />
         <Tab to="/admin/scan" label="Scan" icon={<ScanIcon />} accent />
-        <Tab to="/admin/registrations" label="Registrations" icon={<ListIcon />} />
+        <Tab to="/admin/registrations" label={superAdmin ? 'Regs' : 'Registrations'} icon={<ListIcon />} />
+        {superAdmin && <Tab to="/admin/activity" label="Activity" icon={<LogIcon />} />}
+        {superAdmin && <Tab to="/admin/admins" label="Admins" icon={<TeamIcon />} />}
       </div>
     </nav>
   )

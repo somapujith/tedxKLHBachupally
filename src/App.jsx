@@ -23,6 +23,10 @@ const AdminShell = lazy(() => import('./admin/AdminShell'))
 const AdminDashboard = lazy(() => import('./admin/AdminDashboard'))
 const AdminRegistrations = lazy(() => import('./admin/AdminRegistrations'))
 const AdminScan = lazy(() => import('./admin/AdminScan'))
+// Superadmin-only screens. Lazy like the rest, so a gate admin who never opens
+// them never downloads them.
+const AdminActivity = lazy(() => import('./admin/AdminActivity'))
+const AdminAdmins = lazy(() => import('./admin/AdminAdmins'))
 
 // Public pages keep the site chrome (nav + footer); admin routes render bare.
 function PublicShell() {
@@ -51,6 +55,8 @@ export default function App() {
       <Route path="/admin" element={<AdminRoute page={AdminShell} />}>
         <Route index element={<AdminRoute page={AdminDashboard} />} />
         <Route path="registrations" element={<AdminRoute page={AdminRegistrations} />} />
+        <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
+        <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
       </Route>
 
       <Route element={<PublicShell />}>

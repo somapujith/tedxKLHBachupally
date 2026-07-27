@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import { requireAdmin, checkInTicket } from '../../server/admin.js'
+import { requireAdmin, checkInTicket, actorFrom } from '../../server/admin.js'
+import { requestContext } from '../../server/audit.js'
 import { withApi, LIMITS } from '../../server/http.js'
 
 async function handler(req, res) {
@@ -9,6 +10,8 @@ async function handler(req, res) {
   const result = await checkInTicket({
     token: req.body?.token,
     adminName: auth.admin.name || auth.admin.username,
+    actor: actorFrom(auth),
+    context: requestContext(req),
   })
   return res.status(result.status).json(result)
 }

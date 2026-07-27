@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import QRCode from 'qrcode'
 import { getSql } from './db.js'
 import { sendTicketEmail } from './email.js'
+import { recordEmail } from './audit.js'
 
 const TICKET_ISSUER = 'tedxklh'
 
@@ -14,12 +15,17 @@ function getTicketSecret() {
   return secret
 }
 
+// `name` rides along so a scan can name the attendee straight from the token,
+// without a DB round-trip — the gate can still identify who a pass belongs to on
+// a flaky network. It is NOT authoritative: check-in re-reads full_name from the
+// row (see checkInTicket), so a stale name in an old token can never override the
+// registration of record.
 export function signTicket(registration, jti) {
-  return jwt.sign({ rid: registration.id, jti }, getTicketSecret(), {
-    algorithm: 'HS256',
-    expiresIn: '365d',
-    issuer: TICKET_ISSUER,
-  })
+  return jwt.sign(
+    { rid: registration.id, jti, name: registration.full_name ?? null },
+    getTicketSecret(),
+    { algorithm: 'HS256', expiresIn: '365d', issuer: TICKET_ISSUER },
+  )
 }
 
 export function verifyTicket(token) {
@@ -74,7 +80,13 @@ async function claimEmailSend(sql, id, { force }) {
 // Idempotent: safe to call from both the verify path and webhook replays.
 // Issues the jti once, emails once (claim-then-send), and — only with force —
 // re-sends for an admin-triggered resend.
-export async function issueTicket(registrationId, { force = false } = {}) {
+//
+// triggeredBy names who caused this send in the email log: 'system' for the
+// automatic post-payment issue, or the admin's username for a resend. Every
+// outcome is logged, including the failure that rolls ticket_email_sent_at back
+// to NULL — that rollback is precisely why the registrations row alone cannot
+// tell you an email was ever attempted.
+export async function issueTicket(registrationId, { force = false, triggeredBy = 'system' } = {}) {
   try {
     const sql = getSql()
     const rows = await sql`
@@ -113,9 +125,28 @@ export async function issueTicket(registrationId, { force = false } = {}) {
       await sql`
         UPDATE registrations SET ticket_email_sent_at = NULL WHERE id = ${reg.id}
       `
+      await recordEmail({
+        registrationId: reg.id,
+        toEmail: reg.email,
+        fullName: reg.full_name,
+        // A missing RESEND_API_KEY is a configuration gap, not a provider
+        // rejection; keeping them apart stops a misconfigured deploy from
+        // reading as hundreds of bounced emails.
+        status: sent.skipped ? 'skipped' : 'failed',
+        error: sent.skipped ? 'RESEND_API_KEY is not configured.' : sent.error || 'Email send failed.',
+        triggeredBy,
+      })
       return { ok: true, emailed: false }
     }
 
+    await recordEmail({
+      registrationId: reg.id,
+      toEmail: reg.email,
+      fullName: reg.full_name,
+      status: 'sent',
+      providerMessageId: sent.id,
+      triggeredBy,
+    })
     return { ok: true, emailed: true }
   } catch (err) {
     console.error('issueTicket failed:', err)

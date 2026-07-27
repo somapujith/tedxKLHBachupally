@@ -9,7 +9,7 @@ import { signTicket, verifyTicket, issueTicket } from '../tickets.js'
 
 const ORIGINAL_SECRET = process.env.TICKET_JWT_SECRET
 const hasDb = Boolean(process.env.DATABASE_URL)
-const registration = { id: '11111111-2222-3333-4444-555555555555' }
+const registration = { id: '11111111-2222-3333-4444-555555555555', full_name: 'Aarav Sharma' }
 const jti = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee'
 
 beforeEach(() => {
@@ -29,6 +29,17 @@ describe('signTicket / verifyTicket round trip', () => {
     expect(res.payload.rid).toBe(registration.id)
     expect(res.payload.jti).toBe(jti)
     expect(res.payload.iss).toBe('tedxklh')
+  })
+
+  it('carries the attendee name so a scan can identify them without a DB read', () => {
+    const res = verifyTicket(signTicket(registration, jti))
+    expect(res.payload.name).toBe('Aarav Sharma')
+  })
+
+  it('signs a null name rather than throwing when the row has none', () => {
+    const res = verifyTicket(signTicket({ id: registration.id }, jti))
+    expect(res.ok).toBe(true)
+    expect(res.payload.name).toBeNull()
   })
 
   it('throws when TICKET_JWT_SECRET is unset', () => {
@@ -76,17 +87,21 @@ describe('verifyTicket rejections', () => {
   })
 })
 
-// Claim-then-send race safety (real DB). The email send itself is skipped in this
-// env (no MAILCHIMP key), which forces the stamp to roll back — perfect for
-// asserting the claim/rollback contract without a live mail dependency. We also
-// assert the raw conditional-claim SQL that issueTicket relies on can only win
-// once, which is the property that prevents webhook+verify double-sends.
+// Claim-then-send race safety (real DB). RESEND_API_KEY is deliberately cleared
+// for this block so sendTicketEmail short-circuits to { skipped: true } — that
+// forces the stamp to roll back, which is exactly the contract under test, and it
+// guarantees the suite never fires a live send at the synthetic @example.com
+// addresses below (real bounces would damage the sending domain's reputation).
+// We also assert the raw conditional-claim SQL that issueTicket relies on can
+// only win once — the property that prevents webhook+verify double-sends.
 describe.skipIf(!hasDb)('issueTicket — claim-then-send (real DB)', () => {
   const TAG = 'ticket_claim_test_'
+  const ORIGINAL_RESEND_KEY = process.env.RESEND_API_KEY
   let sql
 
   beforeAll(async () => {
     process.env.TICKET_JWT_SECRET = 'test-ticket-secret'
+    delete process.env.RESEND_API_KEY
     const { getSql, ensureRegistrationsTable } = await import('../db.js')
     sql = getSql()
     await ensureRegistrationsTable(sql)
@@ -95,6 +110,8 @@ describe.skipIf(!hasDb)('issueTicket — claim-then-send (real DB)', () => {
 
   afterAll(async () => {
     await sql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
+    if (ORIGINAL_RESEND_KEY === undefined) delete process.env.RESEND_API_KEY
+    else process.env.RESEND_API_KEY = ORIGINAL_RESEND_KEY
   })
 
   async function insertPaid(n) {
@@ -124,7 +141,7 @@ describe.skipIf(!hasDb)('issueTicket — claim-then-send (real DB)', () => {
 
   it('issueTicket does not double-send: after a failed send the stamp is rolled back to NULL', async () => {
     const id = await insertPaid('rollback')
-    // No MAILCHIMP key in this env -> sendTicketEmail is skipped -> not emailed.
+    // No RESEND_API_KEY in this block -> sendTicketEmail is skipped -> not emailed.
     const a = await issueTicket(id)
     const b = await issueTicket(id)
     expect(a.ok).toBe(true)

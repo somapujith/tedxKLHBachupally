@@ -189,6 +189,11 @@ export const LIMITS = {
 
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES) || 16 * 1024 // 16 KB
 
+// Every method that can carry a body. PATCH is included: the admin-management
+// handler dispatches on it, so leaving it out let an authenticated superadmin
+// post an unbounded payload past the cap.
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH'])
+
 // Reject oversized JSON bodies before any work. Vercel has already buffered and
 // parsed req.body by the time the handler runs, so this guards against a client
 // posting a large payload to waste CPU on validation/DB work. Best-effort: uses
@@ -232,7 +237,7 @@ export function withApi(handler, { methods, scope = 'public', limit, guardBody =
         return res.status(405).json({ ok: false, error: 'Method not allowed.' })
       }
 
-      if (guardBody && (req.method === 'POST' || req.method === 'PUT') && bodyTooLarge(req)) {
+      if (guardBody && BODY_METHODS.has(req.method) && bodyTooLarge(req)) {
         return res.status(413).json({ ok: false, error: 'Request body too large.' })
       }
 

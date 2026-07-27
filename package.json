@@ -10,12 +10,12 @@
     "dev:all": "concurrently -n web,api -c cyan,magenta \"npm run dev\" \"npm run dev:server\"",
     "db:migrate": "node server/migrate.js",
     "db:seed-admin": "node server/seed-admin.js",
+    "email:preview": "node scripts/preview-ticket-email.mjs",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
-    "@mailchimp/mailchimp_transactional": "^1.4.1",
     "@neondatabase/serverless": "^1.1.0",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
@@ -34,6 +34,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2",
+    "resend": "^6.18.0",
     "three": "^0.185.1"
   },
   "devDependencies": {

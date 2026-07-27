@@ -1,27 +1,38 @@
 import { useEffect } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { getAdminName, getToken, logout } from './api'
+import { getAdminName, getToken, isSuperAdmin, logout } from './api'
 import BottomNav from './BottomNav'
 
-// Shared chrome for the tabbed admin screens (Dashboard, Registrations).
-// Top bar = identity + navigation only; the page title/description live in the
-// content column so the bar stays one line tall on every device.
-// The scanner and login screens render bare, outside this shell.
+// Shared chrome for the tabbed admin screens (Dashboard, Registrations, and —
+// for a superadmin — Activity and Admins). Top bar = identity + navigation only;
+// the page title/description live in the content column so the bar stays one
+// line tall on every device. The scanner and login screens render bare.
 
 const PAGES = {
   '/admin': { title: 'Dashboard', description: 'Live registration and check-in numbers.' },
   '/admin/registrations': { title: 'Registrations', description: 'Search, filter and resend attendee passes.' },
+  '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
+  '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
 }
 
-const TABS = [
+const BASE_TABS = [
   { to: '/admin', label: 'Dashboard' },
   { to: '/admin/registrations', label: 'Registrations' },
+]
+
+// Appended, not substituted: a superadmin keeps every gate-admin screen and
+// gains two more.
+const SUPER_TABS = [
+  { to: '/admin/activity', label: 'Activity' },
+  { to: '/admin/admins', label: 'Admins' },
 ]
 
 export default function AdminShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const page = PAGES[pathname] ?? { title: 'Admin', description: '' }
+  const superAdmin = isSuperAdmin()
+  const tabs = superAdmin ? [...BASE_TABS, ...SUPER_TABS] : BASE_TABS
 
   // Auth guard for every shell screen — bounce to login if the token is gone.
   useEffect(() => {
@@ -47,7 +58,7 @@ export default function AdminShell() {
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Desktop tabs; mobile uses the bottom nav instead. */}
             <nav className="hidden items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1 md:flex">
-              {TABS.map((tab) => (
+              {tabs.map((tab) => (
                 <NavLink
                   key={tab.to}
                   to={tab.to}
@@ -71,7 +82,14 @@ export default function AdminShell() {
               Scan passes
             </Link>
 
-            <span className="hidden max-w-[10rem] truncate text-sm text-paper/45 sm:inline">{getAdminName()}</span>
+            <span className="hidden max-w-[10rem] items-center gap-2 truncate text-sm text-paper/45 sm:inline-flex">
+              {getAdminName()}
+              {superAdmin && (
+                <span className="flex-none rounded border border-red/30 bg-red/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-red">
+                  Super
+                </span>
+              )}
+            </span>
             <button
               type="button"
               onClick={onLogout}

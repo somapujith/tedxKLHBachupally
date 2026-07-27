@@ -43,8 +43,8 @@ services:
         sync: false
       - key: RAZORPAY_WEBHOOK_SECRET
         sync: false
-      # --- Email (Mailchimp Transactional) ---
-      - key: MAILCHIMP_TRANSACTIONAL_API_KEY
+      # --- Email (Resend) ---
+      - key: RESEND_API_KEY
         sync: false
       - key: EMAIL_FROM
         sync: false

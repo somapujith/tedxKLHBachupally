@@ -3,16 +3,39 @@ import bcrypt from 'bcryptjs'
 import { getSql, isUuid } from './db.js'
 import { verifyTicket, issueTicket } from './tickets.js'
 import { seatCapacity } from './payments.js'
+import { recordAudit, AUDIT_ACTIONS } from './audit.js'
 
 const ADMIN_ISSUER = 'tedxklh-admin'
 const STATUSES = ['paid', 'pending', 'checked_in']
+
+export const ROLES = { ADMIN: 'admin', SUPERADMIN: 'superadmin' }
+
+// Roles are additive: a superadmin has every gate-admin power PLUS the audit
+// trail, the email log, cross-admin statistics, and account management.
+// Anything not explicitly 'superadmin' is treated as a plain admin — so a token
+// minted before the role column existed cannot silently gain privilege.
+function normalizeRole(value) {
+  return value === ROLES.SUPERADMIN ? ROLES.SUPERADMIN : ROLES.ADMIN
+}
+
+// Identity of the acting admin, for audit rows. Reads the signed JWT claims —
+// never a client-supplied body field.
+export function actorFrom(auth) {
+  const admin = auth?.admin || {}
+  return {
+    adminId: admin.aid || null,
+    adminUsername: admin.username || 'unknown',
+    adminRole: normalizeRole(admin.role),
+    displayName: admin.name || admin.username || 'Admin',
+  }
+}
 
 // Precomputed bcrypt hash of a random string. Compared against when the username
 // is unknown so both the known- and unknown-user paths spend equal time hashing —
 // closing the login timing oracle. The plaintext is irrelevant (never matched).
 const DUMMY_HASH = bcrypt.hashSync('unused-timing-equalizer-password', 10)
 
-export async function loginAdmin({ username, password }) {
+export async function loginAdmin({ username, password }, context = {}) {
   const user = String(username || '').trim().toLowerCase()
   const pass = String(password || '')
   if (!user || !pass) {
@@ -25,8 +48,14 @@ export async function loginAdmin({ username, password }) {
   }
 
   const sql = getSql()
+  // COALESCE, not a bare select: a deploy that has not run the migration yet has
+  // no role/is_active columns... but the query would then fail on the missing
+  // column itself, so instead the columns are guaranteed by ensureAdminsTable in
+  // migrate/seed. COALESCE only covers a NULL left by a hand-inserted row.
   const rows = await sql`
-    SELECT id, username, password_hash, display_name
+    SELECT id, username, password_hash, display_name,
+           COALESCE(role, 'admin') AS role,
+           COALESCE(is_active, TRUE) AS is_active
     FROM admins WHERE LOWER(username) = ${user} LIMIT 1
   `
   // Uniform failure for unknown user and bad password — no account enumeration.
@@ -35,19 +64,60 @@ export async function loginAdmin({ username, password }) {
   const admin = rows[0]
   const valid = await bcrypt.compare(pass, admin ? admin.password_hash : DUMMY_HASH)
   if (!admin || !valid) {
+    await recordAudit({
+      action: AUDIT_ACTIONS.LOGIN_FAILED,
+      adminUsername: user,
+      result: 'failure',
+      detail: admin ? 'Wrong password.' : 'Unknown username.',
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
     return { ok: false, status: 401, error: 'Invalid credentials.' }
   }
 
+  // A deactivated account gets the SAME 401 as a bad password. Saying "account
+  // disabled" would confirm the username exists, which is exactly the
+  // enumeration signal the uniform-failure path above exists to prevent. The
+  // real reason is recorded in the audit trail, where only a superadmin sees it.
+  if (admin.is_active === false) {
+    await recordAudit({
+      action: AUDIT_ACTIONS.LOGIN_FAILED,
+      adminId: admin.id,
+      adminUsername: admin.username,
+      adminRole: normalizeRole(admin.role),
+      result: 'failure',
+      detail: 'Account is deactivated.',
+      ip: context.ip,
+      userAgent: context.userAgent,
+    })
+    return { ok: false, status: 401, error: 'Invalid credentials.' }
+  }
+
+  const role = normalizeRole(admin.role)
   const token = jwt.sign(
-    { aid: admin.id, username: admin.username, name: admin.display_name },
+    { aid: admin.id, username: admin.username, name: admin.display_name, role },
     secret,
     { algorithm: 'HS256', expiresIn: '12h', issuer: ADMIN_ISSUER },
   )
+
+  // Best-effort: a failed stamp must not block a valid login.
+  await sql`UPDATE admins SET last_login_at = NOW() WHERE id = ${admin.id}`.catch((err) =>
+    console.error('last_login_at update failed:', err?.message || err),
+  )
+  await recordAudit({
+    action: AUDIT_ACTIONS.LOGIN_SUCCESS,
+    adminId: admin.id,
+    adminUsername: admin.username,
+    adminRole: role,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  })
+
   return {
     ok: true,
     status: 200,
     token,
-    admin: { username: admin.username, displayName: admin.display_name },
+    admin: { username: admin.username, displayName: admin.display_name, role },
   }
 }
 
@@ -71,10 +141,44 @@ export function requireAdmin(req) {
   }
   try {
     const admin = jwt.verify(token, secret, { algorithms: ['HS256'], issuer: ADMIN_ISSUER })
-    return { ok: true, admin }
+    return { ok: true, admin: { ...admin, role: normalizeRole(admin.role) } }
   } catch {
     return { ok: false, status: 401, error: 'Invalid or expired admin token.' }
   }
+}
+
+// Superadmin gate for the audit log, email log, cross-admin statistics and
+// account management. 403 (not 401) on a valid non-super token: the caller IS
+// authenticated, they simply lack the role — a 401 would bounce them to the
+// login screen in a loop, since signing in again yields the same token.
+export async function requireSuperAdmin(req) {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return auth
+  if (auth.admin.role !== ROLES.SUPERADMIN) {
+    return { ok: false, status: 403, error: 'Superadmin access required.' }
+  }
+
+  // The signature proves the token was minted by us; it does NOT prove the
+  // account still exists, is still active, or is still a superadmin. Tokens live
+  // 12 hours, so without this re-read a demoted or deactivated superadmin keeps
+  // full access for the rest of the day — deactivation would be cosmetic against
+  // a live session. One extra query, only on the privileged routes.
+  try {
+    const sql = getSql()
+    const rows = await sql`
+      SELECT role, is_active FROM admins WHERE id = ${auth.admin.aid} LIMIT 1
+    `
+    const current = rows[0]
+    if (!current || current.is_active === false || normalizeRole(current.role) !== ROLES.SUPERADMIN) {
+      return { ok: false, status: 403, error: 'Superadmin access required.' }
+    }
+  } catch (err) {
+    // Fail CLOSED. This gate guards account management and the audit trail; a
+    // database blip must not hand out access it cannot verify.
+    console.error('Superadmin re-check failed:', err?.message || err)
+    return { ok: false, status: 503, error: 'Could not verify admin access. Try again.' }
+  }
+  return auth
 }
 
 export async function getStats() {
@@ -174,9 +278,40 @@ async function diagnoseCheckIn(sql, payload) {
   return { ok: false, status: 409, error: 'Could not check in. Please retry.' }
 }
 
-export async function checkInTicket({ token, adminName }) {
+/**
+ * Scan a pass at the gate.
+ *
+ * Every outcome is audited — success, duplicate and rejection alike. A scan that
+ * was refused is the interesting one when reconciling the door later ("who tried
+ * to walk in twice, and on whose scanner"), so failures are recorded with the
+ * same detail as successes.
+ *
+ * @param {object} args
+ * @param {string} args.token       The ticket JWT read off the QR.
+ * @param {string} [args.adminName] Display name written to checked_in_by.
+ * @param {object} [args.actor]     actorFrom(auth) — identity for the audit row.
+ * @param {object} [args.context]   requestContext(req) — ip + user agent.
+ */
+export async function checkInTicket({ token, adminName, actor = {}, context = {} }) {
+  // The audit row must name a person even on the legacy call shape used by the
+  // existing tests, which passes only adminName.
+  const audit = {
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || adminName || 'unknown',
+    adminRole: actor.adminRole,
+    targetType: 'registration',
+    ip: context.ip,
+    userAgent: context.userAgent,
+  }
+
   const verified = verifyTicket(String(token || ''))
   if (!verified.ok) {
+    await recordAudit({
+      ...audit,
+      action: AUDIT_ACTIONS.CHECKIN_REJECTED,
+      result: 'failure',
+      detail: 'Unreadable or forged ticket token.',
+    })
     return { ok: false, status: 404, error: 'Invalid ticket.' }
   }
 
@@ -193,12 +328,41 @@ export async function checkInTicket({ token, adminName }) {
     RETURNING id, full_name, email, designation, checked_in_at
   `
   if (rows.length) {
+    await recordAudit({
+      ...audit,
+      action: AUDIT_ACTIONS.CHECKIN_SUCCESS,
+      targetId: rows[0].id,
+      targetName: rows[0].full_name,
+      detail: rows[0].email,
+    })
     return { ok: true, status: 200, attendee: rows[0] }
   }
-  return diagnoseCheckIn(sql, verified.payload)
+
+  const failure = await diagnoseCheckIn(sql, verified.payload)
+  await recordAudit({
+    ...audit,
+    action: failure.alreadyCheckedIn ? AUDIT_ACTIONS.CHECKIN_DUPLICATE : AUDIT_ACTIONS.CHECKIN_REJECTED,
+    result: 'failure',
+    targetId: rid,
+    targetName: failure.attendee?.full_name,
+    detail: failure.alreadyCheckedIn
+      ? `Already checked in by ${failure.attendee?.checked_in_by || 'unknown'}.`
+      : failure.error,
+  })
+  return failure
 }
 
-export async function resendTicket({ registrationId }) {
+export async function resendTicket({ registrationId, actor = {}, context = {} }) {
+  const audit = {
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    targetType: 'registration',
+    targetId: typeof registrationId === 'string' ? registrationId : null,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  }
+
   if (!registrationId) {
     return { ok: false, status: 400, error: 'Missing registration id.' }
   }
@@ -210,12 +374,13 @@ export async function resendTicket({ registrationId }) {
 
   const sql = getSql()
   const rows = await sql`
-    SELECT id, payment_status, ticket_email_sent_at
+    SELECT id, full_name, email, payment_status, ticket_email_sent_at
     FROM registrations WHERE id = ${registrationId} LIMIT 1
   `
   if (!rows[0]) {
     return { ok: false, status: 404, error: 'Registration not found.' }
   }
+  audit.targetName = rows[0].full_name
   if (rows[0].payment_status !== 'paid') {
     return { ok: false, status: 409, error: 'Registration is not paid.' }
   }
@@ -233,9 +398,26 @@ export async function resendTicket({ registrationId }) {
 
   // force:true re-claims + re-sends atomically inside issueTicket (no manual
   // null of the column — that left a window where the row could self-re-email).
-  const issued = await issueTicket(registrationId, { force: true })
+  // triggeredBy flows into the email log so a resent pass is distinguishable
+  // from the automatic post-payment send.
+  const issued = await issueTicket(registrationId, {
+    force: true,
+    triggeredBy: audit.adminUsername,
+  })
   if (!issued.ok) {
+    await recordAudit({
+      ...audit,
+      action: AUDIT_ACTIONS.RESEND_FAILED,
+      result: 'failure',
+      detail: 'issueTicket returned an error.',
+    })
     return { ok: false, status: 502, error: 'Could not resend ticket email.' }
   }
+  await recordAudit({
+    ...audit,
+    action: issued.emailed ? AUDIT_ACTIONS.RESEND_TICKET : AUDIT_ACTIONS.RESEND_FAILED,
+    result: issued.emailed ? 'success' : 'failure',
+    detail: issued.emailed ? `Pass re-sent to ${rows[0].email}.` : 'Provider did not accept the send.',
+  })
   return { ok: true, status: 200, emailed: issued.emailed === true }
 }
