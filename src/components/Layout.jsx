@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import Lenis from 'lenis'
 import { nav, event } from '../data/site'
 import { Button } from './ui'
 import { GrainOverlay } from './texture'
@@ -14,18 +15,45 @@ function isNavActive(to, pathname) {
   return pathname === to
 }
 
-// Reset scroll to the top on every route change.
-function ScrollToTop() {
+// Reset scroll to the top on every route change. Uses Lenis when present so
+// its internal scroll state resets in sync; falls back to native scroll.
+function ScrollToTop({ lenisRef }) {
   const { pathname } = useLocation()
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-  }, [pathname])
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { immediate: true })
+    } else {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [pathname, lenisRef])
   return null
 }
 
 export default function Layout({ children }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const lenisRef = useRef(null)
+
+  // Smooth momentum scrolling for the whole app. Respects reduced-motion.
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const lenis = new Lenis({ duration: 1.1, smoothWheel: true })
+    lenisRef.current = lenis
+
+    let rafId
+    const raf = (time) => {
+      lenis.raf(time)
+      rafId = requestAnimationFrame(raf)
+    }
+    rafId = requestAnimationFrame(raf)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      lenis.destroy()
+      lenisRef.current = null
+    }
+  }, [])
 
   useEffect(() => {
     setMenuOpen(false)
@@ -33,6 +61,11 @@ export default function Layout({ children }) {
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : ''
+    // Stop momentum scroll while the mobile menu locks the body.
+    if (lenisRef.current) {
+      if (menuOpen) lenisRef.current.stop()
+      else lenisRef.current.start()
+    }
     return () => {
       document.body.style.overflow = ''
     }
@@ -40,7 +73,7 @@ export default function Layout({ children }) {
 
   return (
     <div className="relative min-h-screen bg-ink text-paper flex flex-col">
-      <ScrollToTop />
+      <ScrollToTop lenisRef={lenisRef} />
       <GrainOverlay />
       {location.pathname !== '/' && (
         <div

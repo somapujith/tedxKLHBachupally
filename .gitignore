@@ -14,3 +14,6 @@ rzp-key.csv
 # Personal media / form exports — keep out of repo
 Submit your image (File responses)/
 WhatsApp Image *.jpeg
+
+# stray root key-art source copies (real asset lives in src/assets)
+/theme*.png
