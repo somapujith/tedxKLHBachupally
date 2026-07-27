@@ -16,6 +16,8 @@
   "dependencies": {
     "@mailchimp/mailchimp_transactional": "^1.4.1",
     "@neondatabase/serverless": "^1.1.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",
     "cookie": "^2.0.1",
     "cors": "^2.8.6",

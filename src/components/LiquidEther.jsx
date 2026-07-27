@@ -1,6 +1,127 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import './LiquidEther.css';
+
+/**
+ * Probe the machine's real WebGL capability.
+ * Returns null if WebGL is unusable, otherwise a capability descriptor that
+ * downstream code uses to pick a quality tier / float precision.
+ * Covers: no-WebGL browsers, blacklisted drivers, weak integrated GPUs,
+ * phones with no float-render support, and reduced-motion preference.
+ */
+function detectWebGLCapability() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return null;
+
+  // Respect users who asked the OS to cut animation.
+  const reduceMotion =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) return null;
+
+  let canvas;
+  try {
+    canvas = document.createElement('canvas');
+  } catch {
+    return null;
+  }
+
+  const attrs = {
+    alpha: true,
+    antialias: false,
+    depth: false,
+    stencil: false,
+    powerPreference: 'high-performance',
+    // Do NOT bail on weak/software GPUs — we still want a (degraded) run there.
+    failIfMajorPerformanceCaveat: false,
+    preserveDrawingBuffer: false
+  };
+
+  let gl = null;
+  try {
+    gl =
+      canvas.getContext('webgl2', attrs) ||
+      canvas.getContext('webgl', attrs) ||
+      canvas.getContext('experimental-webgl', attrs);
+  } catch {
+    return null;
+  }
+  if (!gl) return null;
+
+  const isWebGL2 = typeof WebGL2RenderingContext !== 'undefined' && gl instanceof WebGL2RenderingContext;
+
+  // Float-render support decides whether the fluid sim can run at full precision.
+  // WebGL2 has it core; WebGL1 needs OES_texture_float + a working float FBO.
+  let floatRenderable = false;
+  if (isWebGL2) {
+    floatRenderable = !!gl.getExtension('EXT_color_buffer_float');
+  } else {
+    floatRenderable = !!gl.getExtension('OES_texture_float');
+  }
+  // Half-float is the safer fallback on old integrated GPUs / mobile.
+  const halfFloatRenderable = isWebGL2
+    ? !!gl.getExtension('EXT_color_buffer_half_float') || floatRenderable
+    : !!gl.getExtension('OES_texture_half_float');
+
+  if (!floatRenderable && !halfFloatRenderable) {
+    // No render-to-float at all — sim math would break. Bail to CSS fallback.
+    return null;
+  }
+
+  // Renderer string helps flag weak hardware for the low tier.
+  let rendererStr = '';
+  try {
+    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+    if (dbg) rendererStr = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) || '');
+  } catch {
+    rendererStr = '';
+  }
+
+  const cap = { isWebGL2, floatRenderable, halfFloatRenderable, rendererStr };
+
+  // Release the probe context so we don't sit on a GPU slot.
+  try {
+    const lose = gl.getExtension('WEBGL_lose_context');
+    if (lose) lose.loseContext();
+  } catch {
+    /* ignore */
+  }
+  return cap;
+}
+
+/**
+ * Pick a quality tier from the device. Weak/mobile machines get fewer
+ * solver iterations, coarser sim resolution, and a lower DPR cap so the
+ * animation stays smooth instead of dropping frames or overheating.
+ */
+function pickQualityTier(cap) {
+  const ua = navigator.userAgent || '';
+  const isMobile = /Android|iPhone|iPad|iPod|IEMobile|BlackBerry|Opera Mini/i.test(ua);
+  const cores = navigator.hardwareConcurrency || 4;
+  const deviceMemory = navigator.deviceMemory || 4;
+  const weakName = /(SwiftShader|llvmpipe|Software|Microsoft Basic|Intel.*(HD|UHD) Graphics (2|3|4|5)\d\d)/i.test(
+    cap.rendererStr
+  );
+
+  const low = isMobile || cores <= 4 || deviceMemory <= 4 || weakName || !cap.floatRenderable;
+
+  if (low) {
+    return {
+      tier: 'low',
+      resolution: 0.35,
+      dpr: 1,
+      iterationsPoisson: 16,
+      iterationsViscous: 16,
+      isViscous: false
+    };
+  }
+  return {
+    tier: 'high',
+    resolution: 0.5,
+    dpr: 2,
+    iterationsPoisson: 32,
+    iterationsViscous: 32,
+    isViscous: false
+  };
+}
 
 export default function LiquidEther({
   mouseForce = 20,
@@ -31,9 +152,25 @@ export default function LiquidEther({
   const intersectionObserverRef = useRef(null);
   const isVisibleRef = useRef(true);
   const resizeRafRef = useRef(null);
+  const capRef = useRef(undefined);
+  const tierRef = useRef(null);
+
+  // Probe WebGL once. null => machine can't run the sim => render CSS fallback.
+  const [webglSupported, setWebglSupported] = useState(true);
 
   useEffect(() => {
     if (!mountRef.current) return;
+
+    // ── Capability gate: bail to CSS fallback on any unsupported machine ──
+    if (capRef.current === undefined) capRef.current = detectWebGLCapability();
+    const cap = capRef.current;
+    if (!cap) {
+      setWebglSupported(false);
+      return;
+    }
+    // Device-appropriate quality tier (weak GPU / mobile => lighter sim).
+    const tier = pickQualityTier(cap);
+    tierRef.current = tier;
 
     function makePaletteTexture(stops) {
       let arr;
@@ -86,9 +223,16 @@ export default function LiquidEther({
       }
       init(container) {
         this.container = container;
-        this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+        // Cap DPR per tier — weak/mobile devices render fewer pixels (huge win).
+        const dprCap = (tierRef.current && tierRef.current.dpr) || 2;
+        this.pixelRatio = Math.min(window.devicePixelRatio || 1, dprCap);
         this.resize();
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer = new THREE.WebGLRenderer({
+          antialias: false, // off — costs fill rate, invisible on a fluid field
+          alpha: true,
+          powerPreference: 'high-performance',
+          failIfMajorPerformanceCaveat: false // let software/weak GPUs still run
+        });
         this.renderer.autoClear = false;
         this.renderer.setClearColor(new THREE.Color(0x000000), 0);
         this.renderer.setPixelRatio(this.pixelRatio);
@@ -793,8 +937,12 @@ export default function LiquidEther({
         this.createShaderPass();
       }
       getFloatType() {
+        // Half-float when the GPU can't render to full float (old integrated /
+        // mobile), or on iOS where full float is unreliable. Keeps the sim
+        // from silently producing a black screen on weak hardware.
         const isIOS = /(iPad|iPhone|iPod)/i.test(navigator.userAgent);
-        return isIOS ? THREE.HalfFloatType : THREE.FloatType;
+        if (isIOS || !cap.floatRenderable) return THREE.HalfFloatType;
+        return THREE.FloatType;
       }
       createAllFBO() {
         const type = this.getFloatType();
@@ -980,6 +1128,19 @@ export default function LiquidEther({
       init() {
         this.props.$wrapper.prepend(Common.renderer.domElement);
         this.output = new Output();
+        // Mobile/weak GPUs can drop the GL context under memory pressure.
+        // Pause on loss (avoids error spam); resume on restore. If it never
+        // comes back, the page still shows the CSS gradient behind the canvas.
+        const canvas = Common.renderer.domElement;
+        this._onContextLost = e => {
+          e.preventDefault();
+          this.pause();
+        };
+        this._onContextRestored = () => {
+          if (isVisibleRef.current && !document.hidden) this.start();
+        };
+        canvas.addEventListener('webglcontextlost', this._onContextLost, false);
+        canvas.addEventListener('webglcontextrestored', this._onContextRestored, false);
       }
       resize() {
         Common.resize();
@@ -1035,6 +1196,9 @@ export default function LiquidEther({
           Mouse.dispose();
           if (Common.renderer) {
             const canvas = Common.renderer.domElement;
+            if (this._onContextLost) canvas.removeEventListener('webglcontextlost', this._onContextLost);
+            if (this._onContextRestored)
+              canvas.removeEventListener('webglcontextrestored', this._onContextRestored);
             if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
             Common.renderer.dispose();
             Common.renderer.forceContextLoss();
@@ -1060,6 +1224,13 @@ export default function LiquidEther({
     });
     webglRef.current = webgl;
 
+    // Clamp requested quality down to what the device tier allows. Never
+    // upscale past the prop — a strong machine still honors a light prop.
+    const t = tierRef.current || {};
+    const effResolution = Math.min(resolution, t.resolution ?? resolution);
+    const effIterPoisson = Math.min(iterationsPoisson, t.iterationsPoisson ?? iterationsPoisson);
+    const effIterViscous = Math.min(iterationsViscous, t.iterationsViscous ?? iterationsViscous);
+
     const applyOptionsFromProps = () => {
       if (!webglRef.current) return;
       const sim = webglRef.current.output?.simulation;
@@ -1070,14 +1241,14 @@ export default function LiquidEther({
         cursor_size: cursorSize,
         isViscous,
         viscous,
-        iterations_viscous: iterationsViscous,
-        iterations_poisson: iterationsPoisson,
+        iterations_viscous: effIterViscous,
+        iterations_poisson: effIterPoisson,
         dt,
         BFECC,
-        resolution,
+        resolution: effResolution,
         isBounce
       });
-      if (resolution !== prevRes) {
+      if (effResolution !== prevRes) {
         sim.resize();
       }
     };
@@ -1160,17 +1331,23 @@ export default function LiquidEther({
     if (!webgl) return;
     const sim = webgl.output?.simulation;
     if (!sim) return;
+    // Re-clamp to the device tier so a prop update can't push a weak GPU
+    // back up to full resolution/iterations.
+    const t = tierRef.current || {};
+    const effResolution = Math.min(resolution, t.resolution ?? resolution);
+    const effIterPoisson = Math.min(iterationsPoisson, t.iterationsPoisson ?? iterationsPoisson);
+    const effIterViscous = Math.min(iterationsViscous, t.iterationsViscous ?? iterationsViscous);
     const prevRes = sim.options.resolution;
     Object.assign(sim.options, {
       mouse_force: mouseForce,
       cursor_size: cursorSize,
       isViscous,
       viscous,
-      iterations_viscous: iterationsViscous,
-      iterations_poisson: iterationsPoisson,
+      iterations_viscous: effIterViscous,
+      iterations_poisson: effIterPoisson,
       dt,
       BFECC,
-      resolution,
+      resolution: effResolution,
       isBounce
     });
     if (webgl.autoDriver) {
@@ -1183,7 +1360,7 @@ export default function LiquidEther({
         webgl.autoDriver.mouse.takeoverDuration = takeoverDuration;
       }
     }
-    if (resolution !== prevRes) {
+    if (effResolution !== prevRes) {
       sim.resize();
     }
   }, [
@@ -1204,6 +1381,23 @@ export default function LiquidEther({
     autoResumeDelay,
     autoRampDuration
   ]);
+
+  // Machines without usable WebGL (or reduced-motion users) get a static
+  // gradient built from the same palette — no canvas, no crash.
+  if (!webglSupported) {
+    const grad =
+      colors && colors.length >= 2
+        ? `radial-gradient(120% 120% at 50% 0%, ${colors[colors.length - 1]} 0%, transparent 55%), linear-gradient(160deg, ${colors[0]} 0%, ${colors[Math.min(1, colors.length - 1)]} 100%)`
+        : 'none';
+    return (
+      <div
+        ref={mountRef}
+        className={`liquid-ether-container liquid-ether-fallback ${className || ''}`}
+        style={{ ...style, background: grad }}
+        aria-hidden="true"
+      />
+    );
+  }
 
   return <div ref={mountRef} className={`liquid-ether-container ${className || ''}`} style={style} />;
 }

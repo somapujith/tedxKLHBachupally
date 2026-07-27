@@ -1,28 +1,11 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Eyebrow, Button } from '../components/ui'
 import { RedGlow } from '../components/texture'
 import { event } from '../data/site'
+import { apiFetch } from '../lib/api'
 
 const CONTACT_EMAIL = 'hello@tedxklhbachupally.in'
 const INSTAGRAM_URL = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
-
-// Parse a fetch Response as JSON without throwing "Unexpected end of JSON input"
-// when the server returns an empty body (unhandled 500, API not running).
-async function readJson(res) {
-  const text = await res.text()
-  if (!text) {
-    throw new Error(
-      res.ok
-        ? 'Server returned an empty response.'
-        : 'The contact service is unavailable right now. Please try again shortly.',
-    )
-  }
-  try {
-    return JSON.parse(text)
-  } catch {
-    throw new Error('Server returned an invalid response. Please try again.')
-  }
-}
 
 const initial = { name: '', email: '', phone: '', subject: '', message: '', website: '' }
 
@@ -31,6 +14,7 @@ export default function Contact() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [sent, setSent] = useState(false)
+  const inFlight = useRef(false) // synchronous double-submit guard
 
   function update(field, value) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -39,16 +23,22 @@ export default function Contact() {
 
   async function onSubmit(e) {
     e.preventDefault()
+    if (inFlight.current) return
+    inFlight.current = true
     setError('')
     setSubmitting(true)
     try {
-      const res = await fetch('/api/contact', {
+      // retries: 0 — sending a message is not idempotent. A 429 (contact is the
+      // most abuse-prone endpoint, tightest limit) becomes a clear message.
+      const { ok, status, data } = await apiFetch('/api/contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: form,
+        retries: 0,
       })
-      const data = await readJson(res)
-      if (!res.ok || !data.ok) {
+      if (status === 429) {
+        throw new Error('Too many messages sent. Please wait a few minutes and try again.')
+      }
+      if (!ok) {
         throw new Error(data.error || 'Could not send your message.')
       }
       setSent(true)
@@ -57,6 +47,7 @@ export default function Contact() {
       setError(err.message || 'Something went wrong.')
     } finally {
       setSubmitting(false)
+      inFlight.current = false
     }
   }
 

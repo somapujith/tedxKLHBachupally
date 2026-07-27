@@ -1,21 +1,21 @@
 import 'dotenv/config'
 import { verifyPayment } from '../../server/payments.js'
+import { withApi, LIMITS } from '../../server/http.js'
 
-export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
-  if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') {
-    return res.status(405).json({ ok: false, error: 'Method not allowed' })
+async function handler(req, res) {
+  const result = await verifyPayment(req.body || {})
+  if (!result.ok) {
+    return res.status(result.status).json({ ok: false, error: result.error, soldOut: result.soldOut })
   }
-
-  try {
-    const result = await verifyPayment(req.body || {})
-    return res.status(result.status).json(result)
-  } catch (err) {
-    console.error('Verify error:', err)
-    return res.status(500).json({ ok: false, error: 'Could not verify payment.' })
-  }
+  // Only the fields the UI needs — not the raw registration row.
+  return res.status(result.status).json({
+    ok: true,
+    registration: {
+      email: result.registration?.email,
+      payment_status: result.registration?.payment_status,
+      razorpay_payment_id: result.registration?.razorpay_payment_id,
+    },
+  })
 }
+
+export default withApi(handler, { methods: ['POST'], limit: LIMITS.payment })

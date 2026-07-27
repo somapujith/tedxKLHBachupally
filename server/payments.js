@@ -1,7 +1,45 @@
 import crypto from 'node:crypto'
 import Razorpay from 'razorpay'
-import { getSql, ensureRegistrationsTable } from './db.js'
+import { getSql, ensureSchemaOnce, withDbRetry } from './db.js'
 import { issueTicket } from './tickets.js'
+
+// Razorpay's SDK has no built-in timeout — a slow API call would otherwise hang
+// the serverless function until Vercel's platform limit, burning an invocation
+// and blocking a user during a launch spike. Wrap every Razorpay call in a race
+// against a timeout, and retry idempotent reads a bounded number of times.
+const RZP_TIMEOUT_MS = Number(process.env.RAZORPAY_TIMEOUT_MS) || 10000
+
+function withTimeout(promise, ms, label) {
+  let timer
+  const timeout = new Promise((_resolve, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+  })
+  // If the timeout wins the race, the underlying promise is still pending; attach
+  // a no-op catch so its LATER rejection cannot surface as an unhandled rejection
+  // (which on some Node/serverless runtimes terminates the instance).
+  promise.catch(() => {})
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer))
+}
+
+// Retry-with-backoff for idempotent Razorpay reads (payments.fetch). NOT used for
+// orders.create — creating twice would mint two orders; that call gets a timeout
+// but no retry. A 4xx from Razorpay (bad id) is not retried; only timeouts and
+// 5xx/network errors are.
+async function rzpCall(fn, { label, retries = 0 }) {
+  let lastErr
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await withTimeout(Promise.resolve().then(fn), RZP_TIMEOUT_MS, label)
+    } catch (err) {
+      lastErr = err
+      const status = Number(err?.statusCode || err?.status || 0)
+      const retriable = status === 0 || status >= 500 || /timed out|network|ECONN/i.test(String(err?.message))
+      if (!retriable || attempt === retries) throw err
+      await new Promise((r) => setTimeout(r, 200 * 2 ** attempt))
+    }
+  }
+  throw lastErr
+}
 
 // Amount in paise (₹1 placeholder). Change here when real pricing is decided.
 export const REGISTRATION_AMOUNT = 100
@@ -44,14 +82,14 @@ export async function createOrder({ registrationId }) {
   }
 
   const sql = getSql()
-  await ensureRegistrationsTable(sql)
+  await ensureSchemaOnce(sql)
 
-  const rows = await sql`
+  const rows = await withDbRetry(() => sql`
     SELECT id, email, full_name, payment_status
     FROM registrations
     WHERE id = ${registrationId}
     LIMIT 1
-  `
+  `)
   const reg = rows[0]
   if (!reg) {
     return { ok: false, status: 404, error: 'Registration not found.' }
@@ -64,9 +102,9 @@ export async function createOrder({ registrationId }) {
   // order so a sold-out event cannot even start a checkout. This is a soft gate —
   // the hard, atomic gate is in settlePayment's paid-flip.
   const capacity = seatCapacity()
-  const paidCount = await sql`
+  const paidCount = await withDbRetry(() => sql`
     SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
-  `
+  `)
   if (paidCount[0].count >= capacity) {
     return {
       ok: false,
@@ -78,22 +116,28 @@ export async function createOrder({ registrationId }) {
 
   let order
   try {
-    order = await getClient().orders.create({
-      amount: REGISTRATION_AMOUNT,
-      currency: CURRENCY,
-      receipt: `reg_${reg.id}`,
-      notes: { registrationId: reg.id, email: reg.email },
-    })
+    // No retry: orders.create is not idempotent — a retry after a timeout could
+    // mint a second order for the same registration. Timeout only.
+    order = await rzpCall(
+      () =>
+        getClient().orders.create({
+          amount: REGISTRATION_AMOUNT,
+          currency: CURRENCY,
+          receipt: `reg_${reg.id}`,
+          notes: { registrationId: reg.id, email: reg.email },
+        }),
+      { label: 'Razorpay orders.create', retries: 0 },
+    )
   } catch (err) {
     console.error('Razorpay order create failed:', err?.error || err)
     return { ok: false, status: 502, error: 'Could not start payment. Please try again.' }
   }
 
-  await sql`
+  await withDbRetry(() => sql`
     UPDATE registrations
     SET razorpay_order_id = ${order.id}, amount = ${REGISTRATION_AMOUNT}
     WHERE id = ${reg.id}
-  `
+  `)
 
   return {
     ok: true,
@@ -119,7 +163,15 @@ async function settlePayment({ orderId, paymentId }) {
 
   let payment
   try {
-    payment = await getClient().payments.fetch(paymentId)
+    // Idempotent read — safe to retry on a transient failure so a flaky Razorpay
+    // response during a spike does not falsely reject a real, captured payment.
+    // retries: 1 (not 2) — keep server-side amplification low. The verify path
+    // (client) + webhook path both converge on settlePayment for the same
+    // payment, so total Razorpay read fan-out per payment must stay bounded.
+    payment = await rzpCall(() => getClient().payments.fetch(paymentId), {
+      label: 'Razorpay payments.fetch',
+      retries: 1,
+    })
   } catch (err) {
     console.error('Razorpay payment fetch failed:', err?.error || err)
     return { ok: false, status: 502, error: 'Could not verify payment with Razorpay.' }
@@ -145,7 +197,10 @@ async function settlePayment({ orderId, paymentId }) {
   // is still under capacity. The subquery runs inside the same statement as the
   // UPDATE, so N concurrent flips are serialized by row/table locks and cannot
   // collectively oversell past SEAT_CAPACITY.
-  const rows = await sql`
+  // Retry-safe: the `payment_status <> 'paid'` guard makes a replay flip nothing
+  // (0 rows) and converge to the already-paid re-read below, so a retried UPDATE
+  // after a transient failure cannot double-charge or oversell.
+  const rows = await withDbRetry(() => sql`
     UPDATE registrations
     SET payment_status = 'paid',
         razorpay_payment_id = ${paymentId},
@@ -155,7 +210,7 @@ async function settlePayment({ orderId, paymentId }) {
       AND payment_status <> 'paid'
       AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
     RETURNING id, email, payment_status, razorpay_payment_id, paid_at
-  `
+  `)
 
   if (rows.length) {
     // Awaited (serverless — cannot fire-and-forget); issueTicket never throws
@@ -166,10 +221,10 @@ async function settlePayment({ orderId, paymentId }) {
 
   // No row flipped: already paid (idempotent replay), order unknown, or the
   // capacity guard blocked it. Re-read to disambiguate.
-  const existing = await sql`
+  const existing = await withDbRetry(() => sql`
     SELECT id, email, payment_status, razorpay_payment_id, paid_at
     FROM registrations WHERE razorpay_order_id = ${orderId} LIMIT 1
-  `
+  `)
   if (existing[0]?.payment_status === 'paid') {
     // Replay path (webhook + verify double-delivery) converges here — retries
     // the ticket email if a previous attempt failed.

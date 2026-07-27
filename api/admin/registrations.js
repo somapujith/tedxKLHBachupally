@@ -1,24 +1,13 @@
 import 'dotenv/config'
-import { requireAdmin, listRegistrations, setAdminCors } from '../../server/admin.js'
+import { requireAdmin, listRegistrations } from '../../server/admin.js'
+import { withApi, LIMITS } from '../../server/http.js'
 
-export default async function handler(req, res) {
-  setAdminCors(req, res)
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-
-  if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'GET') {
-    return res.status(405).json({ ok: false, error: 'Method not allowed' })
-  }
-
+async function handler(req, res) {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
 
-  try {
-    const result = await listRegistrations({ status: req.query?.status })
-    return res.status(result.status).json(result)
-  } catch (err) {
-    console.error('Admin registrations error:', err)
-    return res.status(500).json({ ok: false, error: 'Could not load registrations.' })
-  }
+  const result = await listRegistrations({ status: req.query?.status })
+  return res.status(result.status).json(result)
 }
+
+export default withApi(handler, { methods: ['GET'], scope: 'admin', limit: LIMITS.adminAction })

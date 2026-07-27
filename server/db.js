@@ -1,11 +1,60 @@
 import { neon } from '@neondatabase/serverless'
 
+// A single neon() client per cold start. The Neon serverless driver talks to the
+// DB over stateless HTTP (no persistent TCP pool), so this is safe to reuse and
+// avoids re-parsing the connection string on every query. Under a 500-user burst
+// each function instance reuses one client instead of minting one per request.
+let sqlClient = null
 export function getSql() {
+  if (sqlClient) return sqlClient
   const url = process.env.DATABASE_URL
   if (!url) {
     throw new Error('DATABASE_URL is not set')
   }
-  return neon(url)
+  sqlClient = neon(url)
+  return sqlClient
+}
+
+// Retry a transient DB operation with capped exponential backoff. Neon's HTTP
+// endpoint can briefly 5xx / reset a connection during autoscaling or a cold
+// branch; a burst of 500 users makes that far more likely to be hit by someone.
+// Only network/5xx-shaped errors are retried — a constraint violation (e.g. a
+// duplicate email, code 23505) is deterministic and must surface immediately.
+// Node network error codes that are unambiguously transient.
+const TRANSIENT_CODES = new Set(['ECONNRESET', 'ETIMEDOUT', 'EAI_AGAIN', 'ECONNREFUSED', 'EPIPE'])
+
+// A DB error is only treated as transient (retriable) when it is clearly a
+// connection/transport failure — NOT when its message merely happens to contain
+// a substring like "connection" or "503". A Postgres SQLSTATE is present on real
+// query errors (e.g. 23505 unique_violation); those are deterministic and must
+// surface immediately, never retried. So: retry on a known network code, or on a
+// transport-shaped message, but bail the moment a 5-char SQLSTATE code is present.
+function isTransientDbError(err) {
+  const code = String(err?.code || '')
+  if (/^[0-9A-Z]{5}$/.test(code)) return false // a Postgres SQLSTATE => deterministic
+  if (TRANSIENT_CODES.has(code)) return true
+  const msg = String(err?.message || '')
+  return /\bfetch failed\b|\bconnection (?:reset|refused|closed|terminated)\b|\bnetwork\b|\bsocket hang up\b|\btimed? ?out\b/i.test(
+    msg,
+  )
+}
+
+export async function withDbRetry(fn, { retries = 2, baseMs = 120 } = {}) {
+  let lastErr
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastErr = err
+      if (!isTransientDbError(err) || attempt === retries) throw err
+      await sleep(baseMs * 2 ** attempt)
+    }
+  }
+  throw lastErr
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 export async function ensureRegistrationsTable(sql = getSql()) {
@@ -86,4 +135,20 @@ export async function ensureAdminsTable(sql = getSql()) {
     CREATE UNIQUE INDEX IF NOT EXISTS admins_username_unique
     ON admins (LOWER(username))
   `
+}
+
+// Ensure the registrations schema AT MOST ONCE per cold start. The DDL is
+// idempotent (all CREATE ... IF NOT EXISTS), but it is ~15 round-trips; running
+// it on every /register and /payment/order request was pure waste and, under a
+// 500-user burst, real added DB load and latency. The promise is memoized so a
+// concurrent burst on a fresh instance shares one ensure, and a failed attempt
+// is NOT cached (reset to null) so the next request can retry.
+let schemaReady = null
+export function ensureSchemaOnce(sql = getSql()) {
+  if (schemaReady) return schemaReady
+  schemaReady = ensureRegistrationsTable(sql).catch((err) => {
+    schemaReady = null
+    throw err
+  })
+  return schemaReady
 }
