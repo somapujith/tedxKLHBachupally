@@ -1,7 +1,7 @@
 import { useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { event, speakers, theme } from '../data/site'
-import { Countdown, SpeakerCard, Reveal, Section, Eyebrow, Button } from '../components/ui'
+import { event, theme } from '../data/site'
+import { Countdown, Reveal, Section, Eyebrow, Button } from '../components/ui'
 import { BinaryDrift, TornEdge } from '../components/texture'
 import LiquidEther from '../components/LiquidEther'
 import heroImage from '../assets/tedxhero1.png'
@@ -141,16 +141,6 @@ export default function Home() {
           <div className="mt-8">
             <ReadMore to="/theme">Read the full theme</ReadMore>
           </div>
-        </Reveal>
-
-        <Reveal className="mt-20 flex items-end justify-between gap-6">
-          <h3 className="font-display text-2xl md:text-3xl">The voices, so far.</h3>
-          <ReadMore to="/events/1/speakers">All 12</ReadMore>
-        </Reveal>
-        <Reveal className="mt-10 grid md:grid-cols-2 md:gap-x-14">
-          {speakers.slice(0, 6).map((s) => (
-            <SpeakerCard key={s.slug} speaker={s} />
-          ))}
         </Reveal>
       </Section>
 

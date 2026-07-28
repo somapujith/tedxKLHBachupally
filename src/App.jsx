@@ -2,8 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Outlet } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './pages/Home'
-import EventDetail from './pages/EventDetail'
-import SpeakerDetail from './pages/SpeakerDetail'
 import Speakers from './pages/Speakers'
 import Theme from './pages/Theme'
 import About from './pages/About'
@@ -13,7 +11,7 @@ import Partners from './pages/Partners'
 import Sponsor from './pages/Sponsor'
 import Register from './pages/Register'
 import Contact from './pages/Contact'
-import { Volunteer, Nominate } from './pages/ClosedPages'
+import { Volunteer, Nominate, Schedule } from './pages/ClosedPages'
 import NotFound from './pages/NotFound'
 
 // Admin pages are lazy so html5-qrcode & co. stay out of the public bundle.
@@ -60,12 +58,6 @@ export default function App() {
 
       <Route element={<PublicShell />}>
         <Route path="/" element={<Home />} />
-        <Route path="/events/1" element={<EventDetail />} />
-        <Route path="/events/1/speakers" element={<EventDetail />} />
-        <Route path="/events/1/speakers/:slug" element={<SpeakerDetail />} />
-        <Route path="/events/1/schedule" element={<EventDetail />} />
-        <Route path="/events/1/gallery" element={<EventDetail />} />
-        <Route path="/events/1/experience" element={<EventDetail />} />
         <Route path="/speakers" element={<Speakers />} />
         <Route path="/theme" element={<Theme />} />
         <Route path="/about-tedxklh" element={<About />} />
@@ -77,6 +69,7 @@ export default function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/volunteer" element={<Volunteer />} />
+        <Route path="/schedule" element={<Schedule />} />
         <Route path="/sponsor" element={<Sponsor />} />
         <Route path="/nominate" element={<Nominate />} />
         <Route path="*" element={<NotFound />} />

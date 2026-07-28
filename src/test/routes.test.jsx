@@ -16,11 +16,6 @@ function renderAt(path) {
 // assertions fail (unlike a generic "nav links exist" smoke check).
 const ROUTES = [
   ['/', /Humanity Leads\./i],
-  ['/events/1', /About the edition/i],
-  ['/events/1/speakers', /Understanding what makes us uniquely/i],
-  ['/events/1/schedule', /Understanding what makes us uniquely/i],
-  ['/events/1/gallery', /Understanding what makes us uniquely/i],
-  ['/events/1/experience', /Idea Lounge/i],
   ['/theme', /The machine learned to dream\./i],
   // The three about-* URLs are aliases of ONE consolidated About page (the nav
   // links only to /about-tedxklh; the other two exist so old links keep working),
@@ -33,6 +28,7 @@ const ROUTES = [
   ['/partners', /The companies in the room\./i],
   ['/register', /Claim your seat\./i],
   ['/volunteer', /Build it with us\./i],
+  ['/schedule', /Coming soon\./i],
   ['/sponsor', /Put your name in the room\./i],
   ['/nominate', /Know someone who should speak\?/i],
 ]

@@ -252,7 +252,7 @@ export default function Layout({ children }) {
             links={[
               { label: 'Register', to: '/register' },
               { label: 'Theme', to: '/theme' },
-              { label: 'Schedule', to: '/events/1/schedule' },
+              { label: 'Schedule', to: '/schedule' },
               { label: 'Sponsor', to: '/sponsor' },
             ]}
           />

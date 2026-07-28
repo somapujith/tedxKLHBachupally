@@ -36,11 +36,6 @@ describe('App routing', () => {
     expect(screen.getByLabelText(/Message/i)).toBeInTheDocument()
   })
 
-  it('renders a speaker detail page', () => {
-    renderAt('/events/1/speakers/ananya-rao')
-    expect(screen.getByText('Ananya Rao')).toBeInTheDocument()
-  })
-
   it('serves the consolidated About page on every legacy about-* URL', () => {
     for (const path of ['/about-ted', '/about-tedx', '/about-tedxklh']) {
       const { unmount } = renderAt(path)

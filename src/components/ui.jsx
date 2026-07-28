@@ -117,22 +117,6 @@ export function Countdown({ target }) {
   )
 }
 
-export function SpeakerCard({ speaker }) {
-  return (
-    <Link
-      to={`/events/1/speakers/${speaker.slug}`}
-      className="group block py-6 border-t border-paper/10 hover:border-paper/40 transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
-    >
-      <div className="flex items-baseline justify-between mb-3">
-        <span className="font-display text-xl group-hover:text-red transition-colors">{speaker.name}</span>
-        <span className="font-mono text-[11px] uppercase tracking-widest text-paper/55">{speaker.category}</span>
-      </div>
-      <div className="text-sm text-paper/50 mb-1">{speaker.role}</div>
-      <div className="text-sm text-paper/80">&ldquo;{speaker.talk}&rdquo;</div>
-    </Link>
-  )
-}
-
 export function StatusBanner({ title, body }) {
   return (
     <div className="border border-red/50 p-8 mt-10">
