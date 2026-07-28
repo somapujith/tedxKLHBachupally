@@ -10,6 +10,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* iOS Safari auto-zooms the page when a focused form control renders under
+   16px. Force every control to at least 16px on phones — !important so it
+   also beats Tailwind utility classes like text-sm on admin inputs. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 .section-number {
   @apply font-mono text-xs tracking-widest text-red uppercase;
 }
