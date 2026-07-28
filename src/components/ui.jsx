@@ -202,10 +202,8 @@ export function TeamCard({ member, index = 0, showIndex = false }) {
       {/* Body */}
       <div className="relative px-4 py-4">
         <div className="font-display text-base tracking-tight leading-tight">{member.name}</div>
-        {member.role ? (
+        {member.role && (
           <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
-        ) : (
-          <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">{member.dept}</div>
         )}
         {member.bio && <p className="mt-3 text-sm leading-relaxed text-paper/60">{member.bio}</p>}
         {showIndex && (
