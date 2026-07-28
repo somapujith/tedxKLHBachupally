@@ -28,6 +28,7 @@ import photoSrikar from '../assets/images/team/srikar.jpg'
 import photoTarun from '../assets/images/team/tarun.jpg'
 import photoNaveena from '../assets/images/team/naveena.jpg'
 import photoGanesh from '../assets/images/team/ganesh.jpg'
+import photoLakshmiPrasanna from '../assets/images/team/lakshmi-prasanna.jpg'
 import photoSubramanyam from '../assets/images/team/subramanyam.jpg'
 
 export const nav = [
@@ -122,7 +123,7 @@ export const teamDepartments = [
 export const teamLeadership = [
   { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
   { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
-  { name: 'Akash', role: 'Co-organiser', photo: null },
+  { name: 'Akash', role: 'Curator', photo: null },
   { name: 'Shareef', role: 'Head of Department — CS&IT', photo: photoShareef },
 ]
 
@@ -130,7 +131,7 @@ export const team = [
   // Hospitality
   { name: 'Yashwant', dept: 'Hospitality', role: 'Leader', photo: photoYashwant },
   { name: 'Divya', dept: 'Hospitality', role: 'Co Leader', photo: photoDivya, photoPos: '50% 15%' },
-  { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: null },
+  { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: photoLakshmiPrasanna, photoPos: '50% 20%' },
   { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
   { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
   { name: 'Chervi', dept: 'Hospitality', photo: photoChervi, photoPos: '50% 30%' },

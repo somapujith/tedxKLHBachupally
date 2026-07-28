@@ -190,13 +190,6 @@ export default function Home() {
             <Button to="/register" variant="primary" className="mt-10">
               Reserve a seat →
             </Button>
-
-            <p className="mx-auto mt-14 max-w-sm border-t border-paper/10 pt-8 font-mono text-[11px] uppercase leading-relaxed tracking-[0.18em] text-paper/40">
-              Backed by the institutions and brands who fund independent ideas ·{' '}
-              <Link to="/partners" className="text-red hover:underline">
-                our partners
-              </Link>
-            </p>
           </div>
         </div>
       </section>
