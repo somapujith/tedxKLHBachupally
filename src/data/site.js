@@ -128,12 +128,13 @@ export const teamLeadership = [
 
 export const team = [
   // Hospitality
+  { name: 'Yashwant', dept: 'Hospitality', role: 'Leader', photo: photoYashwant },
+  { name: 'Divya', dept: 'Hospitality', role: 'Co Leader', photo: photoDivya, photoPos: '50% 15%' },
+  { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: null },
   { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
   { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
   { name: 'Chervi', dept: 'Hospitality', photo: photoChervi, photoPos: '50% 30%' },
   { name: 'Tanmai', dept: 'Hospitality', photo: photoTanmai, photoPos: '70% 25%' },
-  { name: 'Yashwant', dept: 'Hospitality', role: 'Leader', photo: photoYashwant },
-  { name: 'Divya', dept: 'Hospitality', role: 'Co Leader', photo: photoDivya, photoPos: '50% 15%' },
   { name: 'Dhanvin', dept: 'Hospitality', photo: photoDhanvin },
   { name: 'Tarun', dept: 'Hospitality', photo: photoTarun },
   { name: 'Ganesh', dept: 'Hospitality', photo: photoGanesh },
@@ -141,25 +142,25 @@ export const team = [
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   { name: 'Subramanyam', dept: 'Hospitality', photo: photoSubramanyam },
   { name: 'Naveena', dept: 'Hospitality', photo: photoNaveena, photoPos: '50% 30%' },
-  { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: null },
   // Sponsorship
   { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
   { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
   { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
   { name: 'Suhas G', dept: 'Marketing', role: 'Leader', photo: photoSuhasG },
-  { name: 'Srikar', dept: 'Marketing', role: 'Co Leader', photo: photoSrikar },
+  { name: 'Pemesh', dept: 'Marketing', role: 'Co Leader', photo: photoPemesh },
+  { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: null },
   { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
-  { name: 'Pemesh', dept: 'Marketing', photo: photoPemesh },
   { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
   { name: 'Rasagnya', dept: 'Marketing', photo: photoRasagnya },
   { name: 'Akshitha', dept: 'Marketing', photo: photoAkshitha },
   { name: 'Ashwika', dept: 'Marketing', photo: photoAshwika },
   { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
   { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
-  { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: null },
+  // Productions
+  { name: 'Suhas', dept: 'Productions', photo: photoSuhasWeb },
+  { name: 'Srikar', dept: 'Productions', photo: photoSrikar },
   // Web Development & Design
-  { name: 'Suhas', dept: 'Web Development & Design', photo: photoSuhasWeb },
   { name: 'Pujith', dept: 'Web Development & Design', photo: photoPujith },
 ]
 
