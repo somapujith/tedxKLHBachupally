@@ -52,19 +52,15 @@ describe('Register form — live pass availability', () => {
     })
   }
 
-  it('renders the live remaining count in the Seats row', async () => {
-    vi.stubGlobal('fetch', availabilityFetch({ capacity: 250, sold: 40 }))
-    renderForm()
-    await waitFor(() => expect(screen.getByText('210 of 250 left')).toBeInTheDocument())
-    expect(screen.queryByText(/selling fast/i)).not.toBeInTheDocument()
-  })
-
-  it('shows the low-stock warning at 25 or fewer passes left', async () => {
+  // Seat counts are deliberately never shown to visitors — the availability
+  // probe only drives the sold-out gate. Guard against the count creeping back.
+  it('never renders seat counts, even when availability is low', async () => {
     vi.stubGlobal('fetch', availabilityFetch({ capacity: 250, sold: 238 }))
     renderForm()
-    await waitFor(() =>
-      expect(screen.getByText(/only 12 passes left — selling fast/i)).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByLabelText(/full name/i)).toBeInTheDocument())
+    expect(screen.queryByText(/of 250 left/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/passes left/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/selling fast/i)).not.toBeInTheDocument()
   })
 
   it('replaces the form with the sold-out screen when nothing is left', async () => {

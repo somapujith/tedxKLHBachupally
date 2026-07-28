@@ -67,7 +67,7 @@ export default function About() {
             <figure className="overflow-hidden rounded-lg border border-paper/10">
               <img
                 src={tedStage}
-                alt="A speaker on the TED main stage, standing in the signature red dot"
+                alt="A speaker on the TED main stage, standing in the signature red circle"
                 className="h-full w-full object-cover"
                 loading="lazy"
               />

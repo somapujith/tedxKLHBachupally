@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Routes, Route, Outlet } from 'react-router-dom'
 import Layout from './components/Layout'
 import Home from './pages/Home'
-import Events from './pages/Events'
 import EventDetail from './pages/EventDetail'
 import SpeakerDetail from './pages/SpeakerDetail'
 import Speakers from './pages/Speakers'
@@ -61,7 +60,6 @@ export default function App() {
 
       <Route element={<PublicShell />}>
         <Route path="/" element={<Home />} />
-        <Route path="/events" element={<Events />} />
         <Route path="/events/1" element={<EventDetail />} />
         <Route path="/events/1/speakers" element={<EventDetail />} />
         <Route path="/events/1/speakers/:slug" element={<SpeakerDetail />} />

@@ -13,7 +13,7 @@ function slugify(name) {
     .replace(/^-+|-+$/g, '')
 }
 
-// Numberless section header — a red dot marker, the title, and a hairline rule.
+// Numberless section header — a red circle marker, the title, and a hairline rule.
 // No counts, no zero-padded index; reads the same in any language.
 function SectionHeader({ title, kicker }) {
   return (

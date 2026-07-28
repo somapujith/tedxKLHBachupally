@@ -16,7 +16,6 @@ function renderAt(path) {
 // assertions fail (unlike a generic "nav links exist" smoke check).
 const ROUTES = [
   ['/', /Humanity Leads\./i],
-  ['/events', /Our editions\. Infinite ideas\./i],
   ['/events/1', /About the edition/i],
   ['/events/1/speakers', /Understanding what makes us uniquely/i],
   ['/events/1/schedule', /Understanding what makes us uniquely/i],
@@ -30,7 +29,7 @@ const ROUTES = [
   ['/about-ted', /About TED & TEDx/i],
   ['/about-tedx', /About TED & TEDx/i],
   ['/team', /One stage\./i],
-  ['/blog', /Notes from behind the red dot\./i],
+  ['/blog', /Notes from behind the red circle\./i],
   ['/partners', /The companies in the room\./i],
   ['/register', /Claim your seat\./i],
   ['/volunteer', /Build it with us\./i],

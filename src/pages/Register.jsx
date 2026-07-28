@@ -440,21 +440,7 @@ export default function Register() {
                 <SummaryRow label="Time" value={event.time} />
                 <SummaryRow label="Venue" value={event.venue} />
                 <SummaryRow label="City" value={event.city} />
-                <SummaryRow
-                  label="Seats"
-                  value={
-                    availability
-                      ? `${availability.remaining} of ${availability.capacity} left`
-                      : `${event.capacity} · curated`
-                  }
-                />
               </dl>
-              {availability && availability.remaining > 0 &&
-                availability.remaining <= Math.min(25, Math.max(1, Math.floor(availability.capacity / 10))) && (
-                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-red">
-                  Only {availability.remaining} {availability.remaining === 1 ? 'pass' : 'passes'} left — selling fast
-                </p>
-              )}
               <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-paper/35">
                 {event.timeNote}
               </p>

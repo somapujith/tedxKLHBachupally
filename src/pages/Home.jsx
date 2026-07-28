@@ -28,7 +28,7 @@ function ReadMore({ to, href, children }) {
 const stats = [
   ['12', 'Speakers'],
   ['01', 'Stage, one day'],
-  ['250', 'Seats, curated'],
+  ['18', 'Minutes per idea'],
   ['100%', 'Student-run'],
 ]
 
@@ -37,7 +37,7 @@ const manifesto = [
   'No panels.',
   'No slides read aloud.',
   'No idea older than the person telling it.',
-  'Eighteen minutes, one red dot, a city that listens.',
+  'Eighteen minutes, one red circle, a city that listens.',
 ]
 
 export default function Home() {
@@ -85,7 +85,7 @@ export default function Home() {
             to change how a room thinks.
           </h2>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-paper/60">
-            Engineers, poets, surgeons, builders, dissenters — curated onto one red dot, in
+            Engineers, poets, surgeons, builders, dissenters — curated onto one red circle, in
             front of a city that came to listen. TEDxKLH is independently organized under
             license from TED, and run end to end by students of KL University, Bachupally.
           </p>
@@ -183,7 +183,7 @@ export default function Home() {
               Be in the room.
             </h2>
             <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-paper/60">
-              {event.capacity} seats, curated. Apply once — we confirm within seven days,
+              Every seat is curated. Apply once — we confirm within seven days,
               and your seat is held the moment you do.
             </p>
 

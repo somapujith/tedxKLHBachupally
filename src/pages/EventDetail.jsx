@@ -20,10 +20,10 @@ export default function EventDetail() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-24 md:py-28">
       <Link
-        to="/events"
+        to="/"
         className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/40 hover:text-red transition-colors"
       >
-        <span aria-hidden>←</span> Back to editions
+        <span aria-hidden>←</span> Back home
       </Link>
 
       <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/40 mt-8 mb-3">

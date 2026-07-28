@@ -96,7 +96,7 @@ export function Countdown({ target }) {
   ]
   return (
     <div>
-      <Eyebrow className="mb-5">The red dot goes live in</Eyebrow>
+      <Eyebrow className="mb-5">The red circle goes live in</Eyebrow>
       <div className="flex items-start gap-4 sm:gap-6">
         {units.map(([label, value], i) => (
           <div key={label} className="flex items-start gap-4 sm:gap-6">

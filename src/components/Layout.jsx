@@ -10,10 +10,10 @@ import logo from '../assets/logo-white-tedx.svg'
 import instagramIcon from '../assets/images/instagram.svg'
 
 const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
+const linkedinUrl = 'https://www.linkedin.com/company/tedxklhbachupally/about/?viewAsMember=true'
 
 function isNavActive(to, pathname) {
   if (to === '/about-tedxklh') return pathname.startsWith('/about-')
-  if (to === '/events') return pathname.startsWith('/events')
   return pathname === to
 }
 
@@ -214,7 +214,7 @@ export default function Layout({ children }) {
       <main className="relative z-10 flex-1">{children}</main>
 
       <footer className="border-t border-paper/20 mt-24 bg-ink">
-        <div className="max-w-6xl mx-auto px-6 pt-16 pb-12 grid grid-cols-2 md:grid-cols-5 gap-10">
+        <div className="max-w-6xl mx-auto px-6 pt-16 pb-12 grid grid-cols-2 md:grid-cols-4 gap-10">
           <div className="col-span-2 md:col-span-2 pr-6">
             <Link to="/" className="inline-flex items-center mb-4">
               <img src={logo} alt="TEDxKLH Bachupally" className="h-10 w-auto" />
@@ -234,24 +234,26 @@ export default function Layout({ children }) {
                     footer's currentColor — hover shifts opacity instead. */}
                 <img src={instagramIcon} alt="" aria-hidden="true" className="h-5 w-5" />
               </a>
+              <a
+                href={linkedinUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="LinkedIn"
+                className="text-paper/80 transition-colors duration-200 hover:text-paper"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="currentColor">
+                  <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z" />
+                </svg>
+              </a>
             </div>
           </div>
           <FooterCol
             title="Event"
             links={[
-              { label: 'Theme', to: '/theme' },
-              { label: 'Events', to: '/events' },
-              { label: 'Speakers', to: '/events/1/speakers' },
-              { label: 'Schedule', to: '/events/1/schedule' },
-            ]}
-          />
-          <FooterCol
-            title="Get Involved"
-            links={[
               { label: 'Register', to: '/register' },
-              { label: 'Volunteer', to: '/volunteer' },
+              { label: 'Theme', to: '/theme' },
+              { label: 'Schedule', to: '/events/1/schedule' },
               { label: 'Sponsor', to: '/sponsor' },
-              { label: 'Nominate a Speaker', to: '/nominate' },
             ]}
           />
           <div>

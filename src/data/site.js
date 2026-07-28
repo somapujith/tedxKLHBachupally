@@ -26,10 +26,10 @@ import photoShreyas from '../assets/images/team/shreyas.jpg'
 import photoShareef from '../assets/images/team/shareef.png'
 import photoSrikar from '../assets/images/team/srikar.jpg'
 import photoTarun from '../assets/images/team/tarun.jpg'
+import photoNaveena from '../assets/images/team/naveena.jpg'
 
 export const nav = [
   { label: 'Theme', to: '/theme' },
-  { label: 'Events', to: '/events' },
   { label: 'Speakers', to: '/speakers' },
   { label: 'Team', to: '/team' },
   { label: 'About', to: '/about-tedxklh' },
@@ -97,7 +97,7 @@ export const aboutPage = {
       'We are staging our first edition and building toward becoming one of South India’s most ambitious independent TEDx programs.',
     ],
     stats: [
-      { value: '250', label: 'Seats' },
+      { value: '12', label: 'Speakers' },
       { value: '1', label: 'Stage, one day' },
       { value: '100%', label: 'Student-run' },
       { value: '01', label: 'First edition' },
@@ -137,13 +137,13 @@ export const team = [
   { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
   { name: 'Divya', dept: 'Hospitality', photo: photoDivya, photoPos: '50% 15%' },
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
+  { name: 'Subramanyam', dept: 'Hospitality', photo: null },
+  { name: 'Naveena', dept: 'Hospitality', photo: photoNaveena, photoPos: '50% 30%' },
   // Sponsorship
   { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
   { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
   { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
-  { name: 'Suhas G', dept: 'Marketing', photo: photoSuhasG },
-  { name: 'Srikar', dept: 'Marketing', photo: photoSrikar },
   { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
   { name: 'Pemesh', dept: 'Marketing', photo: photoPemesh },
   { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
@@ -153,7 +153,8 @@ export const team = [
   { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
   { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
   // Productions
-  { name: 'GBS Team', dept: 'Productions', photo: null },
+  { name: 'Suhas G', dept: 'Productions', photo: photoSuhasG },
+  { name: 'Srikar', dept: 'Productions', photo: photoSrikar },
   // Web Development & Design
   { name: 'Suhas', dept: 'Web Development & Design', photo: photoSuhasWeb },
   { name: 'Pujith', dept: 'Web Development & Design', photo: photoPujith },
@@ -162,7 +163,7 @@ export const team = [
 export const blogPosts = [
   { slug: 'behind-the-theme', title: 'Behind the Theme: Technology Evolves. Humanity Leads.', category: 'Curation', readTime: '5 min read', excerpt: 'How we landed on the theme for our 2026 edition and why negotiating with intelligence itself is the defining problem of our generation.', author: 'Karthik Verma', date: '2026-07-12' },
   { slug: 'curating-twelve-voices', title: 'Curating Twelve Voices: The Rehearsal Process', category: 'Behind The Scenes', readTime: '7 min read', excerpt: 'What happens when you bring an AI researcher, a spoken word poet, and a climate engineer into the same room? A look inside our curation process.', author: 'Sneha Reddy', date: '2026-06-28' },
-  { slug: 'the-anatomy-of-a-red-dot', title: 'The Anatomy of a Red Dot: Stage Design', category: 'Production', readTime: '4 min read', excerpt: 'Designing a cinematic stage environment at the KL University auditorium. Balancing projection design, lighting grids, and speakers’ comfort.', author: 'Pranav Bose', date: '2026-06-15' },
+  { slug: 'the-anatomy-of-a-red-dot', title: 'The Anatomy of a Red Circle: Stage Design', category: 'Production', readTime: '4 min read', excerpt: 'Designing a cinematic stage environment at the KL University auditorium. Balancing projection design, lighting grids, and speakers’ comfort.', author: 'Pranav Bose', date: '2026-06-15' },
   { slug: 'how-to-nominate-a-speaker', title: 'How to Nominate a Speaker for TEDxKLH 2026', category: 'Guide', readTime: '3 min read', excerpt: 'We look for ideas, not resumes. Here is a breakdown of what makes a proposal catch our curation team’s attention.', author: 'Aditi Sharma', date: '2026-05-30' },
 ]
 
@@ -171,7 +172,7 @@ export const galleryTiles = ['STAGE', 'AUDIENCE', 'GREEN ROOM', 'LOBBY', 'PORTRA
 export const experience = [
   { title: 'Idea Lounge', body: 'A curated lobby of installations, interactive demos, and zines from local labs.' },
   { title: 'Speaker Salons', body: 'Twenty-minute round tables with each speaker between sessions. First come, first seated.' },
-  { title: 'Red Dot Studio', body: 'A pop-up portrait studio shooting every guest on a single roll of medium format film.' },
+  { title: 'Red Circle Studio', body: 'A pop-up portrait studio shooting every guest on a single roll of medium format film.' },
 ]
 
 export const partners = {

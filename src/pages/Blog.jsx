@@ -6,7 +6,7 @@ export default function Blog() {
     <div className="max-w-3xl mx-auto px-6 py-24 md:py-32">
       <Eyebrow className="mb-5">Blog</Eyebrow>
       <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05] mb-20">
-        Notes from behind the red dot.
+        Notes from behind the red circle.
       </h1>
 
       <div className="border-t border-paper/10">
