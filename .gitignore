@@ -22,3 +22,6 @@ WhatsApp Image *.jpeg
 /aboutimage.png
 /stage image.png
 /shareef.png
+
+# local IDE workspace file
+Tedx.code-workspace
