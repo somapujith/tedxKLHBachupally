@@ -86,8 +86,15 @@ export async function ensureRegistrationsTable(sql = getSql()) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `
+  // One email may hold several registrations (a parent buying for two children,
+  // or a paid attendee returning for another seat), so email is NOT unique. The
+  // old index is dropped rather than merely no longer created: it exists on
+  // every database provisioned before this change and would keep rejecting the
+  // second registration for an address regardless of what the application
+  // allows. A plain index remains — the lookups still need it.
+  await sql`DROP INDEX IF EXISTS registrations_email_unique`
   await sql`
-    CREATE UNIQUE INDEX IF NOT EXISTS registrations_email_unique
+    CREATE INDEX IF NOT EXISTS registrations_email_idx
     ON registrations (LOWER(email))
   `
   // Columns for pre-existing tables (idempotent).

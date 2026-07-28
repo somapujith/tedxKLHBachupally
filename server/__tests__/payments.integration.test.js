@@ -67,12 +67,43 @@ describe('createRegistration (real DB)', () => {
     expect(rows[0].designation).toBe('student')
   })
 
-  it('blocks re-registration once a row is marked paid (409)', async () => {
+  // A paid email is not spent. One inbox buys several passes (family, a team),
+  // and each purchase must become its own row so it gets its own payment and
+  // its own QR pass rather than overwriting the seat already bought.
+  it('allows the same email to register again after it has paid (new row, 201)', async () => {
     const first = await createRegistration(validReg('paid'))
     await sql`UPDATE registrations SET payment_status = 'paid' WHERE id = ${first.registration.id}`
+
     const again = await createRegistration(validReg('paid'))
-    expect(again.ok).toBe(false)
-    expect(again.status).toBe(409)
+    expect(again.ok).toBe(true)
+    expect(again.status).toBe(201)
+    expect(again.resumed).toBeUndefined()
+    expect(again.registration.id).not.toBe(first.registration.id)
+    expect(again.registration.payment_status).toBe('pending')
+
+    // The paid row is untouched — the second registration is additive.
+    const [paidRow] = await sql`
+      SELECT payment_status FROM registrations WHERE id = ${first.registration.id}
+    `
+    expect(paidRow.payment_status).toBe('paid')
+    const rows = await sql`SELECT id FROM registrations WHERE LOWER(email) = ${email('paid')}`
+    expect(rows.length).toBe(2)
+  })
+
+  // The resume path must pick the PENDING row, never the paid one: capturing
+  // the paid row would either overwrite a bought seat or match zero rows on the
+  // guarded UPDATE and hand back an undefined registration.
+  it('resumes the pending row, not the paid one, when both exist for an email', async () => {
+    const paid = await createRegistration(validReg('mixed'))
+    await sql`UPDATE registrations SET payment_status = 'paid' WHERE id = ${paid.registration.id}`
+    const pending = await createRegistration(validReg('mixed'))
+    expect(pending.status).toBe(201)
+
+    const third = await createRegistration(validReg('mixed', { fullName: 'Third Attempt' }))
+    expect(third.status).toBe(200)
+    expect(third.resumed).toBe(true)
+    expect(third.registration.id).toBe(pending.registration.id)
+    expect(third.registration.id).not.toBe(paid.registration.id)
   })
 })
 

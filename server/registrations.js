@@ -53,21 +53,21 @@ export async function createRegistration(body) {
     data.designation !== 'guest' && data.college === 'Others' ? data.collegeOther : null
 
   try {
-    // A paid registration blocks re-registration. A pending one is resumable:
-    // update the details and hand the same row back so the user can complete payment.
-    // withDbRetry only retries transient network/5xx errors; a 23505 unique
-    // violation from the INSERT below is deterministic and propagates on attempt 1.
+    // An email may register as many times as it likes — one person buying
+    // passes for family or colleagues shares an inbox, and a paid attendee
+    // returning for a second seat is a sale, not a mistake. Each submission
+    // therefore gets its own row, its own payment and its own QR pass.
+    //
+    // A PENDING row for the same email is still resumed rather than duplicated:
+    // that row is an abandoned checkout, not a second seat, and reusing it
+    // keeps one person's retries from littering the table. Paid rows are
+    // excluded from this lookup precisely so they can never capture the resume
+    // and block the new registration.
     const existing = await withDbRetry(() => sql`
-      SELECT id, payment_status FROM registrations
-      WHERE LOWER(email) = ${data.email} LIMIT 1
+      SELECT id FROM registrations
+      WHERE LOWER(email) = ${data.email} AND payment_status <> 'paid'
+      ORDER BY created_at DESC LIMIT 1
     `)
-    if (existing[0]?.payment_status === 'paid') {
-      return {
-        ok: false,
-        status: 409,
-        error: 'This email is already registered and paid for the event.',
-      }
-    }
 
     if (existing[0]) {
       const updated = await sql`
@@ -81,13 +81,19 @@ export async function createRegistration(body) {
           AND payment_status <> 'paid'
         RETURNING id, email, designation, payment_status, created_at
       `
-      return {
-        ok: true,
-        status: 200,
-        registration: updated[0],
-        next: 'payment',
-        resumed: true,
-        message: 'Resuming your pending registration. Continue to payment.',
+      // Zero rows means that pending row was paid between the SELECT and this
+      // UPDATE. Returning `updated[0]` regardless would hand the client an
+      // undefined registration and strand them with no id to pay against; fall
+      // through to a fresh INSERT instead, which is now a legal second seat.
+      if (updated[0]) {
+        return {
+          ok: true,
+          status: 200,
+          registration: updated[0],
+          next: 'payment',
+          resumed: true,
+          message: 'Resuming your pending registration. Continue to payment.',
+        }
       }
     }
 
@@ -114,14 +120,11 @@ export async function createRegistration(body) {
       message: 'Registration saved. Payment will be available next.',
     }
   } catch (err) {
-    // Race: two concurrent inserts of the same email. Treat as already-registered.
-    if (err?.code === '23505' || /unique|duplicate/i.test(String(err?.message))) {
-      return {
-        ok: false,
-        status: 409,
-        error: 'This email is already registered. Please try again in a moment.',
-      }
-    }
+    // The former 23505 branch here mapped a unique violation to "this email is
+    // already registered". That index is gone, so the only unique constraint an
+    // INSERT could still hit is on razorpay_order_id — which is NULL until
+    // checkout — and reporting such a failure as a duplicate email would be a
+    // lie. Any error reaching this point is genuinely unexpected.
     console.error('createRegistration failed:', err)
     return { ok: false, status: 500, error: 'Could not save registration. Please try again.' }
   }

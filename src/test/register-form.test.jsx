@@ -170,17 +170,17 @@ describe('Register form — submit wiring', () => {
   it('surfaces a server error message when registration fails', async () => {
     const fetchMock = vi.fn(async () => ({
       ok: false,
-      text: async () => JSON.stringify({ ok: false, error: 'This email is already registered and paid for the event.' }),
+      text: async () => JSON.stringify({ ok: false, error: 'Could not save registration. Please try again.' }),
     }))
     vi.stubGlobal('fetch', fetchMock)
 
     renderForm()
-    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Dup User' } })
+    fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Error User' } })
     fireEvent.change(screen.getByLabelText(/phone number/i), { target: { value: '9876500000' } })
-    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'dup@example.com' } })
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: 'err@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: /guest/i }))
     fireEvent.click(screen.getByRole('button', { name: /continue to secure payment/i }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/already registered/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not save registration/i)
   })
 })
