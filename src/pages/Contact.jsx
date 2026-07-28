@@ -4,7 +4,7 @@ import { RedGlow } from '../components/texture'
 import { event } from '../data/site'
 import { apiFetch } from '../lib/api'
 
-const CONTACT_EMAIL = 'hello@tedxklhbachupally.in'
+const CONTACT_EMAIL = 'tedxklhbachupally@klh.edu.in'
 const INSTAGRAM_URL = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
 
 const initial = { name: '', email: '', phone: '', subject: '', message: '', website: '' }
