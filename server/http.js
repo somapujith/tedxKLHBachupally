@@ -170,6 +170,10 @@ function applyCors(req, res, { scope, methods }) {
 const DEFAULTS = {
   windowSeconds: Number(process.env.RATE_LIMIT_WINDOW_SECONDS) || 60,
   register: Number(process.env.RATE_LIMIT_REGISTER) || 10,
+  // Read-only availability probe. Its own bucket, NOT register's: the GET fires
+  // on every page mount, and 10 page views from one campus NAT must not eat the
+  // write budget and 429 an actual submit.
+  availability: Number(process.env.RATE_LIMIT_AVAILABILITY) || 30,
   payment: Number(process.env.RATE_LIMIT_PAYMENT) || 20,
   contact: Number(process.env.RATE_LIMIT_CONTACT) || 5,
   login: Number(process.env.RATE_LIMIT_LOGIN) || 10,
@@ -180,6 +184,7 @@ const DEFAULTS = {
 // Named presets so each handler declares its class instead of raw numbers.
 export const LIMITS = {
   register: { name: 'register', max: DEFAULTS.register, windowSeconds: DEFAULTS.windowSeconds },
+  availability: { name: 'availability', max: DEFAULTS.availability, windowSeconds: DEFAULTS.windowSeconds },
   payment: { name: 'payment', max: DEFAULTS.payment, windowSeconds: DEFAULTS.windowSeconds },
   contact: { name: 'contact', max: DEFAULTS.contact, windowSeconds: DEFAULTS.windowSeconds },
   login: { name: 'login', max: DEFAULTS.login, windowSeconds: DEFAULTS.windowSeconds },

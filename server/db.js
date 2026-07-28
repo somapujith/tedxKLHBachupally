@@ -98,6 +98,12 @@ export async function ensureRegistrationsTable(sql = getSql()) {
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_jti TEXT`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_issued_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_email_sent_at TIMESTAMPTZ`
+  // Revocation must be a STATE, not the absence of a jti. Clearing ticket_jti
+  // alone returns the row to "paid, never issued", which every idempotent
+  // re-issue path (a replayed payment/verify, a plain admin's Resend) reads as
+  // an invitation to mint a fresh pass — silently undoing the revoke. This
+  // stamp is what makes a revoke stick until a superadmin lifts it.
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_revoked_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS checked_in_by TEXT`
   await sql`
@@ -165,6 +171,21 @@ export async function ensureAdminsTable(sql = getSql()) {
           CHECK (role IN ('admin', 'superadmin'));
       END IF;
     END $$
+  `
+}
+
+// Runtime-editable event settings (currently just the seat-capacity override).
+// One row per key; value stored as TEXT and validated by the reader, so a bad
+// hand-written row degrades to the env/default capacity instead of throwing a
+// cast error inside the payment path.
+export async function ensureSettingsTable(sql = getSql()) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_by TEXT
+    )
   `
 }
 

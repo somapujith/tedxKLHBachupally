@@ -45,13 +45,24 @@ beforeEach(() => {
   resetBackendHealth()
   healthMode = 'refused'
 
-  fetchMock = vi.fn(async (url) => {
+  fetchMock = vi.fn(async (url, init) => {
     if (url === '/api/health') {
       if (healthMode === 'refused') throw new TypeError('Failed to fetch')
       if (healthMode === 'unhealthy') return jsonResponse({ ok: false, db: 'error' }, false, 503)
       return jsonResponse({ ok: true, db: 'connected' })
     }
     if (url === '/api/register') {
+      // GET is the availability probe the register page fires on mount. It rides
+      // the same path as the submit POST (Vercel function budget), so it must
+      // follow healthMode exactly like /api/health — a refused backend cannot
+      // answer it, and letting it answer would fake a warm-mark mid-queue.
+      if (init?.method !== 'POST') {
+        if (healthMode === 'refused') throw new TypeError('Failed to fetch')
+        if (healthMode === 'unhealthy') return jsonResponse({ ok: false, db: 'error' }, false, 503)
+        return jsonResponse({
+          ok: true, db: 'connected', capacity: 250, remaining: 250, soldOut: false,
+        })
+      }
       return jsonResponse({
         ok: true,
         registration: { id: 'reg-cold-1', email: 'cold@example.com', fullName: 'Cold Start' },
@@ -83,6 +94,13 @@ const advance = (ms) =>
   })
 
 const healthCallCount = () => fetchMock.mock.calls.filter((c) => c[0] === '/api/health').length
+
+// Whether the form was actually SUBMITTED. Method-scoped because the mount-time
+// availability probe GETs the same '/api/register' path — a bare
+// toHaveBeenCalledWith('/api/register', …) would match that probe and either
+// trip a "nothing posted yet" assertion or trivially satisfy a positive one.
+const registerPosted = () =>
+  fetchMock.mock.calls.some(([url, init]) => url === '/api/register' && init?.method === 'POST')
 
 function fillForm() {
   fireEvent.change(screen.getByLabelText(/full name/i), { target: { value: 'Cold Start' } })
@@ -255,7 +273,7 @@ describe('Register — queue gate on a cold backend', () => {
 
     await advance(100)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(fetchMock).toHaveBeenCalledWith('/api/register', expect.any(Object))
+    expect(registerPosted()).toBe(true)
   })
 
   it('locks the form fields while a submit is in flight', async () => {
@@ -282,18 +300,18 @@ describe('Register — queue gate on a cold backend', () => {
     await advance(1_000)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.getByText(/you’re in the queue/i)).toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/register', expect.any(Object))
+    expect(registerPosted()).toBe(false)
 
     // The countdown is a real minimum: still queued at 25s even though the
     // backend came back almost immediately.
     healthMode = 'ok'
     await advance(24_000)
     expect(screen.getByRole('dialog')).toBeInTheDocument()
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/register', expect.any(Object))
+    expect(registerPosted()).toBe(false)
 
     // Past 30s the gate opens and the real submit chain runs.
     await advance(8_000)
-    expect(fetchMock).toHaveBeenCalledWith('/api/register', expect.any(Object))
+    expect(registerPosted()).toBe(true)
     expect(fetchMock).toHaveBeenCalledWith('/api/payment/order', expect.any(Object))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
@@ -326,7 +344,7 @@ describe('Register — queue gate on a cold backend', () => {
     // block SIZE, rather than merely asserting that some extension happened.
     expect(clockSeconds()).toBeGreaterThanOrEqual(11)
     expect(clockSeconds()).toBeLessThanOrEqual(15)
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/register', expect.any(Object))
+    expect(registerPosted()).toBe(false)
   })
 
   it('holds until the 180s ceiling, then gives up with an actionable message', async () => {
@@ -342,7 +360,7 @@ describe('Register — queue gate on a cold backend', () => {
     await advance(8_000)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByRole('alert')).toHaveTextContent(/rejoin the queue/i)
-    expect(fetchMock).not.toHaveBeenCalledWith('/api/register', expect.any(Object))
+    expect(registerPosted()).toBe(false)
   })
 
   it('stops polling when the user navigates away mid-queue', async () => {

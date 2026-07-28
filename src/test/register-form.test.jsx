@@ -19,10 +19,60 @@ beforeEach(() => {
   // the queue gate itself is covered in backend-queue.test.jsx.
   resetBackendHealth()
   markBackendWarm()
+  // Default fetch stub: the page fires an availability GET on mount, and with
+  // no stub these rendering tests would depend on Node's global fetch rejecting
+  // a relative URL — which stops being true the moment VITE_API_BASE_URL makes
+  // apiBase produce absolute URLs. Tests that care stub their own fetch on top.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: false, status: 500, headers: { get: () => null }, text: async () => '' })),
+  )
 })
 
 afterEach(() => {
   vi.unstubAllGlobals()
+})
+
+describe('Register form — live pass availability', () => {
+  const availabilityFetch = ({ capacity, sold }) => {
+    const remaining = Math.max(0, capacity - sold)
+    return vi.fn(async (url, init) => {
+      if (url === '/api/register' && init?.method !== 'POST') {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          text: async () =>
+            JSON.stringify({
+              ok: true, db: 'connected', capacity, remaining, soldOut: remaining === 0,
+            }),
+        }
+      }
+      throw new Error(`unexpected fetch: ${url}`)
+    })
+  }
+
+  it('renders the live remaining count in the Seats row', async () => {
+    vi.stubGlobal('fetch', availabilityFetch({ capacity: 250, sold: 40 }))
+    renderForm()
+    await waitFor(() => expect(screen.getByText('210 of 250 left')).toBeInTheDocument())
+    expect(screen.queryByText(/selling fast/i)).not.toBeInTheDocument()
+  })
+
+  it('shows the low-stock warning at 25 or fewer passes left', async () => {
+    vi.stubGlobal('fetch', availabilityFetch({ capacity: 250, sold: 238 }))
+    renderForm()
+    await waitFor(() =>
+      expect(screen.getByText(/only 12 passes left — selling fast/i)).toBeInTheDocument(),
+    )
+  })
+
+  it('replaces the form with the sold-out screen when nothing is left', async () => {
+    vi.stubGlobal('fetch', availabilityFetch({ capacity: 250, sold: 250 }))
+    renderForm()
+    await waitFor(() => expect(screen.getByText(/every seat is claimed/i)).toBeInTheDocument())
+    expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument()
+  })
 })
 
 describe('Register form — conditional fields', () => {
@@ -66,8 +116,17 @@ describe('Register form — conditional fields', () => {
 
 describe('Register form — submit wiring', () => {
   it('POSTs to /api/register then /api/payment/order on submit', async () => {
-    const fetchMock = vi.fn(async (url) => {
+    const fetchMock = vi.fn(async (url, init) => {
       if (url === '/api/register') {
+        // Mount-time availability GET rides the same path — answer it with the
+        // real endpoint's GET shape, never the POST's registration shape.
+        if (init?.method !== 'POST') {
+          return {
+            ok: true,
+            text: async () =>
+              JSON.stringify({ ok: true, db: 'connected', capacity: 250, remaining: 250, soldOut: false }),
+          }
+        }
         return {
           ok: true,
           text: async () =>
@@ -96,7 +155,11 @@ describe('Register form — submit wiring', () => {
     fireEvent.click(screen.getByRole('button', { name: /continue to secure payment/i }))
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/register', expect.any(Object))
+      // POST-scoped: the availability GET also hits '/api/register', so a bare
+      // toHaveBeenCalledWith would pass with the submit deleted outright.
+      expect(
+        fetchMock.mock.calls.some(([u, i]) => u === '/api/register' && i?.method === 'POST'),
+      ).toBe(true)
       expect(fetchMock).toHaveBeenCalledWith('/api/payment/order', expect.any(Object))
     })
     // The order call carries the registration id from step 1.

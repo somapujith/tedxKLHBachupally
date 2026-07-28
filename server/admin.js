@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { getSql, isUuid } from './db.js'
 import { verifyTicket, issueTicket } from './tickets.js'
-import { seatCapacity } from './payments.js'
+import { getSeatCapacity } from './settings.js'
 import { recordAudit, AUDIT_ACTIONS } from './audit.js'
 
 const ADMIN_ISSUER = 'tedxklh-admin'
@@ -212,7 +212,7 @@ export async function getStats() {
       pending: stats.pending,
       checkedIn: stats.checked_in,
       revenue: stats.revenue,
-      capacity: seatCapacity(),
+      capacity: await getSeatCapacity(sql),
       byDesignation: stats.by_designation,
       byCollege: stats.by_college,
     },
@@ -224,25 +224,30 @@ export async function listRegistrations({ status } = {}) {
     return { ok: false, status: 400, error: 'Unknown status filter.' }
   }
 
+  // ticket_issued (never the jti itself — that is the scannable credential)
+  // lets the UI show whether a QR pass exists, and offer the superadmin revoke.
   const sql = getSql()
   const rows =
     status === 'checked_in'
       ? await sql`
           SELECT id, full_name, email, phone, designation, college,
-                 payment_status, paid_at, checked_in_at, checked_in_by
+                 payment_status, paid_at, checked_in_at, checked_in_by,
+                 (ticket_jti IS NOT NULL) AS ticket_issued
           FROM registrations
           WHERE checked_in_at IS NOT NULL ORDER BY created_at DESC
         `
       : status
         ? await sql`
             SELECT id, full_name, email, phone, designation, college,
-                   payment_status, paid_at, checked_in_at, checked_in_by
+                   payment_status, paid_at, checked_in_at, checked_in_by,
+                   (ticket_jti IS NOT NULL) AS ticket_issued
             FROM registrations
             WHERE payment_status = ${status} ORDER BY created_at DESC
           `
         : await sql`
             SELECT id, full_name, email, phone, designation, college,
-                   payment_status, paid_at, checked_in_at, checked_in_by
+                   payment_status, paid_at, checked_in_at, checked_in_by,
+                   (ticket_jti IS NOT NULL) AS ticket_issued
             FROM registrations ORDER BY created_at DESC
           `
 
@@ -374,7 +379,7 @@ export async function resendTicket({ registrationId, actor = {}, context = {} })
 
   const sql = getSql()
   const rows = await sql`
-    SELECT id, full_name, email, payment_status, ticket_email_sent_at
+    SELECT id, full_name, email, payment_status, ticket_email_sent_at, ticket_revoked_at
     FROM registrations WHERE id = ${registrationId} LIMIT 1
   `
   if (!rows[0]) {
@@ -383,6 +388,22 @@ export async function resendTicket({ registrationId, actor = {}, context = {} })
   audit.targetName = rows[0].full_name
   if (rows[0].payment_status !== 'paid') {
     return { ok: false, status: 409, error: 'Registration is not paid.' }
+  }
+
+  // A revoked pass may only be re-issued by a superadmin — the same authority
+  // that revoked it. Resend is otherwise an admin-level route, so leaving this
+  // open would make the superadmin-only revoke reversible by any gate admin
+  // (or by a fired one, whose 12h token still passes requireAdmin). Lifting the
+  // stamp is deliberate and explicit; it is not a side effect of resending.
+  if (rows[0].ticket_revoked_at) {
+    if (actor.adminRole !== ROLES.SUPERADMIN) {
+      return {
+        ok: false,
+        status: 403,
+        error: 'This pass was revoked by a superadmin. Only a superadmin can issue a new one.',
+      }
+    }
+    await sql`UPDATE registrations SET ticket_revoked_at = NULL WHERE id = ${registrationId}`
   }
 
   // Cooldown: a ticket emailed within the last 2 minutes cannot be re-sent again,
@@ -420,4 +441,79 @@ export async function resendTicket({ registrationId, actor = {}, context = {} })
     detail: issued.emailed ? `Pass re-sent to ${rows[0].email}.` : 'Provider did not accept the send.',
   })
   return { ok: true, status: 200, emailed: issued.emailed === true }
+}
+
+/**
+ * Kill a generated QR pass. Superadmin-only — the route layer gates with
+ * requireSuperAdmin() before calling in.
+ *
+ * Nulling ticket_jti is what invalidates the pass: checkInTicket matches the
+ * exact jti inside the scanned token, so every previously emailed QR for this
+ * registration stops scanning the moment the row's jti is gone. The email-sent
+ * stamp is cleared with it, so a superadmin "Resend pass" mints a FRESH jti
+ * (see ensureTicketJti) and emails a brand-new QR immediately — no cooldown
+ * fight.
+ *
+ * ticket_revoked_at is what makes the revoke STICK. Clearing the jti alone
+ * returns the row to "paid, never issued", which is exactly the state every
+ * idempotent re-issue path treats as "mint one": settlePayment's already-paid
+ * branch (reachable forever by replaying the payment/verify triple the buyer's
+ * own browser holds — no admin, no auth) and resendTicket (admin-level). The
+ * stamp blocks both; only resendTicket's superadmin branch lifts it.
+ *
+ * A check-in that already happened is deliberately left untouched: revoking a
+ * pass is not un-attending the event, and the gate history must stay true.
+ */
+export async function revokeTicket({ registrationId, actor = {}, context = {} }) {
+  const audit = {
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    targetType: 'registration',
+    targetId: typeof registrationId === 'string' ? registrationId : null,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  }
+
+  if (!registrationId) {
+    return { ok: false, status: 400, error: 'Missing registration id.' }
+  }
+  // Same uuid shape gate as resendTicket — a malformed id must be a 400, not a
+  // thrown Postgres error surfacing as a 500. See isUuid().
+  if (!isUuid(registrationId)) {
+    return { ok: false, status: 400, error: 'Invalid registration id.' }
+  }
+
+  const sql = getSql()
+  const rows = await sql`
+    SELECT id, full_name, email, ticket_jti FROM registrations
+    WHERE id = ${registrationId} LIMIT 1
+  `
+  if (!rows[0]) {
+    return { ok: false, status: 404, error: 'Registration not found.' }
+  }
+  audit.targetName = rows[0].full_name
+  if (!rows[0].ticket_jti) {
+    return { ok: false, status: 409, error: 'No QR pass has been issued for this registration.' }
+  }
+
+  // The jti guard makes concurrent revokes converge: only one matches a row,
+  // the loser reads as already-revoked rather than double-logging.
+  const updated = await sql`
+    UPDATE registrations
+    SET ticket_jti = NULL, ticket_issued_at = NULL, ticket_email_sent_at = NULL,
+        ticket_revoked_at = NOW()
+    WHERE id = ${registrationId} AND ticket_jti IS NOT NULL
+    RETURNING id, full_name, email
+  `
+  if (!updated.length) {
+    return { ok: false, status: 409, error: 'No QR pass has been issued for this registration.' }
+  }
+
+  await recordAudit({
+    ...audit,
+    action: AUDIT_ACTIONS.TICKET_REVOKED,
+    detail: `QR pass invalidated for ${updated[0].email}. Resend issues a new one.`,
+  })
+  return { ok: true, status: 200, registration: { id: updated[0].id, ticketIssued: false } }
 }

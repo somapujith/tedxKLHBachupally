@@ -4,7 +4,7 @@ import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { createRegistration } from './registrations.js'
 import { ensureSchemaOnce, getSql } from './db.js'
-import { createOrder, verifyPayment, handleWebhook } from './payments.js'
+import { createOrder, verifyPayment, handleWebhook, seatAvailability } from './payments.js'
 import { createContactMessage } from './contact.js'
 import { startKeepAlive } from './keepAlive.js'
 import {
@@ -16,9 +16,11 @@ import {
   listRegistrations,
   checkInTicket,
   resendTicket,
+  revokeTicket,
 } from './admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from './admin-users.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from './audit.js'
+import { getSettings, updateSeatCapacity } from './settings.js'
 
 const app = express()
 const port = Number(process.env.PORT) || 3001
@@ -111,6 +113,9 @@ const makeLimiter = (max) =>
 const loginLimiter = makeLimiter(10) // 10 login attempts / 15 min / IP
 const adminActionLimiter = makeLimiter(60) // lighter cap for checkin / resend
 const contactLimiter = makeLimiter(5) // 5 contact messages / 15 min / IP
+// Availability GET does real COUNT work per hit; unlimited it is a free DB
+// amplifier. Generous cap — a real visitor produces 1-2 per page view.
+const availabilityLimiter = makeLimiter(120)
 
 // Webhook must read the RAW body for HMAC verification — register before express.json().
 app.post(
@@ -157,6 +162,19 @@ app.get('/api/health', async (_req, res) => {
   } catch (err) {
     console.error('Health check failed:', err)
     res.status(503).json({ ok: false, db: 'error' })
+  }
+})
+
+// Availability probe, mirroring the GET branch of api/register.js so the same
+// path answers on both deploy targets. Live pass counts for the register page.
+app.get('/api/register', availabilityLimiter, async (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store')
+  try {
+    const availability = await seatAvailability()
+    return res.json({ ok: true, db: 'connected', ...availability })
+  } catch (err) {
+    console.error('Availability check failed:', err)
+    return res.status(500).json({ ok: false, db: 'error' })
   }
 })
 
@@ -329,6 +347,54 @@ app.get('/api/admin/super-stats', adminActionLimiter, async (req, res) => {
   } catch (err) {
     console.error('Super stats error:', err)
     return res.status(500).json({ ok: false, error: 'Could not load statistics.' })
+  }
+})
+
+// Seat-capacity override: GET returns the effective value + context, PATCH
+// sets it ({capacity: <int>}) or clears it ({capacity: null}).
+app
+  .route('/api/admin/settings')
+  .get(adminActionLimiter, async (req, res) => {
+    const auth = await requireSuperAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await getSettings()
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Settings error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not load settings.' })
+    }
+  })
+  .patch(adminActionLimiter, async (req, res) => {
+    const auth = await requireSuperAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await updateSeatCapacity(
+        { capacity: req.body?.capacity },
+        actorFrom(auth),
+        requestContext(req),
+      )
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Settings update error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not update settings.' })
+    }
+  })
+
+// Invalidate a generated QR pass; "resend-ticket" afterwards issues a new one.
+app.post('/api/admin/revoke-ticket', adminActionLimiter, async (req, res) => {
+  const auth = await requireSuperAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await revokeTicket({
+      registrationId: req.body?.registrationId,
+      actor: actorFrom(auth),
+      context: requestContext(req),
+    })
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Revoke ticket error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not revoke the QR pass.' })
   }
 })
 

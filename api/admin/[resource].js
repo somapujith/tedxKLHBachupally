@@ -7,9 +7,11 @@ import {
   listRegistrations,
   checkInTicket,
   resendTicket,
+  revokeTicket,
 } from '../../server/admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from '../../server/admin-users.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from '../../server/audit.js'
+import { getSettings, updateSeatCapacity } from '../../server/settings.js'
 import { withApi, LIMITS } from '../../server/http.js'
 
 // One function for every authenticated admin endpoint.
@@ -78,6 +80,28 @@ const RESOURCES = {
   'super-stats': {
     auth: SUPER,
     GET: async () => getSuperStats(),
+  },
+  // Seat-capacity override. PATCH {capacity: <int>} sets it; {capacity: null}
+  // clears it back to the env/default.
+  settings: {
+    auth: SUPER,
+    GET: async () => getSettings(),
+    PATCH: async (req, { auth }) =>
+      updateSeatCapacity(
+        { capacity: req.body?.capacity },
+        actorFrom(auth),
+        requestContext(req),
+      ),
+  },
+  // Invalidate a generated QR pass; "resend-ticket" afterwards issues a new one.
+  'revoke-ticket': {
+    auth: SUPER,
+    POST: async (req, { auth }) =>
+      revokeTicket({
+        registrationId: req.body?.registrationId,
+        actor: actorFrom(auth),
+        context: requestContext(req),
+      }),
   },
   admins: {
     auth: SUPER,

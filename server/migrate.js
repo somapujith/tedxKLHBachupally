@@ -5,6 +5,7 @@ import {
   ensureContactMessagesTable,
   ensureAuditLogTable,
   ensureEmailLogTable,
+  ensureSettingsTable,
 } from './db.js'
 
 try {
@@ -18,6 +19,8 @@ try {
   console.log('Admin audit log table ready.')
   await ensureEmailLogTable()
   console.log('Email log table ready.')
+  await ensureSettingsTable()
+  console.log('App settings table ready (seat capacity override).')
   process.exit(0)
 } catch (err) {
   console.error('Migration failed:', err)

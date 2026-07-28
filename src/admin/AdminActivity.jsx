@@ -47,6 +47,8 @@ const ACTION_LABELS = {
   admin_updated: 'Updated admin',
   admin_deactivated: 'Deactivated admin',
   admin_reactivated: 'Reactivated admin',
+  ticket_revoked: 'Revoked QR pass',
+  capacity_updated: 'Changed capacity',
 }
 
 function fmtDateTime(value) {

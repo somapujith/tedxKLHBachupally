@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { adminFetch, getToken } from './api'
+import { adminFetch, getToken, isSuperAdmin } from './api'
 import { Alert, Button, Card, EmptyState, Input, RefreshBar, SearchIcon, StatusBadge } from './ui'
 
 const FILTERS = [
@@ -34,10 +34,19 @@ export default function AdminRegistrations() {
   const [loading, setLoading] = useState(true)
   const [refreshedAt, setRefreshedAt] = useState(null)
 
+  // Monotonic request id. The 30s auto-refresh, a filter click and the reload
+  // fired after a revoke can all be in flight at once; without this, a slow
+  // earlier response landing last would restore a pre-revoke snapshot (Revoke
+  // button reappearing on an already-revoked pass) or paint one filter's rows
+  // under another's tab.
+  const seq = useRef(0)
+
   const load = useCallback(async (status) => {
+    const ticket = ++seq.current
     setLoading(true)
     const query = status && status !== 'all' ? `?status=${status}` : ''
     const res = await adminFetch(`/api/admin/registrations${query}`)
+    if (ticket !== seq.current) return // a newer request already answered
     // Server returns newest-first (ORDER BY created_at DESC); trust that order.
     if (res.ok) setRows(res.data.registrations ?? [])
     setError(res.ok ? '' : res.data.error || 'Could not load registrations.')
@@ -115,7 +124,7 @@ export default function AdminRegistrations() {
       <div className="space-y-3 md:hidden">
         {visible.length === 0 && !loading && <EmptyState>No registrations found.</EmptyState>}
         {visible.map((row) => (
-          <RegistrationCard key={row.id ?? row.email} row={row} />
+          <RegistrationCard key={row.id ?? row.email} row={row} onRevoked={() => load(filter)} />
         ))}
       </div>
 
@@ -142,7 +151,7 @@ export default function AdminRegistrations() {
                 </tr>
               )}
               {visible.map((row) => (
-                <RegistrationRow key={row.id ?? row.email} row={row} />
+                <RegistrationRow key={row.id ?? row.email} row={row} onRevoked={() => load(filter)} />
               ))}
             </tbody>
           </table>
@@ -152,31 +161,56 @@ export default function AdminRegistrations() {
   )
 }
 
-// Shared resend action + derived status for both card and row.
-function useResend(row) {
+// Shared pass actions + derived status for both card and row. Revoke is
+// OFFERED only to a superadmin (the server enforces the role regardless):
+// it invalidates every previously emailed QR for the row; a resend afterwards
+// issues a fresh one.
+function usePassActions(row, onRevoked) {
   const [note, setNote] = useState('')
-  const [sending, setSending] = useState(false)
+  const [busy, setBusy] = useState(false)
   const status = row.payment_status ?? 'pending'
   const isPaid = status === 'paid' || status === 'checked_in'
+  const canRevoke = isSuperAdmin() && row.ticket_issued === true
 
   async function resend() {
     if (!window.confirm(`Resend the QR pass email to ${row.email ?? 'this attendee'}?`)) return
-    setSending(true)
+    setBusy(true)
     setNote('')
     const { ok, data } = await adminFetch('/api/admin/resend-ticket', {
       method: 'POST',
       body: JSON.stringify({ registrationId: row.id }),
     })
     setNote(ok ? (data.emailed ? 'Sent' : 'Queued') : data.error || 'Failed')
-    setSending(false)
+    setBusy(false)
   }
 
-  return { status, isPaid, note, sending, resend }
+  async function revoke() {
+    // The already-checked-in case gets different wording on purpose: a new pass
+    // will NOT let that attendee back in (check-in is single-use and the revoke
+    // deliberately preserves it), so promising a working replacement would be a
+    // lie the gate exposes.
+    const warning = row.checked_in_at
+      ? 'This attendee has already been checked in. Revoking does not undo that, and a re-issued pass will not scan again.'
+      : 'Their emailed QR will stop working immediately. Only a superadmin can then issue a new one, with "Resend".'
+    if (!window.confirm(`Revoke the QR pass for ${row.email ?? 'this attendee'}?\n\n${warning}`))
+      return
+    setBusy(true)
+    setNote('')
+    const { ok, data } = await adminFetch('/api/admin/revoke-ticket', {
+      method: 'POST',
+      body: JSON.stringify({ registrationId: row.id }),
+    })
+    setNote(ok ? 'QR revoked' : data.error || 'Failed')
+    setBusy(false)
+    if (ok) onRevoked?.()
+  }
+
+  return { status, isPaid, canRevoke, note, busy, resend, revoke }
 }
 
-function RegistrationCard({ row }) {
+function RegistrationCard({ row, onRevoked }) {
   const [open, setOpen] = useState(false)
-  const { status, isPaid, note, sending, resend } = useResend(row)
+  const { status, isPaid, canRevoke, note, busy, resend, revoke } = usePassActions(row, onRevoked)
 
   return (
     <Card className="p-4">
@@ -214,10 +248,15 @@ function RegistrationCard({ row }) {
       )}
 
       {isPaid && (
-        <div className="mt-3 flex items-center gap-3">
-          <Button size="sm" onClick={resend} disabled={sending}>
-            {sending ? 'Sending…' : 'Resend pass'}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Button size="sm" onClick={resend} disabled={busy}>
+            {busy ? 'Working…' : 'Resend pass'}
           </Button>
+          {canRevoke && (
+            <Button size="sm" variant="danger" onClick={revoke} disabled={busy}>
+              Revoke QR
+            </Button>
+          )}
           {note && <span className="text-xs text-paper/50">{note}</span>}
         </div>
       )}
@@ -234,8 +273,8 @@ function Detail({ term, value, capitalize = false }) {
   )
 }
 
-function RegistrationRow({ row }) {
-  const { status, isPaid, note, sending, resend } = useResend(row)
+function RegistrationRow({ row, onRevoked }) {
+  const { status, isPaid, canRevoke, note, busy, resend, revoke } = usePassActions(row, onRevoked)
   return (
     <tr className="border-b border-white/[0.06] align-top transition-colors last:border-0 hover:bg-white/[0.02]">
       <td className="px-4 py-3">
@@ -263,9 +302,16 @@ function RegistrationRow({ row }) {
       </td>
       <td className="px-4 py-3 text-right">
         {isPaid && (
-          <Button size="sm" onClick={resend} disabled={sending}>
-            {sending ? 'Sending…' : 'Resend'}
-          </Button>
+          <div className="inline-flex items-center gap-2">
+            <Button size="sm" onClick={resend} disabled={busy}>
+              {busy ? 'Working…' : 'Resend'}
+            </Button>
+            {canRevoke && (
+              <Button size="sm" variant="danger" onClick={revoke} disabled={busy}>
+                Revoke
+              </Button>
+            )}
+          </div>
         )}
         {note && <div className="mt-1 text-xs text-paper/50">{note}</div>}
       </td>

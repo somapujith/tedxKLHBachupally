@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
-import { Alert, Card, Label, RefreshBar } from './ui'
+import { Alert, Button, Card, Input, Label, RefreshBar } from './ui'
 
 function fmtRupees(paise) {
   const n = Number(paise)
@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
   const [superStats, setSuperStats] = useState(null)
+  const [settings, setSettings] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [refreshedAt, setRefreshedAt] = useState(null)
@@ -30,14 +31,26 @@ export default function AdminDashboard() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    // A plain admin never issues the second request — it would only 403.
-    const [base, extra] = await Promise.all([
+    // A plain admin never issues the extra requests — they would only 403.
+    const [base, extra, config] = await Promise.all([
       adminFetch('/api/admin/stats'),
       superAdmin ? adminFetch('/api/admin/super-stats') : Promise.resolve(null),
+      superAdmin ? adminFetch('/api/admin/settings') : Promise.resolve(null),
     ])
     if (base.ok) setStats(base.data.stats)
     if (extra?.ok) setSuperStats(extra.data.superStats)
-    setError(base.ok ? '' : base.data.error || 'Could not load stats.')
+    if (config?.ok) setSettings(config.data.settings)
+    // A failed settings read is surfaced, not swallowed: silently leaving the
+    // capacity card on its loading skeleton (or worse, on a stale value right
+    // after a save) hides the state of the control that decides whether the
+    // event can sell tickets at all.
+    setError(
+      base.ok
+        ? config && !config.ok
+          ? config.data.error || 'Could not load the seat capacity setting.'
+          : ''
+        : base.data.error || 'Could not load stats.',
+    )
     setRefreshedAt(new Date())
     setLoading(false)
   }, [superAdmin])
@@ -83,7 +96,7 @@ export default function AdminDashboard() {
         <Breakdown title="By college" items={stats?.byCollege} nameKey="college" />
       </div>
 
-      {superAdmin && <SuperSection superStats={superStats} />}
+      {superAdmin && <SuperSection superStats={superStats} settings={settings} onSaved={load} />}
 
       <Link
         to="/admin/registrations"
@@ -115,7 +128,7 @@ function Stat({ label, value, sub, progress }) {
 // Everything below renders only for a superadmin. It answers the three
 // questions the base dashboard cannot: who is doing the scanning, whether the
 // passes are actually reaching inboxes, and whether anyone is trying to get in.
-function SuperSection({ superStats }) {
+function SuperSection({ superStats, settings, onSaved }) {
   const byAdmin = superStats?.byAdmin ?? []
   const emailByStatus = superStats?.emailByStatus ?? []
   const sent = emailByStatus.find((e) => e.status === 'sent')?.count ?? 0
@@ -129,6 +142,8 @@ function SuperSection({ superStats }) {
         <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-red" />
         <Label>Superadmin</Label>
       </div>
+
+      <CapacityCard settings={settings} onSaved={onSaved} />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Emails sent" value={String(sent)} sub="Passes delivered to Resend" />
@@ -191,6 +206,113 @@ function SuperSection({ superStats }) {
         Open the full activity log
       </Link>
     </div>
+  )
+}
+
+// Seat-capacity editor. The number shown everywhere (register page, sold-out
+// gate, dashboard) follows this value the moment it saves — no redeploy. The
+// server validates again and records the change in the audit trail.
+function CapacityCard({ settings, onSaved }) {
+  const [value, setValue] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+
+  const current = settings?.seatCapacity
+  const paid = Number(settings?.paid ?? 0)
+  const belowPaid = typeof current === 'number' && current < paid
+
+  async function save(capacity) {
+    setBusy(true)
+    setNote('')
+    const { ok, data } = await adminFetch('/api/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ capacity }),
+    })
+    setNote(ok ? 'Saved.' : data.error || 'Could not update capacity.')
+    setBusy(false)
+    if (ok) {
+      setValue('')
+      onSaved?.()
+    }
+  }
+
+  function submit(e) {
+    e.preventDefault()
+    const n = Number(value)
+    if (!Number.isInteger(n) || n < 0) {
+      setNote('Enter a whole number of seats.')
+      return
+    }
+    // Two separate confirmations, because 0 is not caught by the below-paid
+    // check when nothing has sold yet (0 < 0 is false) — and typing 0 before
+    // sales open is a total, silent freeze with no other warning on screen.
+    if (
+      n === 0 &&
+      !window.confirm(
+        'Setting capacity to 0 closes registrations entirely — every visitor sees a sold-out page. Continue?',
+      )
+    )
+      return
+    if (
+      n > 0 &&
+      n < paid &&
+      !window.confirm(
+        `New capacity (${n}) is below the ${paid} seats already sold. Sales will read as sold out immediately. Continue?`,
+      )
+    )
+      return
+    save(n)
+  }
+
+  return (
+    <Card className="p-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Label>Seat capacity</Label>
+          <div className="mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums">
+            {typeof current === 'number' ? (
+              current
+            ) : (
+              <span className="inline-block h-6 w-16 animate-pulse rounded bg-white/10 align-middle" />
+            )}
+          </div>
+          <div className="mt-2 text-xs text-paper/40">
+            {settings?.overridden
+              ? `Custom value${settings.updatedBy ? ` · set by ${settings.updatedBy}` : ''} · default is ${settings.fallbackCapacity}`
+              : 'Deploy default — set a custom value to change it live'}
+            {` · ${paid} paid`}
+          </div>
+          {belowPaid && (
+            <div className="mt-2 text-xs text-red">
+              Capacity is below seats already sold — registrations read as sold out.
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={submit} className="flex items-center gap-2">
+          <Input
+            type="number"
+            min="0"
+            step="1"
+            inputMode="numeric"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={typeof current === 'number' ? String(current) : 'Seats'}
+            aria-label="New seat capacity"
+            className="w-28"
+          />
+          <Button type="submit" variant="primary" size="md" disabled={busy || value.trim() === ''}>
+            {busy ? 'Saving…' : 'Save'}
+          </Button>
+          {settings?.overridden && (
+            <Button size="md" onClick={() => save(null)} disabled={busy}>
+              Reset
+            </Button>
+          )}
+        </form>
+      </div>
+      {note && <div className="mt-3 text-xs text-paper/50">{note}</div>}
+    </Card>
   )
 }
 

@@ -64,15 +64,22 @@ async function ensureTicketJti(sql, registration) {
 // the claim and may send — this closes the webhook+verify double-send race where
 // both readers saw ticket_email_sent_at IS NULL. With force, re-claim regardless
 // of the current stamp (used by an admin resend).
+// The `ticket_revoked_at IS NULL` guard is re-checked HERE, not only at the top
+// of issueTicket: a revoke landing between that read and this claim would
+// otherwise still email a QR whose jti the revoke had just deleted — a pass
+// that is dead at the gate and indistinguishable from a forgery. The claim is
+// the last write before signing, so denying it here is what actually stops the
+// send. Even a forced resend respects it.
 async function claimEmailSend(sql, id, { force }) {
   const rows = force
     ? await sql`
         UPDATE registrations SET ticket_email_sent_at = NOW()
-        WHERE id = ${id} RETURNING id
+        WHERE id = ${id} AND ticket_revoked_at IS NULL RETURNING id
       `
     : await sql`
         UPDATE registrations SET ticket_email_sent_at = NOW()
-        WHERE id = ${id} AND ticket_email_sent_at IS NULL RETURNING id
+        WHERE id = ${id} AND ticket_email_sent_at IS NULL
+          AND ticket_revoked_at IS NULL RETURNING id
       `
   return rows.length > 0
 }
@@ -98,7 +105,8 @@ export async function issueTicket(registrationId, { force = false, triggeredBy =
   try {
     const sql = getSql()
     const rows = await sql`
-      SELECT id, email, full_name, payment_status, ticket_jti, ticket_email_sent_at
+      SELECT id, email, full_name, payment_status, ticket_jti, ticket_email_sent_at,
+             ticket_revoked_at
       FROM registrations WHERE id = ${registrationId} LIMIT 1
     `
     if (!rows[0]) {
@@ -106,6 +114,15 @@ export async function issueTicket(registrationId, { force = false, triggeredBy =
     }
     if (rows[0].payment_status !== 'paid') {
       return { ok: false, error: 'Registration is not paid.' }
+    }
+    // A revoked pass is never re-minted here, by any path — not by an admin
+    // resend and above all not by settlePayment's already-paid branch, which is
+    // reachable by replaying a payment/verify triple the buyer's own browser
+    // holds forever. Without this the revoke is cosmetic: the revoked attendee
+    // re-issues their own working QR with one unauthenticated request. Only
+    // revokeTicket's superadmin-gated lift (server/admin.js) clears the stamp.
+    if (rows[0].ticket_revoked_at) {
+      return { ok: false, error: 'Ticket has been revoked.' }
     }
 
     const reg = await ensureTicketJti(sql, rows[0])

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Eyebrow, Button } from '../components/ui'
 import { RedGlow } from '../components/texture'
 import QueueOverlay from '../components/QueueOverlay'
@@ -55,6 +55,30 @@ export default function Register() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(null)
   const [soldOut, setSoldOut] = useState(false)
+  // Live pass counts from GET /api/register. Advisory display only — the server
+  // capacity gates stay authoritative; null (fetch failed / loading) just falls
+  // back to the static capacity so the form never blocks on this call.
+  const [availability, setAvailability] = useState(null)
+
+  useEffect(() => {
+    if (success) return // refetch when the form returns after a confirmation
+    let cancelled = false
+    apiFetch('/api/register', { retries: 1 })
+      .then(({ ok, data }) => {
+        if (cancelled || !ok) return
+        if (typeof data.remaining !== 'number' || typeof data.capacity !== 'number') return
+        setAvailability(data)
+        // Never gate mid-checkout: this probe can resolve tens of seconds late
+        // (cold backend + retry), and tearing the form down under someone who is
+        // typing card details — or already paid — is worse than letting the
+        // server's own capacity gates reject them.
+        if (data.soldOut && !inFlight.current) setSoldOut(true)
+      })
+      .catch(() => {}) // non-fatal: the page works without the count
+    return () => {
+      cancelled = true
+    }
+  }, [success])
 
   // Hard double-submit guard. The `submitting` state disables the button, but a
   // fast double-click (or Enter held) can fire onSubmit twice before React
@@ -237,7 +261,9 @@ export default function Register() {
     setForm(initial)
   }
 
-  if (soldOut) {
+  // Success outranks sold-out: someone who just paid must keep their
+  // confirmation (email echo, payment id) even if the last seat went to them.
+  if (soldOut && !success) {
     return (
       <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
         <RedGlow className="left-1/2 top-10 -translate-x-1/2" size={520} />
@@ -414,8 +440,21 @@ export default function Register() {
                 <SummaryRow label="Time" value={event.time} />
                 <SummaryRow label="Venue" value={event.venue} />
                 <SummaryRow label="City" value={event.city} />
-                <SummaryRow label="Seats" value={`${event.capacity} · curated`} />
+                <SummaryRow
+                  label="Seats"
+                  value={
+                    availability
+                      ? `${availability.remaining} of ${availability.capacity} left`
+                      : `${event.capacity} · curated`
+                  }
+                />
               </dl>
+              {availability && availability.remaining > 0 &&
+                availability.remaining <= Math.min(25, Math.max(1, Math.floor(availability.capacity / 10))) && (
+                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-red">
+                  Only {availability.remaining} {availability.remaining === 1 ? 'pass' : 'passes'} left — selling fast
+                </p>
+              )}
               <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.15em] text-paper/35">
                 {event.timeNote}
               </p>

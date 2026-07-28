@@ -36,6 +36,54 @@ describe('GET /api/health', () => {
   })
 })
 
+describe('GET /api/register', () => {
+  // Asserted against the DATABASE, not against the response's own other fields:
+  // deriving remaining from the returned capacity would pass even if the handler
+  // invented both numbers.
+  it('reports live availability matching the configured cap and the paid count', async () => {
+    const { getSql } = await import('../db.js')
+    const { getSeatCapacity } = await import('../settings.js')
+    const sql = getSql()
+
+    const res = await request(app).get('/api/register')
+    expect(res.status).toBe(200)
+    expect(res.body.ok).toBe(true)
+
+    const [row] = await sql`
+      SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
+    `
+    const capacity = await getSeatCapacity()
+    expect(res.body.capacity).toBe(capacity)
+    expect(res.body.remaining).toBe(Math.max(0, capacity - row.paid))
+    expect(res.body.soldOut).toBe(res.body.remaining === 0)
+    // The paid count itself must NOT be public — it is a live revenue feed.
+    expect(res.body.sold).toBeUndefined()
+  })
+
+  it('clamps remaining to zero rather than going negative when sold exceeds capacity', async () => {
+    const { seatAvailability } = await import('../payments.js')
+    const { getSql } = await import('../db.js')
+    const sql = getSql()
+    const [row] = await sql`
+      SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
+    `
+
+    // Drive the clamp for real by pinning the cap below the true paid count.
+    // Restored immediately. No DB override exists in the test environment, so
+    // SEAT_CAPACITY is the effective value here.
+    const original = process.env.SEAT_CAPACITY
+    process.env.SEAT_CAPACITY = String(Math.max(0, row.paid - 1))
+    try {
+      const availability = await seatAvailability()
+      expect(availability.remaining).toBe(0)
+      expect(availability.soldOut).toBe(true)
+    } finally {
+      if (original === undefined) delete process.env.SEAT_CAPACITY
+      else process.env.SEAT_CAPACITY = original
+    }
+  })
+})
+
 describe('POST /api/register', () => {
   it('creates a registration and returns 201 JSON', async () => {
     const res = await request(app).post('/api/register').send(guest('reg'))

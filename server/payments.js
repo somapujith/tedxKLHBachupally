@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import Razorpay from 'razorpay'
 import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
+import { getSeatCapacity } from './settings.js'
 
 // Razorpay's SDK has no built-in timeout — a slow API call would otherwise hang
 // the serverless function until Vercel's platform limit, burning an invocation
@@ -45,13 +46,27 @@ async function rzpCall(fn, { label, retries = 0 }) {
 export const REGISTRATION_AMOUNT = 100
 export const CURRENCY = 'INR'
 
-const DEFAULT_SEAT_CAPACITY = 250
+// Capacity now lives in server/settings.js so a superadmin can edit it at
+// runtime (DB override -> SEAT_CAPACITY env -> 250). seatCapacity is
+// re-exported unchanged for existing importers/tests of the env fallback.
+export { seatCapacity } from './settings.js'
 
-// Parse SEAT_CAPACITY defensively: `Number(env) || 250` would turn a legit 0
-// (event closed) and NaN into 250. Accept only a finite, non-negative number.
-export function seatCapacity() {
-  const n = Number(process.env.SEAT_CAPACITY)
-  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_SEAT_CAPACITY
+// Public availability snapshot for the register page: how many passes exist and
+// how many are left. Advisory only — a count read here can be stale by the time
+// the buyer pays; the atomic gate in settlePayment is what actually prevents
+// oversell. `sold` counts only paid registrations, matching both capacity gates.
+export async function seatAvailability() {
+  const sql = getSql()
+  await ensureSchemaOnce(sql)
+  const capacity = await getSeatCapacity(sql)
+  const paidCount = await withDbRetry(() => sql`
+    SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
+  `)
+  const sold = paidCount[0]?.count ?? 0
+  const remaining = Math.max(0, capacity - sold)
+  // `sold` stays server-side: remaining/capacity is everything the page needs,
+  // and a public paid-count is a real-time revenue feed for anyone with curl.
+  return { capacity, remaining, soldOut: remaining === 0 }
 }
 
 let client = null
@@ -106,7 +121,7 @@ export async function createOrder({ registrationId }) {
   // Capacity gate: never sell a seat past capacity. Checked before the Razorpay
   // order so a sold-out event cannot even start a checkout. This is a soft gate —
   // the hard, atomic gate is in settlePayment's paid-flip.
-  const capacity = seatCapacity()
+  const capacity = await getSeatCapacity(sql)
   const paidCount = await withDbRetry(() => sql`
     SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
   `)
@@ -197,7 +212,7 @@ async function settlePayment({ orderId, paymentId }) {
   }
 
   const sql = getSql()
-  const capacity = seatCapacity()
+  const capacity = await getSeatCapacity(sql)
   // Hard, atomic capacity gate: the paid-flip only wins if the current paid count
   // is still under capacity. The subquery runs inside the same statement as the
   // UPDATE, so N concurrent flips are serialized by row/table locks and cannot
