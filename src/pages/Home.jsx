@@ -168,7 +168,6 @@ export default function Home() {
             ref={closingBoxRef}
             className="mx-auto max-w-2xl rounded-2xl border border-paper/15 bg-ink px-8 py-16 md:px-14"
           >
-            <Eyebrow>The last step</Eyebrow>
             <h2 className="mt-6 font-display text-5xl leading-[1.02] md:text-6xl">
               Be in the room.
             </h2>
