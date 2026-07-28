@@ -28,6 +28,7 @@ import photoSrikar from '../assets/images/team/srikar.jpg'
 import photoTarun from '../assets/images/team/tarun.jpg'
 import photoNaveena from '../assets/images/team/naveena.jpg'
 import photoGanesh from '../assets/images/team/ganesh.jpg'
+import photoSubramanyam from '../assets/images/team/subramanyam.jpg'
 
 export const nav = [
   { label: 'Theme', to: '/theme' },
@@ -138,7 +139,7 @@ export const team = [
   { name: 'Ganesh', dept: 'Hospitality', photo: photoGanesh },
   { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
-  { name: 'Subramanyam', dept: 'Hospitality', photo: null },
+  { name: 'Subramanyam', dept: 'Hospitality', photo: photoSubramanyam },
   { name: 'Naveena', dept: 'Hospitality', photo: photoNaveena, photoPos: '50% 30%' },
   { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: null },
   // Sponsorship
