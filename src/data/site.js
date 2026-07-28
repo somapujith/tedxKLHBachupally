@@ -16,8 +16,7 @@ import photoAshwika from '../assets/images/team/ashwika.jpg'
 import photoAnuradha from '../assets/images/team/anuradha.jpg'
 import photoParinitha from '../assets/images/team/parinitha.jpg'
 import photoSuhasWeb from '../assets/images/team/suhas-web.jpg'
-import photoAdithya from '../assets/images/team/adithya.jpg'
-import photoSeshank from '../assets/images/team/seshank.jpg'
+import photoChervi from '../assets/images/team/chervi.jpg'
 import photoSreya from '../assets/images/team/sreya.jpg'
 import photoKrishnanjaneyulu from '../assets/images/team/krishnanjaneyulu.jpg'
 import photoDhanvin from '../assets/images/team/dhanvin.jpg'
@@ -129,14 +128,13 @@ export const team = [
   // Hospitality
   { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
   { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
-  { name: 'Chervi', dept: 'Hospitality', photo: null },
+  { name: 'Chervi', dept: 'Hospitality', photo: photoChervi, photoPos: '50% 30%' },
   { name: 'Tanmai', dept: 'Hospitality', photo: photoTanmai, photoPos: '70% 25%' },
   { name: 'Yashwant', dept: 'Hospitality', photo: photoYashwant },
   { name: 'Dhanvin', dept: 'Hospitality', photo: photoDhanvin },
   { name: 'Tarun', dept: 'Hospitality', photo: photoTarun },
   { name: 'Ganesh', dept: 'Hospitality', photo: null },
   { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
-  { name: 'Pujith', dept: 'Hospitality', photo: photoPujith },
   { name: 'Divya', dept: 'Hospitality', photo: photoDivya, photoPos: '50% 15%' },
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   // Sponsorship
@@ -158,9 +156,7 @@ export const team = [
   { name: 'GBS Team', dept: 'Productions', photo: null },
   // Web Development & Design
   { name: 'Suhas', dept: 'Web Development & Design', photo: photoSuhasWeb },
-  { name: 'Senthil', dept: 'Web Development & Design', photo: null },
-  { name: 'Adithya', dept: 'Web Development & Design', photo: photoAdithya },
-  { name: 'Seshank Yennam', dept: 'Web Development & Design', photo: photoSeshank },
+  { name: 'Pujith', dept: 'Web Development & Design', photo: photoPujith },
 ]
 
 export const blogPosts = [
