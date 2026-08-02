@@ -12,6 +12,7 @@ import Sponsor from './pages/Sponsor'
 import Register from './pages/Register'
 import Contact from './pages/Contact'
 import { Volunteer, Nominate, Schedule } from './pages/ClosedPages'
+import Launch from './pages/Launch'
 import NotFound from './pages/NotFound'
 
 // Admin pages are lazy so html5-qrcode & co. stay out of the public bundle.
@@ -55,6 +56,9 @@ export default function App() {
         <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
         <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
       </Route>
+
+      {/* Launch sequence renders bare — full-screen black takeover, no chrome. */}
+      <Route path="/launch" element={<Launch />} />
 
       <Route element={<PublicShell />}>
         <Route path="/" element={<Home />} />
