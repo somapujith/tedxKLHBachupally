@@ -116,7 +116,7 @@ export const teamDepartments = [
   'Sponsorship',
   'Marketing',
   'Productions',
-  'Web Development & Design',
+  'Web Development',
 ]
 
 // Leadership shown first on the Team page, one headed row per role.
@@ -161,8 +161,8 @@ export const team = [
   // Productions
   { name: 'Suhas', dept: 'Productions', photo: photoSuhasWeb },
   { name: 'Srikar', dept: 'Productions', photo: photoSrikar },
-  // Web Development & Design
-  { name: 'Pujith', dept: 'Web Development & Design', photo: photoPujith },
+  // Web Development
+  { name: 'Pujith', dept: 'Web Development', photo: photoPujith },
 ]
 
 export const blogPosts = [
