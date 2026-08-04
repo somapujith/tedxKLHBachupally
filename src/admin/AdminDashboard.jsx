@@ -9,6 +9,7 @@ import {
   CardHeader,
   CheckCircleIcon,
   EmptyState,
+  fmtDateTime,
   Input,
   Label,
   RefreshBar,
@@ -401,6 +402,11 @@ function VerificationQueue({ items, onChanged }) {
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium text-paper">{reg.full_name}</div>
                     <div className="truncate text-xs text-paper/45">{reg.email}</div>
+                    {reg.created_at && (
+                      <div className="mt-0.5 truncate text-[11px] text-paper/35">
+                        Registered {fmtDateTime(reg.created_at)}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -427,6 +433,14 @@ function VerificationQueue({ items, onChanged }) {
                     <div className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
                       <Label>Amount</Label>
                       <div className="mt-1 text-sm font-semibold tabular-nums text-paper">{fmtRupees(reg.amount)}</div>
+                    </div>
+                    <div className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
+                      <Label>Registered</Label>
+                      <div className="mt-1 text-xs text-paper/80">{fmtDateTime(reg.created_at)}</div>
+                    </div>
+                    <div className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
+                      <Label>Payment submitted</Label>
+                      <div className="mt-1 text-xs text-paper/80">{fmtDateTime(reg.submitted_at)}</div>
                     </div>
                   </div>
 

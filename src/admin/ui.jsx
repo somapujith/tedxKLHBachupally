@@ -34,6 +34,16 @@ const CARD_PAD = {
   lg: 'p-6 md:p-7',
 }
 
+// Timestamps are pinned to Asia/Kolkata: organisers read these at the venue and
+// must not see them shift to whatever timezone the admin laptop happens to be in.
+export function fmtDateTime(value) {
+  if (!value) return '—'
+  const d = new Date(value)
+  return Number.isNaN(d.getTime())
+    ? String(value)
+    : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })
+}
+
 // `pad` defaults to md so a Card can never render content flush against its own
 // border — the old default of no padding was silently producing unstyled-looking
 // panels wherever a caller forgot to pass one.

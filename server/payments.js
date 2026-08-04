@@ -12,8 +12,9 @@
 
 import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
+import { sendBookingEmail } from './email.js'
 import { getSeatCapacity, getPassPrice, getRegistrationStatus } from './settings.js'
-import { recordAudit, AUDIT_ACTIONS } from './audit.js'
+import { recordAudit, AUDIT_ACTIONS, recordEmail } from './audit.js'
 
 export const CURRENCY = 'INR'
 
@@ -67,11 +68,44 @@ function parseDataUrl(value) {
   return { mime: match[1].toLowerCase(), data: match[2] }
 }
 
+// Send + log the seat-booking confirmation. Every outcome lands in email_log
+// under email_type 'booking', so a buyer asking "I never heard back" can be
+// answered from the log rather than from guesswork. Swallows everything.
+async function sendBookingConfirmation({ registrationId, email, fullName, utr, amount }) {
+  try {
+    const sent = await sendBookingEmail({
+      to: email,
+      fullName,
+      registrationId,
+      utrId: utr,
+      amount,
+    })
+    await recordEmail({
+      registrationId,
+      toEmail: email,
+      fullName,
+      emailType: 'booking',
+      status: sent.ok ? 'sent' : sent.skipped ? 'skipped' : 'failed',
+      providerMessageId: sent.ok ? sent.id : undefined,
+      error: sent.ok
+        ? undefined
+        : sent.skipped
+          ? 'RESEND_API_KEY is not configured.'
+          : sent.detail || sent.error || 'Email send failed.',
+      triggeredBy: 'system',
+    })
+  } catch (err) {
+    console.error('Booking confirmation failed (submission stands):', err?.message || err)
+  }
+}
+
 /**
  * Buyer submits their bank-transfer proof: UTR reference plus a screenshot.
  *
- * Moves the row pending|rejected -> submitted. Deliberately does NOT issue a
- * ticket, send mail, or consume a seat — all three wait for admin approval.
+ * Moves the row pending|rejected -> submitted and sends the seat-booking
+ * confirmation. Deliberately does NOT issue a ticket or consume a seat — the QR
+ * pass and the seat itself both wait for admin approval, so the mail sent here
+ * carries no QR and says so.
  */
 export async function submitPaymentProof({ registrationId, utrId, proof }) {
   if (!registrationId) {
@@ -156,6 +190,20 @@ export async function submitPaymentProof({ registrationId, utrId, proof }) {
       // Lost a race with a concurrent submit for this same row.
       return { ok: false, status: 409, error: 'Your payment is already awaiting verification.' }
     }
+
+    // Only the winner of that conditional UPDATE gets here, so the buyer cannot
+    // receive two booking mails for one submission. Awaited (serverless kills
+    // the process on response) but never allowed to fail the submission: the
+    // proof is already recorded, and a missing mail is an email-log problem, not
+    // a reason to tell the buyer their payment did not go through.
+    await sendBookingConfirmation({
+      registrationId: reg.id,
+      email: reg.email,
+      fullName: reg.full_name,
+      utr,
+      amount: price,
+    })
+
     return { ok: true, status: 200, registration: updated[0] }
   } catch (err) {
     // 23505 on registrations_utr_unique: this reference is already on another
@@ -182,7 +230,7 @@ export async function listPendingVerifications({ limit = 100 } = {}) {
   const capped = Math.min(Math.max(Number(limit) || 100, 1), 500)
   const rows = await withDbRetry(() => sql`
     SELECT id, full_name, email, phone, designation, college, college_other,
-           utr_id, amount, submitted_at, proof_mime
+           utr_id, amount, created_at, submitted_at, proof_mime
     FROM registrations
     WHERE payment_status = 'submitted'
     ORDER BY submitted_at ASC

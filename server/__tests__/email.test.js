@@ -14,9 +14,11 @@ vi.mock('resend', () => ({
   },
 }))
 
-const { sendTicketEmail, ticketHtml, ticketText } = await import('../email.js')
+const { sendTicketEmail, ticketHtml, ticketText, sendBookingEmail, bookingHtml, bookingText } =
+  await import('../email.js')
 
 const SAMPLE = { fullName: 'Aarav Sharma', registrationId: 'reg-0001' }
+const BOOKING = { ...SAMPLE, utrId: '123456789012', amount: 449 }
 const QR_BUFFER = Buffer.from([0x89, 0x50, 0x4e, 0x47])
 const ORIGINAL_KEY = process.env.RESEND_API_KEY
 const ORIGINAL_FROM = process.env.EMAIL_FROM
@@ -147,6 +149,71 @@ describe('sendTicketEmail', () => {
   it('does not leak the upstream error text to the caller', async () => {
     send.mockRejectedValue(new Error('Invalid API key re_secret_value'))
     const result = await sendTicketEmail({ to: 'a@b.com', qrPngBuffer: QR_BUFFER, ...SAMPLE })
+    expect(result.error).toBe('Email send failed.')
+  })
+})
+
+// The booking mail goes out at UTR submission, BEFORE any admin has looked at
+// the bank statement. Everything here guards the same line: it must never carry
+// or imply a pass.
+describe('bookingHtml / bookingText', () => {
+  const html = bookingHtml(BOOKING)
+  const text = bookingText(BOOKING)
+
+  it('confirms the booking and echoes back what was submitted', () => {
+    expect(html).toContain('Seat booking confirmed')
+    expect(html).toContain('Aarav Sharma')
+    expect(html).toContain('123456789012')
+    expect(html).toContain('449')
+    expect(html).toContain('reg-0001')
+    expect(text).toContain('SEAT BOOKING CONFIRMED')
+    expect(text).toContain('123456789012')
+  })
+
+  it('carries no QR — not inline, not by cid, not by URL', () => {
+    expect(html).not.toContain('cid:tedx-qr')
+    expect(html).not.toContain('tedx-pass.png')
+    expect(html).not.toMatch(/<img[^>]+src="https?:/)
+    expect(text).not.toContain('tedx-pass.png')
+  })
+
+  it('tells the buyer the pass arrives separately, after verification', () => {
+    expect(html).toContain('This email is not an entry pass')
+    expect(html).toMatch(/entry QR code will arrive/)
+    expect(text).toContain('This email is not an entry pass')
+  })
+
+  it('still renders when no amount is known', () => {
+    const noAmount = bookingHtml({ ...BOOKING, amount: null })
+    expect(noAmount).toContain('Seat booking confirmed')
+    expect(bookingText({ ...BOOKING, amount: null })).not.toContain('Amount:')
+  })
+})
+
+describe('sendBookingEmail', () => {
+  it('skips without calling Resend when no API key is configured', async () => {
+    delete process.env.RESEND_API_KEY
+    const result = await sendBookingEmail({ to: 'a@b.com', ...BOOKING })
+    expect(result).toEqual({ ok: false, skipped: true })
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('sends a booking-titled mail with only the logo attached', async () => {
+    const result = await sendBookingEmail({ to: 'attendee@example.com', ...BOOKING })
+    expect(result.ok).toBe(true)
+
+    const payload = send.mock.calls[0][0]
+    expect(payload.to).toEqual(['attendee@example.com'])
+    expect(payload.subject).toMatch(/Seat Booking Confirmed/)
+    expect(payload.attachments).toHaveLength(1)
+    expect(payload.attachments[0].filename).toBe('tedx-logo.png')
+    expect(payload.attachments[0].contentId).toBe('tedx-logo')
+  })
+
+  it('reports failure instead of throwing when the SDK throws', async () => {
+    send.mockRejectedValue(new Error('network down'))
+    const result = await sendBookingEmail({ to: 'a@b.com', ...BOOKING })
+    expect(result.ok).toBe(false)
     expect(result.error).toBe('Email send failed.')
   })
 })

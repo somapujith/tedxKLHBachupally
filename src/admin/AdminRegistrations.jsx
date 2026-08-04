@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   EmptyState,
+  fmtDateTime,
   Input,
   RefreshBar,
   SearchIcon,
@@ -19,14 +20,6 @@ const FILTERS = [
   { key: 'pending', label: 'Pending' },
   { key: 'checked_in', label: 'Checked in' },
 ]
-
-function fmtDateTime(value) {
-  if (!value) return '—'
-  const d = new Date(value)
-  return Number.isNaN(d.getTime())
-    ? String(value)
-    : d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' })
-}
 
 // Case-insensitive match across the fields an organiser would search by.
 function matches(row, q) {
@@ -144,6 +137,7 @@ export default function AdminRegistrations() {
                 <th className="px-4 py-3 font-medium">Attendee</th>
                 <th className="px-4 py-3 font-medium">Contact</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
+                <th className="px-4 py-3 font-medium">Registered</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Checked in</th>
                 <th className="px-4 py-3 text-right font-medium">Pass</th>
@@ -152,7 +146,7 @@ export default function AdminRegistrations() {
             <tbody>
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-0">
+                  <td colSpan={7} className="p-0">
                     <EmptyState
                       hint={
                         q
@@ -266,6 +260,7 @@ function RegistrationCard({ row, onRevoked }) {
       {open && (
         <dl className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-xs text-paper/60">
           <Detail term="Designation" value={row.designation ?? '—'} capitalize />
+          <Detail term="Registered" value={row.created_at ? fmtDateTime(row.created_at) : '—'} />
           {row.paid_at && <Detail term="Paid" value={fmtDateTime(row.paid_at)} />}
           <Detail
             term="Checked in"
@@ -313,6 +308,9 @@ function RegistrationRow({ row, onRevoked }) {
         <div className="mt-0.5 text-xs text-paper/45">{row.phone ?? '—'}</div>
       </td>
       <td className="px-4 py-3 capitalize text-paper/75">{row.designation ?? '—'}</td>
+      <td className="px-4 py-3 text-xs text-paper/60">
+        {row.created_at ? fmtDateTime(row.created_at) : '—'}
+      </td>
       <td className="px-4 py-3">
         <StatusBadge status={status} />
         {row.paid_at && <div className="mt-1.5 text-xs text-paper/40">{fmtDateTime(row.paid_at)}</div>}

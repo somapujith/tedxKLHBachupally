@@ -127,6 +127,165 @@ export function ticketHtml({ fullName, registrationId }) {
 </html>`
 }
 
+// Sent the moment the buyer submits their UTR and screenshot — NOT the pass.
+// Deliberately carries no QR: the seat is only committed, and the QR only
+// issued, when an admin has matched the UTR against the bank statement. This
+// mail exists so the buyer is not left staring at a silent inbox in between.
+export function bookingHtml({ fullName, registrationId, utrId, amount }) {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Your TEDxKLH Bachupally seat booking</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">We have your booking for TEDxKLH Bachupally. Your entry pass follows once payment is verified.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f4;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border-radius:14px;overflow:hidden;">
+
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding:34px 32px 28px;border-bottom:1px solid #ebebeb;">
+              <img src="cid:${LOGO_CID}" alt="TEDxKLH Bachupally" width="230" style="display:block;width:230px;max-width:78%;height:auto;border:0;" />
+            </td>
+          </tr>
+
+          <!-- Booking confirmation -->
+          <tr>
+            <td style="padding:36px 32px 6px;">
+              <h1 style="margin:0;font:700 27px/1.25 Arial,Helvetica,sans-serif;color:#111111;">Seat booking confirmed</h1>
+              <p style="margin:16px 0 0;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#4a4a4a;">Hi ${fullName}, we have your booking for ${event.edition} along with your payment details. Our team is verifying the transaction against our bank records.</p>
+            </td>
+          </tr>
+
+          <!-- Booking details -->
+          <tr>
+            <td style="padding:22px 32px 4px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                ${detailRow('Name', fullName)}
+                ${detailRow('UTR', `<span style="font-family:'Courier New',Courier,monospace;">${utrId}</span>`)}
+                ${amount ? detailRow('Amount', `&#8377;${amount}`) : ''}
+                ${detailRow('Booking ID', `<span style="font-family:'Courier New',Courier,monospace;word-break:break-all;">${registrationId}</span>`)}
+              </table>
+            </td>
+          </tr>
+
+          <!-- Event details -->
+          <tr>
+            <td style="padding:22px 32px 4px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                ${detailRow('Date', event.date)}
+                ${detailRow('Time', `${event.time}<span style="color:#8a8a8a;"> · ${event.timeNote}</span>`)}
+                ${detailRow('Venue', `${event.venue}<br /><span style="color:#6a6a6a;">${event.streetAddress}, ${event.locality}, ${event.region} ${event.postalCode}</span>`)}
+              </table>
+              <p style="margin:18px 0 0;font:400 14px/1.4 Arial,Helvetica,sans-serif;">
+                <a href="${event.mapsUrl}" style="color:#e62b1e;text-decoration:none;font-weight:600;">Open venue in Google Maps &rsaquo;</a>
+              </p>
+            </td>
+          </tr>
+
+          <!-- What happens next -->
+          <tr>
+            <td style="padding:26px 32px 34px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fdf2f1;border-left:3px solid #e62b1e;border-radius:0 8px 8px 0;">
+                <tr>
+                  <td style="padding:14px 16px;font:400 13px/1.6 Arial,Helvetica,sans-serif;color:#7a2b25;">
+                    <strong style="color:#b3261e;">What happens next:</strong> Once we verify your payment, a separate email with your entry QR code will arrive at this address. This email is not an entry pass — please wait for the QR.
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding:24px 32px 28px;background:#111111;">
+              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ffffff;">TEDxKLH Bachupally</div>
+              <div style="margin-top:8px;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#9a9a9a;">
+                <a href="mailto:${contact.email}" style="color:#9a9a9a;text-decoration:none;">${contact.email}</a>
+                &nbsp;·&nbsp;
+                <a href="${contact.instagram}" style="color:#9a9a9a;text-decoration:none;">${contact.instagramHandle}</a>
+              </div>
+              <div style="margin-top:12px;font:400 10px/1.5 Arial,Helvetica,sans-serif;color:#6a6a6a;">This independent TEDx event is operated under license from TED.</div>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`
+}
+
+// Plain-text alternative for the booking confirmation.
+export function bookingText({ fullName, registrationId, utrId, amount }) {
+  return [
+    'TEDxKLH BACHUPALLY',
+    '',
+    'SEAT BOOKING CONFIRMED',
+    '',
+    `Hi ${fullName}, we have your booking for ${event.edition} along with your`,
+    'payment details. Our team is verifying the transaction against our bank records.',
+    '',
+    `Name:       ${fullName}`,
+    `UTR:        ${utrId}`,
+    ...(amount ? [`Amount:     Rs ${amount}`] : []),
+    `Booking ID: ${registrationId}`,
+    '',
+    `Date:  ${event.date}`,
+    `Time:  ${event.time} (${event.timeNote})`,
+    `Venue: ${event.venue}, ${event.streetAddress}, ${event.locality}, ${event.region} ${event.postalCode}`,
+    `Map:   ${event.mapsUrl}`,
+    '',
+    'What happens next: once we verify your payment, a separate email with your',
+    'entry QR code will arrive at this address. This email is not an entry pass —',
+    'please wait for the QR.',
+    '',
+    `${contact.email} · ${contact.instagramHandle}`,
+  ].join('\n')
+}
+
+// Sends the booking confirmation. Only the logo is attached — no QR exists at
+// this point in the flow. Never throws; the caller must not fail a recorded
+// submission because a mail could not be sent.
+export async function sendBookingEmail({ to, fullName, registrationId, utrId, amount }) {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    console.warn('RESEND_API_KEY not set — skipping booking email for', to)
+    return { ok: false, skipped: true }
+  }
+
+  try {
+    const { data, error } = await getClient(apiKey).emails.send({
+      from: fromAddress(),
+      to: [to],
+      subject: 'Seat Booking Confirmed — TEDxKLH Bachupally',
+      html: bookingHtml({ fullName, registrationId, utrId, amount }),
+      text: bookingText({ fullName, registrationId, utrId, amount }),
+      attachments: [
+        { filename: 'tedx-logo.png', content: TEDX_LOGO_PNG_BASE64, contentType: 'image/png', contentId: LOGO_CID },
+      ],
+    })
+
+    if (error) {
+      console.error('Booking email rejected by Resend:', error.name, error.message)
+      return { ok: false, error: 'Email send failed.', detail: `${error.name}: ${error.message}` }
+    }
+    if (!data?.id) {
+      console.error('Booking email returned no message id.')
+      return { ok: false, error: 'Email send failed.', detail: 'Provider returned no message id.' }
+    }
+    return { ok: true, id: data.id }
+  } catch (err) {
+    console.error('Booking email send failed:', err?.message || err)
+    return { ok: false, error: 'Email send failed.', detail: String(err?.message || err) }
+  }
+}
+
 // Plain-text alternative for clients that refuse HTML. The QR cannot be rendered
 // here, so point at the attachment.
 export function ticketText({ fullName, registrationId }) {

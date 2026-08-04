@@ -274,6 +274,10 @@ describe('submit -> verify -> approve', () => {
     expect(found).toBeTruthy()
     // The list must stay cheap — the proof is fetched one row at a time.
     expect(found.payment_proof).toBeUndefined()
+    // The dashboard prints both timestamps on every queue row. The query used to
+    // order by created_at without selecting it, so the column must stay asserted.
+    expect(found.created_at).toBeInstanceOf(Date)
+    expect(found.submitted_at).toBeInstanceOf(Date)
   })
 
   it('returns the proof image on demand', async () => {
