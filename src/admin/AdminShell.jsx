@@ -14,6 +14,7 @@ const PAGES = {
   '/admin/support': { title: 'Support', description: 'Tickets raised by attendees. Call or email them, then mark it resolved.' },
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
+  '/admin/payments': { title: 'Payments', description: 'Every verified bank transfer, by UTR reference.' },
 }
 
 const BASE_TABS = [
@@ -25,6 +26,7 @@ const BASE_TABS = [
 // Appended, not substituted: a superadmin keeps every gate-admin screen and
 // gains two more.
 const SUPER_TABS = [
+  { to: '/admin/payments', label: 'Payments' },
   { to: '/admin/activity', label: 'Activity' },
   { to: '/admin/admins', label: 'Admins' },
 ]

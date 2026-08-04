@@ -7,6 +7,7 @@ import { ensureSchemaOnce, getSql } from './db.js'
 import {
   submitPaymentProof,
   listPendingVerifications,
+  listVerifiedPayments,
   getPaymentProof,
   approvePayment,
   rejectPayment,
@@ -451,6 +452,26 @@ app
   })
 
 // --- Superadmin ---------------------------------------------------------------
+//
+// The verified-payment ledger is superadmin-only: it is a complete money trail
+// (every UTR, every amount, the running total) and a gate admin working the
+// queue has no need for it.
+
+app.get('/api/admin/payments', adminActionLimiter, async (req, res) => {
+  const auth = await requireSuperAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await listVerifiedPayments({
+      search: req.query?.search,
+      limit: req.query?.limit,
+    })
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Payments ledger error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not load payments.' })
+  }
+})
+
 //
 // Everything below is gated by requireSuperAdmin, which returns 403 (not 401)
 // for an authenticated plain admin so the client shows "not allowed" instead of

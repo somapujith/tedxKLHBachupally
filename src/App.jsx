@@ -25,6 +25,7 @@ const AdminSupport = lazy(() => import('./admin/AdminSupport'))
 // them never downloads them.
 const AdminActivity = lazy(() => import('./admin/AdminActivity'))
 const AdminAdmins = lazy(() => import('./admin/AdminAdmins'))
+const AdminPayments = lazy(() => import('./admin/AdminPayments'))
 
 // Public pages keep the site chrome (nav + footer); admin routes render bare.
 function PublicShell() {
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="support" element={<AdminRoute page={AdminSupport} />} />
         <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
         <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
+        <Route path="payments" element={<AdminRoute page={AdminPayments} />} />
       </Route>
 
       <Route element={<PublicShell />}>

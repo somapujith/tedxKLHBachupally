@@ -14,6 +14,7 @@ import { listAuditLog, listEmailLog, getSuperStats, requestContext } from '../..
 import { getSettings, updateSeatCapacity, updatePassPrice } from '../../server/settings.js'
 import {
   listPendingVerifications,
+  listVerifiedPayments,
   getPaymentProof,
   approvePayment,
   rejectPayment,
@@ -111,6 +112,13 @@ const RESOURCES = {
         actorFrom(auth),
         requestContext(req),
       ),
+  },
+  // The verified-payment ledger: every UTR, amount and approver. Superadmin
+  // only — it is a complete money trail, which a gate admin has no need for.
+  payments: {
+    auth: SUPER,
+    GET: async (req) =>
+      listVerifiedPayments({ search: req.query?.search, limit: req.query?.limit }),
   },
   'audit-log': {
     auth: SUPER,

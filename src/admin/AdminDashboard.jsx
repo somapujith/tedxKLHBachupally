@@ -1,7 +1,69 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
-import { Alert, Button, Card, Input, Label, RefreshBar } from './ui'
+import {
+  Alert,
+  BarRow,
+  Button,
+  Card,
+  CardHeader,
+  CheckCircleIcon,
+  EmptyState,
+  Input,
+  Label,
+  RefreshBar,
+} from './ui'
+
+// Stat glyphs. Each card gets one so the four numbers are distinguishable at a
+// glance on a phone at the gate, instead of four identical grey boxes.
+const STAT_ICONS = {
+  seat: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <path d="M6 11V6.5A2.5 2.5 0 0 1 8.5 4h7A2.5 2.5 0 0 1 18 6.5V11" strokeLinecap="round" />
+      <path d="M4.5 11h15a1.5 1.5 0 0 1 1.5 1.5V17H3v-4.5A1.5 1.5 0 0 1 4.5 11Z" strokeLinejoin="round" />
+      <path d="M6 17v2.5M18 17v2.5" strokeLinecap="round" />
+    </svg>
+  ),
+  check: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <path d="M20 6 9.5 16.5 4 11" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  clock: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  rupee: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <path d="M7 5h10M7 9.5h10M16 5c0 4-3.2 5.2-6.5 5.2H7L15 19" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  mail: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <rect x="3" y="5.5" width="18" height="13" rx="2" />
+      <path d="m3.5 7 8.5 6 8.5-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  alert: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <path d="M12 4.5 21 19H3z" strokeLinejoin="round" />
+      <path d="M12 10v3.5" strokeLinecap="round" />
+      <circle cx="12" cy="16.4" r="0.85" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  shield: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <path d="M12 3.5 19 6v6c0 4.2-2.9 7.4-7 8.5-4.1-1.1-7-4.3-7-8.5V6z" strokeLinejoin="round" />
+    </svg>
+  ),
+  pulse: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-4 w-4" aria-hidden>
+      <path d="M3 12h4l2.5-6 4 12 2.5-6h5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+}
 
 // `amount` is stored in whole rupees. It held paise under the old card gateway,
 // which is why this used to divide by 100 — bank transfers are recorded at the
@@ -91,49 +153,111 @@ export default function AdminDashboard() {
 
       <RefreshBar left="Auto-refreshes every 30 seconds" refreshedAt={refreshedAt} loading={loading} onRefresh={load} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Stat
           label="Paid seats"
           value={stats ? String(stats.paid ?? 0) : null}
           sub={stats?.capacity ? `of ${stats.capacity} capacity` : null}
           progress={filled}
+          icon={STAT_ICONS.seat}
+          accent
         />
-        <Stat label="Checked in" value={stats ? String(stats.checkedIn ?? 0) : null} sub="At the gate" />
-        <Stat label="Pending" value={stats ? String(stats.pending ?? 0) : null} sub="Payment not completed" />
-        <Stat label="Revenue" value={stats ? fmtRupees(stats.revenue) : null} sub="Verified bank transfers" />
+        <Stat
+          label="Checked in"
+          value={stats ? String(stats.checkedIn ?? 0) : null}
+          sub="At the gate"
+          icon={STAT_ICONS.check}
+        />
+        <Stat
+          label="Pending"
+          value={stats ? String(stats.pending ?? 0) : null}
+          sub="Payment not completed"
+          icon={STAT_ICONS.clock}
+        />
+        <Stat
+          label="Revenue"
+          value={stats ? fmtRupees(stats.revenue) : null}
+          sub="Verified bank transfers"
+          icon={STAT_ICONS.rupee}
+        />
       </div>
 
       <VerificationQueue items={verifications} onChanged={load} />
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 md:grid-cols-2 md:gap-4">
         <Breakdown title="By designation" items={stats?.byDesignation} nameKey="designation" />
         <Breakdown title="By college" items={stats?.byCollege} nameKey="college" />
       </div>
 
       {superAdmin && <SuperSection superStats={superStats} settings={settings} onSaved={load} />}
 
-      <div className="flex flex-wrap gap-3">
-        <Link
+      {/* Secondary navigation out of the dashboard. Framed as one row of equal
+          cards rather than loose outlined buttons, so it reads as a deliberate
+          footer instead of two stray controls. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <NavTile
           to="/admin/registrations"
-          className="inline-flex h-10 items-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-paper/80 transition-colors hover:bg-white/[0.08] hover:text-paper"
-        >
-          View all registrations
-        </Link>
+          title="All registrations"
+          hint="Search, filter and resend passes"
+        />
         {/* Also the only route to Support on a superadmin's phone — the bottom
             nav is already at its legible five-tab ceiling for that role. */}
-        <Link
+        <NavTile
           to="/admin/support"
-          className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-paper/80 transition-colors hover:bg-white/[0.08] hover:text-paper"
-        >
-          Support tickets
-          {openTickets > 0 && (
-            <span className="rounded-full bg-red px-2 py-0.5 text-[11px] font-semibold text-white">
-              {openTickets}
-            </span>
-          )}
-        </Link>
+          title="Support tickets"
+          hint={openTickets > 0 ? `${openTickets} waiting on a reply` : 'Nobody is waiting'}
+          badge={openTickets > 0 ? openTickets : null}
+        />
+        {/* Superadmin only, and the only route to the ledger on a phone — the
+            bottom nav is at its legible five-tab ceiling for that role. */}
+        {superAdmin && (
+          <NavTile
+            to="/admin/payments"
+            title="Verified payments"
+            hint="Every approved transfer, by UTR reference"
+          />
+        )}
       </div>
     </div>
+  )
+}
+
+// Footer navigation card: title, one line of context, and an affordance arrow
+// that slides on hover.
+function NavTile({ to, title, hint, badge }) {
+  return (
+    <Link
+      to={to}
+      className={[
+        'group flex items-center justify-between gap-4 rounded-2xl border border-white/10',
+        'bg-gradient-to-b from-white/[0.055] to-white/[0.02] px-5 py-4',
+        'transition-[border-color,background-color,transform] duration-200',
+        'hover:-translate-y-0.5 hover:border-white/20 hover:from-white/[0.08] motion-reduce:transform-none',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red/60 focus-visible:ring-offset-2 focus-visible:ring-offset-ink',
+      ].join(' ')}
+    >
+      <span className="min-w-0">
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-semibold tracking-tight text-paper">{title}</span>
+          {badge != null && (
+            <span className="rounded-full bg-red px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white">
+              {badge}
+            </span>
+          )}
+        </span>
+        <span className="mt-0.5 block truncate text-xs text-paper/45">{hint}</span>
+      </span>
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        aria-hidden
+        className="h-4 w-4 flex-none text-paper/30 transition-[transform,color] duration-200 group-hover:translate-x-0.5 group-hover:text-paper/70 motion-reduce:transform-none"
+      >
+        <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </Link>
   )
 }
 
@@ -144,23 +268,44 @@ function VerificationQueue({ items, onChanged }) {
   const [openId, setOpenId] = useState(null)
   const [proof, setProof] = useState(null)
   const [loadingProof, setLoadingProof] = useState(false)
+  // Kept apart from `proof` so the panel can tell "the fetch failed" from "this
+  // row genuinely has no screenshot". Collapsing the two into a null proof is
+  // what made a broken endpoint read as a missing upload — the admin sees
+  // "No screenshot available." and blames the attendee for not attaching one.
+  const [proofError, setProofError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [note, setNote] = useState('')
+
+  // Shared by the Verify toggle and the Retry link, so a transient failure does
+  // not force the admin to collapse and reopen the row to try again.
+  async function loadProof(id) {
+    setProof(null)
+    setProofError('')
+    setLoadingProof(true)
+    const { ok, data } = await adminFetch(`/api/admin/verifications?id=${id}`)
+    // A 404 from getPaymentProof is the only "no proof on file" answer; every
+    // other failure is an error the admin must see as an error, not as an
+    // attendee who skipped the upload.
+    if (ok && data.proof) {
+      setProof(data.proof)
+    } else if (data.error === 'No payment proof on file.') {
+      setProof(null) // genuinely nothing attached — the empty state is correct
+    } else {
+      setProofError(data.error || 'Could not load the payment screenshot. Try again.')
+    }
+    setLoadingProof(false)
+  }
 
   async function openVerify(reg) {
     if (openId === reg.id) {
       setOpenId(null)
       setProof(null)
+      setProofError('')
       return
     }
     setOpenId(reg.id)
-    setProof(null)
     setNote('')
-    setLoadingProof(true)
-    const { ok, data } = await adminFetch(`/api/admin/verifications?id=${reg.id}`)
-    setProof(ok ? data.proof : null)
-    if (!ok) setNote(data.error || 'Could not load the payment screenshot.')
-    setLoadingProof(false)
+    await loadProof(reg.id)
   }
 
   async function approve(reg) {
@@ -179,6 +324,7 @@ function VerificationQueue({ items, onChanged }) {
     }
     setOpenId(null)
     setProof(null)
+    setProofError('')
     onChanged()
   }
 
@@ -198,6 +344,7 @@ function VerificationQueue({ items, onChanged }) {
     }
     setOpenId(null)
     setProof(null)
+    setProofError('')
     onChanged()
   }
 
@@ -215,66 +362,114 @@ function VerificationQueue({ items, onChanged }) {
 
   return (
     <Card>
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-paper">Awaiting verification</h2>
-        <span className="text-xs text-paper/50">{items.length} pending</span>
-      </div>
+      <CardHeader
+        title="Awaiting verification"
+        meta={
+          items.length > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 font-medium text-amber-200">
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              {items.length} pending
+            </span>
+          ) : null
+        }
+      />
 
       {note && <Alert>{note}</Alert>}
 
       {items.length === 0 ? (
-        <p className="text-sm text-paper/50">No payments waiting to be verified.</p>
+        <EmptyState
+          tone="good"
+          icon={<CheckCircleIcon />}
+          hint="Bank transfers appear here the moment an attendee submits one."
+        >
+          Everything is verified
+        </EmptyState>
       ) : (
-        <ul className="divide-y divide-white/10">
+        <ul className="-mx-1 divide-y divide-white/[0.07]">
           {items.map((reg) => (
-            <li key={reg.id} className="py-3">
+            <li key={reg.id} className="px-1 py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-paper">{reg.full_name}</div>
-                  <div className="truncate text-xs text-paper/50">{reg.email}</div>
+                <div className="flex min-w-0 items-center gap-3">
+                  {/* Initials avatar: gives each row an anchor point so a long
+                      queue scans as people rather than as repeated text rows. */}
+                  <span
+                    aria-hidden
+                    className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-[11px] font-semibold uppercase tracking-wide text-paper/70"
+                  >
+                    {initials(reg.full_name)}
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-paper">{reg.full_name}</div>
+                    <div className="truncate text-xs text-paper/45">{reg.email}</div>
+                  </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button type="button" onClick={() => openVerify(reg)} disabled={busyId === reg.id}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={openId === reg.id ? 'subtle' : 'primary'}
+                    onClick={() => openVerify(reg)}
+                    disabled={busyId === reg.id}
+                  >
                     {openId === reg.id ? 'Close' : 'Verify'}
                   </Button>
-                  <Button type="button" onClick={() => resend(reg)} disabled={busyId === reg.id}>
+                  <Button type="button" size="sm" onClick={() => resend(reg)} disabled={busyId === reg.id}>
                     Resend email
                   </Button>
                 </div>
               </div>
 
               {openId === reg.id && (
-                <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.02] p-4">
-                  <div className="mb-3 space-y-1 text-xs">
-                    <div>
-                      <span className="text-paper/50">UTR ID: </span>
-                      <span className="font-mono tracking-wider text-paper">{reg.utr_id}</span>
+                <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4">
+                  <div className="mb-3 grid gap-2 sm:grid-cols-2">
+                    <div className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
+                      <Label>UTR ID</Label>
+                      <div className="mt-1 truncate font-mono text-xs tracking-wider text-paper">{reg.utr_id}</div>
                     </div>
-                    <div>
-                      <span className="text-paper/50">Amount: </span>
-                      <span className="text-paper">{fmtRupees(reg.amount)}</span>
+                    <div className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
+                      <Label>Amount</Label>
+                      <div className="mt-1 text-sm font-semibold tabular-nums text-paper">{fmtRupees(reg.amount)}</div>
                     </div>
                   </div>
 
                   {loadingProof ? (
-                    <p className="text-xs text-paper/50">Loading screenshot…</p>
+                    <div className="h-48 w-full animate-pulse rounded-lg border border-white/10 bg-white/[0.05] motion-reduce:animate-none" />
                   ) : proof ? (
-                    <a href={proof} target="_blank" rel="noreferrer">
+                    <a
+                      href={proof}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="group block w-fit overflow-hidden rounded-lg border border-white/10 transition-colors hover:border-white/25"
+                    >
                       <img
                         src={proof}
                         alt={`Payment screenshot from ${reg.full_name}`}
-                        className="max-h-96 w-auto rounded border border-white/10"
+                        className="max-h-96 w-auto transition-transform duration-300 group-hover:scale-[1.02] motion-reduce:transform-none"
                       />
                     </a>
+                  ) : proofError ? (
+                    // Never approve a payment you could not actually look at.
+                    <div className="rounded-lg border border-red/30 bg-red/10 px-3 py-2">
+                      <p className="text-xs text-red">{proofError}</p>
+                      <button
+                        type="button"
+                        onClick={() => loadProof(reg.id)}
+                        className="mt-1 text-xs text-paper/60 underline underline-offset-2 hover:text-paper"
+                      >
+                        Retry
+                      </button>
+                    </div>
                   ) : (
-                    <p className="text-xs text-paper/50">No screenshot available.</p>
+                    <p className="rounded-lg border border-dashed border-white/10 px-3 py-6 text-center text-xs text-paper/40">
+                      No screenshot available.
+                    </p>
                   )}
 
-                  <div className="mt-4 flex gap-2">
-                    <Button type="button" onClick={() => approve(reg)} disabled={busyId === reg.id}>
+                  <div className="mt-4 flex flex-wrap gap-2 border-t border-white/[0.07] pt-4">
+                    <Button type="button" variant="primary" onClick={() => approve(reg)} disabled={busyId === reg.id}>
                       {busyId === reg.id ? 'Working…' : 'Verified — send pass'}
                     </Button>
-                    <Button type="button" onClick={() => reject(reg)} disabled={busyId === reg.id}>
+                    <Button type="button" variant="danger" onClick={() => reject(reg)} disabled={busyId === reg.id}>
                       Reject
                     </Button>
                   </div>
@@ -288,19 +483,51 @@ function VerificationQueue({ items, onChanged }) {
   )
 }
 
-function Stat({ label, value, sub, progress }) {
+// Every card reserves the same vertical slots (label row · number · meter ·
+// caption) whether or not it has a progress value, so the four never end up at
+// different heights — the ragged bottom edge was the main reason the row looked
+// unfinished. `accent` tints only the icon, never the whole card.
+function Stat({ label, value, sub, progress, icon, accent = false }) {
+  const hasProgress = typeof progress === 'number'
   return (
-    <Card className="p-4 sm:p-5">
-      <Label>{label}</Label>
-      <div className="mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums sm:text-3xl">
-        {value ?? <span className="inline-block h-6 w-16 animate-pulse rounded bg-white/10 align-middle" />}
+    <Card pad="none" className="flex h-full flex-col p-4 md:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <Label className="pt-0.5">{label}</Label>
+        {icon && (
+          <span
+            aria-hidden
+            className={[
+              'flex h-7 w-7 flex-none items-center justify-center rounded-lg border',
+              accent ? 'border-red/25 bg-red/10 text-red' : 'border-white/10 bg-white/[0.05] text-paper/45',
+            ].join(' ')}
+          >
+            {icon}
+          </span>
+        )}
       </div>
-      {typeof progress === 'number' && (
-        <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-red transition-[width] duration-500" style={{ width: `${progress}%` }} />
-        </div>
-      )}
-      {sub && <div className="mt-2 text-xs text-paper/40">{sub}</div>}
+
+      <div className="mt-3 text-[28px] font-semibold leading-none tracking-tight tabular-nums md:text-[32px]">
+        {value ?? (
+          <span className="inline-block h-7 w-20 animate-pulse rounded-md bg-white/10 align-middle motion-reduce:animate-none" />
+        )}
+      </div>
+
+      {/* Meter slot is always present so card heights stay identical. */}
+      <div className="mt-3 h-1.5">
+        {hasProgress && (
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-red/70 to-red transition-[width] duration-700 ease-out motion-reduce:transition-none"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="mt-2 flex items-baseline gap-1.5 text-xs text-paper/40">
+        {hasProgress && <span className="font-medium tabular-nums text-paper/60">{progress}%</span>}
+        {sub && <span className="truncate">{sub}</span>}
+      </div>
     </Card>
   )
 }
@@ -316,62 +543,77 @@ function SuperSection({ superStats, settings, onSaved }) {
   const skipped = emailByStatus.find((e) => e.status === 'skipped')?.count ?? 0
   const totalScans = byAdmin.reduce((sum, a) => sum + (Number(a.scans) || 0), 0)
 
+  const maxScans = Math.max(1, ...byAdmin.map((a) => Number(a.scans) || 0))
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 pt-2">
-        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-red" />
-        <Label>Superadmin</Label>
+    <div className="space-y-4 md:space-y-5">
+      {/* Section divider — a labelled rule, so the superadmin-only block is
+          clearly a separate region instead of more cards in the same stream. */}
+      <div className="flex items-center gap-3 pt-2">
+        <span className="inline-flex items-center gap-2 rounded-full border border-red/25 bg-red/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-red">
+          <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-red" />
+          Superadmin
+        </span>
+        <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/12 to-transparent" />
       </div>
 
       <CapacityCard settings={settings} onSaved={onSaved} />
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Emails sent" value={String(sent)} sub="Passes delivered to Resend" />
-        <Stat label="Email failures" value={String(failed)} sub={skipped ? `${skipped} skipped (no API key)` : 'Rejected or errored'} />
-        <Stat label="Failed logins" value={String(superStats?.failedLogins24h ?? 0)} sub="Last 24 hours" />
-        <Stat label="Admin actions" value={String(superStats?.actionsLastHour ?? 0)} sub="Last hour" />
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+        <Stat label="Emails sent" value={String(sent)} sub="Passes delivered to Resend" icon={STAT_ICONS.mail} />
+        <Stat
+          label="Email failures"
+          value={String(failed)}
+          sub={skipped ? `${skipped} skipped (no API key)` : 'Rejected or errored'}
+          icon={STAT_ICONS.alert}
+          accent={failed > 0}
+        />
+        <Stat
+          label="Failed logins"
+          value={String(superStats?.failedLogins24h ?? 0)}
+          sub="Last 24 hours"
+          icon={STAT_ICONS.shield}
+        />
+        <Stat
+          label="Admin actions"
+          value={String(superStats?.actionsLastHour ?? 0)}
+          sub="Last hour"
+          icon={STAT_ICONS.pulse}
+        />
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <Card className="p-5">
-          <Label>Scans by admin</Label>
+      <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+        <Card>
+          <CardHeader title="Scans by admin" meta={totalScans > 0 ? `${totalScans} total` : null} />
           {byAdmin.length === 0 ? (
-            <p className="mt-4 text-sm text-paper/35">No check-ins yet.</p>
+            <EmptyState hint="Check-ins appear here as the gate starts scanning.">No check-ins yet</EmptyState>
           ) : (
-            <ul className="mt-4 space-y-3.5">
-              {byAdmin.map((row) => {
-                const count = Number(row.scans) || 0
-                return (
-                  <li key={row.admin ?? '—'}>
-                    <div className="mb-1.5 flex items-baseline justify-between gap-4 text-sm">
-                      <span className="truncate text-paper/75">{row.admin || 'Unattributed'}</span>
-                      <span className="flex-none tabular-nums text-paper/45">{count}</span>
-                    </div>
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.07]">
-                      <div
-                        className="h-full rounded-full bg-red/70"
-                        style={{ width: `${(count / Math.max(1, totalScans)) * 100}%` }}
-                      />
-                    </div>
-                  </li>
-                )
-              })}
+            <ul className="space-y-4">
+              {byAdmin.map((row) => (
+                <BarRow
+                  key={row.admin ?? '—'}
+                  label={row.admin || 'Unattributed'}
+                  value={row.scans}
+                  max={maxScans}
+                  total={totalScans}
+                />
+              ))}
             </ul>
           )}
         </Card>
 
-        <Card className="p-5">
-          <Label>Emails by trigger</Label>
+        <Card>
+          <CardHeader title="Emails by trigger" />
           {(superStats?.emailByTrigger ?? []).length === 0 ? (
-            <p className="mt-4 text-sm text-paper/35">No emails logged yet.</p>
+            <EmptyState hint="Every pass email is logged here once sending begins.">No emails logged yet</EmptyState>
           ) : (
-            <ul className="mt-4 space-y-2.5">
+            <ul className="divide-y divide-white/[0.06]">
               {superStats.emailByTrigger.map((row) => (
-                <li key={row.triggered_by} className="flex items-baseline justify-between gap-4 text-sm">
-                  <span className="truncate text-paper/75">
+                <li key={row.triggered_by} className="flex items-baseline justify-between gap-4 py-2.5 text-sm first:pt-0">
+                  <span className="truncate text-paper/80">
                     {row.triggered_by === 'system' ? 'Automatic (after payment)' : `Resent by ${row.triggered_by}`}
                   </span>
-                  <span className="flex-none tabular-nums text-paper/45">{row.count}</span>
+                  <span className="flex-none font-medium tabular-nums text-paper/80">{row.count}</span>
                 </li>
               ))}
             </ul>
@@ -379,12 +621,7 @@ function SuperSection({ superStats, settings, onSaved }) {
         </Card>
       </div>
 
-      <Link
-        to="/admin/activity"
-        className="inline-flex h-10 items-center rounded-lg border border-white/10 bg-white/[0.04] px-4 text-sm font-medium text-paper/80 transition-colors hover:bg-white/[0.08] hover:text-paper"
-      >
-        Open the full activity log
-      </Link>
+      <NavTile to="/admin/activity" title="Full activity log" hint="Every admin action and ticket email" />
     </div>
   )
 }

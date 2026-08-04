@@ -276,6 +276,65 @@ export async function approvePayment({ registrationId }, actor = {}, context = {
 }
 
 /**
+ * Every verified payment, newest first — the money ledger.
+ *
+ * Deliberately reads from `verified_at`, not `paid_at`: paid_at is COALESCEd on
+ * approval and so survives from an older flow, while verified_at is stamped by
+ * the human who actually checked the bank statement. Reconciling against the
+ * bank means asking "what did we approve, and who approved it", which is
+ * verified_at's question.
+ *
+ * The base64 proof column is NOT selected — this is a list view, and pulling a
+ * megabyte per row would make the ledger unopenable at scale. The dashboard's
+ * single-row proof fetch already covers looking at one screenshot.
+ *
+ * `search` matches a UTR reference or an attendee, since reconciliation starts
+ * from a line on a bank statement.
+ */
+export async function listVerifiedPayments({ search, limit = 200 } = {}) {
+  const sql = getSql()
+  await ensureSchemaOnce(sql)
+  const capped = Math.min(Math.max(Number(limit) || 200, 1), 1000)
+  const q = String(search || '').trim().toLowerCase()
+  // A LIKE pattern built here rather than inline, so the parameter stays a bound
+  // value and the query is not string-concatenated.
+  const pattern = q ? `%${q}%` : null
+
+  const rows = await withDbRetry(() => sql`
+    SELECT id, full_name, email, phone, designation, college, college_other,
+           utr_id, amount, payment_status, submitted_at, verified_at, verified_by,
+           paid_at, checked_in_at,
+           (ticket_jti IS NOT NULL) AS ticket_issued,
+           (ticket_revoked_at IS NOT NULL) AS ticket_revoked
+    FROM registrations
+    WHERE payment_status = 'paid'
+      AND (
+        ${pattern}::text IS NULL
+        OR LOWER(utr_id) LIKE ${pattern}::text
+        OR LOWER(full_name) LIKE ${pattern}::text
+        OR LOWER(email) LIKE ${pattern}::text
+      )
+    ORDER BY COALESCE(verified_at, paid_at) DESC NULLS LAST
+    LIMIT ${capped}
+  `)
+
+  // Totals describe the WHOLE ledger, not the page or the current search — a
+  // filtered subtotal shown as "total collected" would be read as revenue.
+  const [totals] = await withDbRetry(() => sql`
+    SELECT COUNT(*)::int AS count, COALESCE(SUM(amount), 0)::int AS total
+    FROM registrations WHERE payment_status = 'paid'
+  `)
+
+  return {
+    ok: true,
+    status: 200,
+    payments: rows,
+    totalCount: totals.count,
+    totalAmount: totals.total,
+  }
+}
+
+/**
  * Admin rejects a submission — the UTR did not match the bank statement.
  *
  * Clears the proof and UTR so the buyer can resubmit (and so the unique index
