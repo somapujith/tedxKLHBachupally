@@ -11,6 +11,9 @@ import { getSql, ensureRegistrationsTable, ensureSupportTicketsTable } from '../
 const sql = getSql()
 const TAG = 'http_test_'
 const email = (n) => `${TAG}${n}@example.com`
+const PROOF_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
 const guest = (n) => ({
   fullName: 'HTTP Tester',
   phone: '9876500000',
@@ -217,5 +220,53 @@ describe('/api/admin/support', () => {
       .post('/api/admin/support')
       .send({ ticketId: '11111111-2222-4333-8444-555555555555' })
     expect(res.status).toBe(401)
+  })
+})
+
+// The admin dashboard speaks ONE API shape across both deploy targets. These
+// pin the Express side to what src/admin/AdminDashboard.jsx actually sends —
+// the shape drifted once already, and the divergence was invisible to every
+// test because the Vercel handler was correct while Render served the client.
+describe('/api/admin/verifications — client shape', () => {
+  it('GET with ?id= returns that row proof, not the whole queue', async () => {
+    const jwt = (await import('jsonwebtoken')).default
+    const token = jwt.sign(
+      { aid: '00000000-0000-0000-0000-000000000001', username: 'shape_probe', name: 'Shape Probe', role: 'admin' },
+      process.env.ADMIN_JWT_SECRET,
+      { algorithm: 'HS256', expiresIn: '1h', issuer: 'tedxklh-admin' },
+    )
+
+    const reg = await request(app).post('/api/register').send(guest('proofshape'))
+    const id = reg.body.registration.id
+    const utrId = String(Date.now()).slice(-6) + Math.random().toString().slice(2, 8)
+    await request(app)
+      .post('/api/payment/submit')
+      .send({ registrationId: id, utrId, proof: PROOF_PNG })
+
+    const res = await request(app)
+      .get(`/api/admin/verifications?id=${id}`)
+      .set('Authorization', `Bearer ${token}`)
+
+    expect(res.status).toBe(200)
+    // The bug: ?id= was ignored and the LIST came back, so the dashboard had no
+    // image to render and showed "No screenshot available."
+    expect(res.body.proof).toMatch(/^data:image\/png;base64,/)
+    expect(res.body.registrations).toBeUndefined()
+  }, 30000)
+
+  it('POST /verifications is routed (approve/reject), not a 404', async () => {
+    const res = await request(app)
+      .post('/api/admin/verifications')
+      .send({ registrationId: '11111111-2222-4333-8444-555555555555' })
+    expect(res.status).toBe(401)
+    expect(res.status).not.toBe(404)
+  })
+
+  it('POST /verifications with reject is routed the same way', async () => {
+    const res = await request(app)
+      .post('/api/admin/verifications')
+      .send({ registrationId: '11111111-2222-4333-8444-555555555555', reject: true, reason: 'x' })
+    expect(res.status).toBe(401)
+    expect(res.status).not.toBe(404)
   })
 })

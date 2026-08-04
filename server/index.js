@@ -317,15 +317,48 @@ app.post('/api/admin/resend-ticket', adminActionLimiter, async (req, res) => {
 // Any admin can work the queue: approving is what issues a pass, and that is the
 // same authority a plain admin already has via check-in and resend.
 
+// The admin client speaks ONE API shape (the Vercel [resource] handler's):
+// GET /verifications?id=<uuid> for a single proof, and POST /verifications with
+// {registrationId} to approve or {reject:true, reason} to reject. Express used
+// to implement a different shape — /:id/proof, /approve, /reject — so on the
+// Render deployment the screenshot silently returned the whole list instead of
+// the image, and both action buttons hit a 404. The subpath routes below are
+// kept because they still work and something may call them, but these two are
+// what the dashboard actually uses, and they must stay shape-compatible with
+// api/admin/[resource].js or one deploy target breaks while the other passes.
 app.get('/api/admin/verifications', adminActionLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
-    const result = await listPendingVerifications({ limit: req.query?.limit })
+    const result = req.query?.id
+      ? await getPaymentProof(req.query.id)
+      : await listPendingVerifications({ limit: req.query?.limit })
     return res.status(result.status).json(result)
   } catch (err) {
     console.error('Verification list error:', err)
     return res.status(500).json({ ok: false, error: 'Could not load submissions.' })
+  }
+})
+
+// Approve, or reject when the body carries `reject`. Mirrors the POST branch of
+// the verifications resource in api/admin/[resource].js.
+app.post('/api/admin/verifications', adminActionLimiter, async (req, res) => {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const actor = actorFrom(auth)
+    const context = requestContext(req)
+    const result = req.body?.reject
+      ? await rejectPayment(
+          { registrationId: req.body?.registrationId, reason: req.body?.reason },
+          actor,
+          context,
+        )
+      : await approvePayment({ registrationId: req.body?.registrationId }, actor, context)
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Verification action error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not update this payment.' })
   }
 })
 
