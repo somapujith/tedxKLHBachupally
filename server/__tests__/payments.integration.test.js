@@ -114,6 +114,56 @@ describe('createRegistration (real DB)', () => {
     expect(third.registration.id).toBe(pending.registration.id)
     expect(third.registration.id).not.toBe(paid.registration.id)
   })
+
+  // A row awaiting an admin is a seat in flight, not an abandoned checkout.
+  // Resuming it overwrote the details of a submission already under review and
+  // handed back a row that submitPaymentProof then refuses ("already awaiting
+  // verification") — so the buyer could never pay for the second seat at all.
+  it('does not resume a submitted registration — it starts a new seat', async () => {
+    const first = await createRegistration(validReg('resubmit'))
+    const utrId = nextUtr()
+    const submitted = await submitPaymentProof({
+      registrationId: first.registration.id,
+      utrId,
+      proof: PNG_1PX,
+    })
+    expect(submitted.ok).toBe(true)
+
+    const second = await createRegistration(validReg('resubmit', { fullName: 'Second Seat' }))
+    expect(second.status).toBe(201)
+    expect(second.resumed).toBeUndefined()
+    expect(second.registration.id).not.toBe(first.registration.id)
+
+    // The submission under review keeps its own proof and its own details.
+    const [original] = await sql`
+      SELECT full_name, utr_id, payment_status FROM registrations WHERE id = ${first.registration.id}
+    `
+    expect(original.payment_status).toBe('submitted')
+    expect(original.utr_id).toBe(utrId)
+    expect(original.full_name).toBe('E2E Tester')
+
+    // And the new seat can actually be paid for, which is the whole point.
+    const secondProof = await submitPaymentProof({
+      registrationId: second.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    expect(secondProof.ok).toBe(true)
+  }, 30000)
+
+  // A rejected submission IS resumable: the admin bounced it, the buyer is
+  // expected to correct it, and rejectPayment already cleared the UTR and proof.
+  it('resumes a rejected registration rather than orphaning it', async () => {
+    const first = await createRegistration(validReg('rejectresume'))
+    await sql`
+      UPDATE registrations SET payment_status = 'rejected', rejected_reason = 'test'
+      WHERE id = ${first.registration.id}
+    `
+    const second = await createRegistration(validReg('rejectresume', { fullName: 'Corrected' }))
+    expect(second.status).toBe(200)
+    expect(second.resumed).toBe(true)
+    expect(second.registration.id).toBe(first.registration.id)
+  }, 20000)
 })
 
 

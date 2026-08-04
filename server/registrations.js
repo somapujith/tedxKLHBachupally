@@ -58,14 +58,21 @@ export async function createRegistration(body) {
     // returning for a second seat is a sale, not a mistake. Each submission
     // therefore gets its own row, its own payment and its own QR pass.
     //
-    // A PENDING row for the same email is still resumed rather than duplicated:
-    // that row is an abandoned checkout, not a second seat, and reusing it
-    // keeps one person's retries from littering the table. Paid rows are
-    // excluded from this lookup precisely so they can never capture the resume
-    // and block the new registration.
+    // A row that never got as far as a payment attempt is still resumed rather
+    // than duplicated: it is an abandoned checkout, not a second seat, and
+    // reusing it keeps one person's retries from littering the table.
+    //
+    // Only 'pending' and 'rejected' qualify. 'submitted' must NOT be resumed:
+    // that row already carries a UTR and a proof image awaiting an admin, so
+    // handing it back would overwrite the details of a submission under review
+    // AND strand the buyer — submitPaymentProof refuses a row that is already
+    // awaiting verification, so they could never pay for the second seat. A
+    // 'paid' row is excluded for the same reason it always was: so it cannot
+    // capture the resume and block a legitimate repeat registration.
     const existing = await withDbRetry(() => sql`
       SELECT id FROM registrations
-      WHERE LOWER(email) = ${data.email} AND payment_status <> 'paid'
+      WHERE LOWER(email) = ${data.email}
+        AND payment_status IN ('pending', 'rejected')
       ORDER BY created_at DESC LIMIT 1
     `)
 
@@ -78,13 +85,16 @@ export async function createRegistration(body) {
             college = ${college},
             college_other = ${collegeOther}
         WHERE id = ${existing[0].id}
-          AND payment_status <> 'paid'
+          AND payment_status IN ('pending', 'rejected')
         RETURNING id, email, designation, payment_status, created_at
       `
-      // Zero rows means that pending row was paid between the SELECT and this
-      // UPDATE. Returning `updated[0]` regardless would hand the client an
+      // Zero rows means that row left the resumable set between the SELECT and
+      // this UPDATE — the buyer submitted proof or an admin approved it in the
+      // gap. The guard must mirror the SELECT exactly, or a row that just became
+      // 'submitted' would still be captured here and its pending proof
+      // overwritten. Returning `updated[0]` regardless would hand the client an
       // undefined registration and strand them with no id to pay against; fall
-      // through to a fresh INSERT instead, which is now a legal second seat.
+      // through to a fresh INSERT instead, which is a legal second seat.
       if (updated[0]) {
         return {
           ok: true,
