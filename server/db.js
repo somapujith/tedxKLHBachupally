@@ -113,11 +113,42 @@ export async function ensureRegistrationsTable(sql = getSql()) {
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS ticket_revoked_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS checked_in_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS checked_in_by TEXT`
+  // Manual bank-transfer flow. The buyer pays into the bank QR out-of-band, then
+  // submits the UTR reference and a screenshot of the transaction; an admin
+  // eyeballs both against the bank statement and approves. payment_status moves
+  // pending -> submitted -> paid (or rejected, which the buyer can resubmit from).
+  //
+  // The proof is stored inline as base64 rather than in object storage: this
+  // deployment has no blob provider, and a per-row image keeps the admin read a
+  // single query. It is NEVER selected by list/stats queries — only by the
+  // single-row proof fetch — so the wide column cannot bloat the hot paths.
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS utr_id TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS payment_proof TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS proof_mime TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS verified_by TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS rejected_reason TEXT`
+  // Drives the admin verification queue (oldest submission first).
+  await sql`
+    CREATE INDEX IF NOT EXISTS registrations_submitted_idx
+    ON registrations (submitted_at)
+    WHERE payment_status = 'submitted'
+  `
+  // A UTR is a bank-unique reference: the same one appearing twice means either a
+  // duplicate submission or someone copying another buyer's reference. Enforced
+  // here so the race between two concurrent submits cannot land both.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS registrations_utr_unique
+    ON registrations (utr_id)
+    WHERE utr_id IS NOT NULL
+  `
   await sql`
     CREATE INDEX IF NOT EXISTS registrations_order_idx
     ON registrations (razorpay_order_id)
   `
-  // Each Razorpay order id is minted per-registration, so it is already unique in
+  // Legacy from the removed card gateway; kept so historical paid rows keep their
+  // reference. Each order id was minted per-registration, so it is already unique in
   // practice; this partial unique index enforces it (NULLs excluded — pending rows
   // have no order id yet) and lets settlePayment's per-order flip stay unambiguous.
   await sql`
@@ -142,6 +173,56 @@ export async function ensureContactMessagesTable(sql = getSql()) {
   await sql`
     CREATE INDEX IF NOT EXISTS contact_messages_created_idx
     ON contact_messages (created_at DESC)
+  `
+}
+
+// Support requests raised by an attendee after registering — "my QR never
+// arrived", "I paid twice", "wrong email on the pass". registration_id is the
+// row they raised it from, kept nullable and WITHOUT a foreign key on purpose:
+// a ticket must survive the registration being deleted, since the deletion is
+// often the very thing being complained about. name/phone/email are copied in
+// at write time for the same reason — the admin needs a way to call the person
+// back that does not depend on the referenced row still existing.
+export async function ensureSupportTicketsTable(sql = getSql()) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      registration_id UUID,
+      full_name TEXT,
+      phone TEXT NOT NULL,
+      email TEXT NOT NULL,
+      subject TEXT,
+      message TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'open',
+      resolved_at TIMESTAMPTZ,
+      resolved_by TEXT,
+      admin_note TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  // Drives the admin queue: open tickets first, oldest first within each status.
+  await sql`
+    CREATE INDEX IF NOT EXISTS support_tickets_open_idx
+    ON support_tickets (created_at ASC)
+    WHERE status = 'open'
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS support_tickets_created_idx
+    ON support_tickets (created_at DESC)
+  `
+  // Per-email throttle reads this (see server/support.js).
+  await sql`
+    CREATE INDEX IF NOT EXISTS support_tickets_email_idx
+    ON support_tickets (LOWER(email), created_at DESC)
+  `
+  await sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'support_tickets_status_check') THEN
+        ALTER TABLE support_tickets ADD CONSTRAINT support_tickets_status_check
+          CHECK (status IN ('open', 'resolved'));
+      END IF;
+    END $$
   `
 }
 

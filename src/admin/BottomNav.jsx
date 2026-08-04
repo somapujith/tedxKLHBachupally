@@ -54,6 +54,16 @@ function LogIcon() {
   )
 }
 
+function SupportIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
+      <path d="M20 15.5a8 8 0 1 0-3.2 3.2L21 20z" strokeLinejoin="round" />
+      <line x1="9" y1="11" x2="15" y2="11" strokeLinecap="round" />
+      <line x1="9" y1="14.5" x2="13" y2="14.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function TeamIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
@@ -106,6 +116,10 @@ export default function BottomNav() {
         <Tab to="/admin" label="Dashboard" icon={<DashIcon />} />
         <Tab to="/admin/scan" label="Scan" icon={<ScanIcon />} accent />
         <Tab to="/admin/registrations" label={superAdmin ? 'Regs' : 'Registrations'} icon={<ListIcon />} />
+        {/* Five targets is this bar's legible ceiling on a small phone, so a
+            superadmin — who already has two extra tabs — reaches Support from
+            the desktop tab or the dashboard link instead of a sixth chip. */}
+        {!superAdmin && <Tab to="/admin/support" label="Support" icon={<SupportIcon />} />}
         {superAdmin && <Tab to="/admin/activity" label="Activity" icon={<LogIcon />} />}
         {superAdmin && <Tab to="/admin/admins" label="Admins" icon={<TeamIcon />} />}
       </div>

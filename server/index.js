@@ -4,8 +4,16 @@ import cors from 'cors'
 import rateLimit from 'express-rate-limit'
 import { createRegistration } from './registrations.js'
 import { ensureSchemaOnce, getSql } from './db.js'
-import { createOrder, verifyPayment, handleWebhook, seatAvailability } from './payments.js'
+import {
+  submitPaymentProof,
+  listPendingVerifications,
+  getPaymentProof,
+  approvePayment,
+  rejectPayment,
+  seatAvailability,
+} from './payments.js'
 import { createContactMessage } from './contact.js'
+import { createSupportTicket, listSupportTickets, resolveSupportTicket } from './support.js'
 import { startKeepAlive } from './keepAlive.js'
 import {
   loginAdmin,
@@ -113,27 +121,19 @@ const makeLimiter = (max) =>
 const loginLimiter = makeLimiter(10) // 10 login attempts / 15 min / IP
 const adminActionLimiter = makeLimiter(60) // lighter cap for checkin / resend
 const contactLimiter = makeLimiter(5) // 5 contact messages / 15 min / IP
+// Support tickets are raised by someone who has already registered and is often
+// anxious (paid, no pass yet), so the IP cap is looser than contact's — the real
+// abuse guard is the per-email hourly cap enforced in the DB by support.js.
+const supportLimiter = makeLimiter(15)
 // Availability GET does real COUNT work per hit; unlimited it is a free DB
 // amplifier. Generous cap — a real visitor produces 1-2 per page view.
 const availabilityLimiter = makeLimiter(120)
 
-// Webhook must read the RAW body for HMAC verification — register before express.json().
-app.post(
-  '/api/payment/webhook',
-  express.raw({ type: '*/*' }),
-  async (req, res) => {
-    const signature = req.get('x-razorpay-signature')
-    try {
-      const result = await handleWebhook(req.body, signature)
-      return res.status(result.status).json(result)
-    } catch (err) {
-      console.error('Webhook error:', err)
-      return res.status(500).json({ ok: false, error: 'Webhook processing failed.' })
-    }
-  },
-)
-
-app.use(express.json())
+// 4mb, not the 100kb default: a payment submission carries a base64 screenshot
+// inline. The server-side ceiling that actually protects the DB is
+// MAX_PROOF_BYTES in payments.js — this limit only has to be wide enough not to
+// reject a legitimate compressed screenshot before that check can run.
+app.use(express.json({ limit: '4mb' }))
 
 // Warm-up / liveness probe. The public site pings this on every route change and
 // on a keep-alive interval (src/lib/backendHealth.js) so a spun-down Render
@@ -200,23 +200,19 @@ app.post('/api/register', async (req, res) => {
   }
 })
 
-app.post('/api/payment/order', async (req, res) => {
+// Buyer submits their bank-transfer proof. No ticket is issued here — an admin
+// has to approve it first.
+app.post('/api/payment/submit', async (req, res) => {
   try {
-    const result = await createOrder({ registrationId: req.body?.registrationId })
+    const result = await submitPaymentProof({
+      registrationId: req.body?.registrationId,
+      utrId: req.body?.utrId,
+      proof: req.body?.proof,
+    })
     return res.status(result.status).json(result)
   } catch (err) {
-    console.error('Order error:', err)
-    return res.status(500).json({ ok: false, error: 'Could not start payment.' })
-  }
-})
-
-app.post('/api/payment/verify', async (req, res) => {
-  try {
-    const result = await verifyPayment(req.body || {})
-    return res.status(result.status).json(result)
-  } catch (err) {
-    console.error('Verify error:', err)
-    return res.status(500).json({ ok: false, error: 'Could not verify payment.' })
+    console.error('Payment submit error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not submit payment.' })
   }
 })
 
@@ -234,6 +230,18 @@ app.post('/api/contact', contactLimiter, async (req, res) => {
   } catch (err) {
     console.error('Contact error:', err)
     return res.status(500).json({ ok: false, error: 'Could not send your message.' })
+  }
+})
+
+// Attendee raises a support ticket from the confirmation screen. Message only —
+// this never changes a registration's payment state.
+app.post('/api/support', supportLimiter, async (req, res) => {
+  try {
+    const result = await createSupportTicket(req.body || {})
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Support ticket error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not raise your ticket.' })
   }
 })
 
@@ -303,6 +311,111 @@ app.post('/api/admin/resend-ticket', adminActionLimiter, async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Could not resend ticket.' })
   }
 })
+
+// --- Payment verification queue -----------------------------------------------
+//
+// Any admin can work the queue: approving is what issues a pass, and that is the
+// same authority a plain admin already has via check-in and resend.
+
+app.get('/api/admin/verifications', adminActionLimiter, async (req, res) => {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await listPendingVerifications({ limit: req.query?.limit })
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Verification list error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not load submissions.' })
+  }
+})
+
+// Proof is fetched one row at a time — the list query omits the base64 image so
+// opening the queue does not pull megabytes per page.
+app.get('/api/admin/verifications/:id/proof', adminActionLimiter, async (req, res) => {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await getPaymentProof(req.params.id)
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Proof fetch error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not load payment proof.' })
+  }
+})
+
+app.post('/api/admin/verifications/approve', adminActionLimiter, async (req, res) => {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await approvePayment(
+      { registrationId: req.body?.registrationId },
+      actorFrom(auth),
+      requestContext(req),
+    )
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Approve error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not approve payment.' })
+  }
+})
+
+app.post('/api/admin/verifications/reject', adminActionLimiter, async (req, res) => {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await rejectPayment(
+      { registrationId: req.body?.registrationId, reason: req.body?.reason },
+      actorFrom(auth),
+      requestContext(req),
+    )
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Reject error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not reject payment.' })
+  }
+})
+
+// --- Support queue ------------------------------------------------------------
+//
+// Any admin can work it: a support ticket is a message to answer, and answering
+// it uses the same attendee-facing authority a plain admin already has.
+
+app
+  .route('/api/admin/support')
+  .get(adminActionLimiter, async (req, res) => {
+    const auth = requireAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await listSupportTickets({
+        status: req.query?.status,
+        limit: req.query?.limit,
+      })
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Support list error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not load support tickets.' })
+    }
+  })
+  .post(adminActionLimiter, async (req, res) => {
+    const auth = requireAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await resolveSupportTicket(
+        {
+          ticketId: req.body?.ticketId,
+          // Explicit false reopens; anything else (including omitted) resolves.
+          resolved: req.body?.resolved !== false,
+          note: req.body?.note,
+        },
+        actorFrom(auth),
+        requestContext(req),
+      )
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Support update error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not update the ticket.' })
+    }
+  })
 
 // --- Superadmin ---------------------------------------------------------------
 //

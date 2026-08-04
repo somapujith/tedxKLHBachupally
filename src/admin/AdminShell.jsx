@@ -11,6 +11,7 @@ import BottomNav from './BottomNav'
 const PAGES = {
   '/admin': { title: 'Dashboard', description: 'Live registration and check-in numbers.' },
   '/admin/registrations': { title: 'Registrations', description: 'Search, filter and resend attendee passes.' },
+  '/admin/support': { title: 'Support', description: 'Tickets raised by attendees. Call or email them, then mark it resolved.' },
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
 }
@@ -18,6 +19,7 @@ const PAGES = {
 const BASE_TABS = [
   { to: '/admin', label: 'Dashboard' },
   { to: '/admin/registrations', label: 'Registrations' },
+  { to: '/admin/support', label: 'Support' },
 ]
 
 // Appended, not substituted: a superadmin keeps every gate-admin screen and

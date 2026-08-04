@@ -176,6 +176,10 @@ const DEFAULTS = {
   availability: Number(process.env.RATE_LIMIT_AVAILABILITY) || 30,
   payment: Number(process.env.RATE_LIMIT_PAYMENT) || 20,
   contact: Number(process.env.RATE_LIMIT_CONTACT) || 5,
+  // Looser than contact: the caller has already registered and is often anxious
+  // (paid, no pass yet). The binding abuse guard is the per-email hourly cap
+  // enforced in the DB by server/support.js, which holds across instances.
+  support: Number(process.env.RATE_LIMIT_SUPPORT) || 15,
   login: Number(process.env.RATE_LIMIT_LOGIN) || 10,
   adminAction: Number(process.env.RATE_LIMIT_ADMIN) || 120,
   webhook: Number(process.env.RATE_LIMIT_WEBHOOK) || 300,
@@ -187,6 +191,7 @@ export const LIMITS = {
   availability: { name: 'availability', max: DEFAULTS.availability, windowSeconds: DEFAULTS.windowSeconds },
   payment: { name: 'payment', max: DEFAULTS.payment, windowSeconds: DEFAULTS.windowSeconds },
   contact: { name: 'contact', max: DEFAULTS.contact, windowSeconds: DEFAULTS.windowSeconds },
+  support: { name: 'support', max: DEFAULTS.support, windowSeconds: DEFAULTS.windowSeconds },
   login: { name: 'login', max: DEFAULTS.login, windowSeconds: DEFAULTS.windowSeconds },
   adminAction: { name: 'admin', max: DEFAULTS.adminAction, windowSeconds: DEFAULTS.windowSeconds },
   webhook: { name: 'webhook', max: DEFAULTS.webhook, windowSeconds: DEFAULTS.windowSeconds },

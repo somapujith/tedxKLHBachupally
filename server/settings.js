@@ -11,6 +11,12 @@ import { recordAudit, AUDIT_ACTIONS } from './audit.js'
 
 const DEFAULT_SEAT_CAPACITY = 250
 const SEAT_CAPACITY_KEY = 'seat_capacity'
+// Pass price in whole rupees, shown on the bank-QR screen. ₹449 is the Early
+// Bird rate; it is expected to rise, and a superadmin raises it from the admin
+// panel at runtime rather than through a redeploy.
+const DEFAULT_PASS_PRICE = 449
+const PASS_PRICE_KEY = 'pass_price'
+const MAX_PASS_PRICE = 1000000
 // Sanity ceiling, not a business rule — it stops a pasted phone number from
 // becoming the cap. 0 stays legal: it means the event is closed.
 const MAX_SEAT_CAPACITY = 100000
@@ -64,9 +70,8 @@ let lastKnownCapacity = null
  * The capacity every seat gate uses (createOrder, settlePayment, getStats).
  *
  * Never throws. This is deliberate and specific to the settlement path: this
- * read sits between "Razorpay captured the money" and "flip the row to paid",
- * so a throw here means a charged buyer with no ticket and — via the webhook,
- * which has no try/catch around settlePayment — a Razorpay retry storm. The
+ * read sits between an admin approving a payment and the row flipping to paid,
+ * so a throw here means a buyer who has really paid ends up with no ticket. The
  * write that follows needs the database anyway, so a genuinely dead DB still
  * fails loudly one statement later; swallowing here only covers the case where
  * the settings read alone is broken (a missing DDL grant on app_settings,
@@ -85,6 +90,76 @@ export async function getSeatCapacity(sql = getSql()) {
     console.error('Seat capacity read failed; using last known value:', err?.message || err)
     return lastKnownCapacity ?? seatCapacity()
   }
+}
+
+// Same "a malformed row counts as absent" rule as capacity, so a hand-edited or
+// blanked value degrades to the default instead of pricing the pass at ₹0.
+function parseStoredPrice(value) {
+  if (typeof value !== 'string' && typeof value !== 'number') return null
+  if (typeof value === 'string' && value.trim() === '') return null
+  const n = Number(value)
+  return Number.isInteger(n) && n >= 0 && n <= MAX_PASS_PRICE ? n : null
+}
+
+let lastKnownPrice = null
+
+// Never throws, for the same reason getSeatCapacity does not: this read sits on
+// the public register page, and a settings blip must not dark the pay screen.
+export async function getPassPrice(sql = getSql()) {
+  try {
+    await withDbRetry(() => ensureSettings(sql))
+    const rows = await withDbRetry(
+      () => sql`SELECT value FROM app_settings WHERE key = ${PASS_PRICE_KEY} LIMIT 1`,
+    )
+    const stored = parseStoredPrice(rows[0]?.value)
+    lastKnownPrice = stored
+    return stored ?? DEFAULT_PASS_PRICE
+  } catch (err) {
+    console.error('Pass price read failed; using last known value:', err?.message || err)
+    return lastKnownPrice ?? DEFAULT_PASS_PRICE
+  }
+}
+
+export async function updatePassPrice({ price }, actor = {}, context = {}) {
+  const n =
+    typeof price === 'number'
+      ? price
+      : typeof price === 'string' && price.trim() !== ''
+        ? Number(price)
+        : NaN
+  if (!Number.isInteger(n) || n < 0 || n > MAX_PASS_PRICE) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Price must be a whole number between 0 and ${MAX_PASS_PRICE}.`,
+    }
+  }
+
+  const sql = getSql()
+  await ensureSettings(sql)
+  const before = await getPassPrice(sql)
+
+  await sql`
+    INSERT INTO app_settings (key, value, updated_at, updated_by)
+    VALUES (${PASS_PRICE_KEY}, ${String(n)}, NOW(), ${actor.adminUsername || null})
+    ON CONFLICT (key) DO UPDATE
+    SET value = EXCLUDED.value, updated_at = NOW(), updated_by = EXCLUDED.updated_by
+  `
+
+  await recordAudit({
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    action: AUDIT_ACTIONS.PRICE_UPDATED,
+    targetType: 'setting',
+    targetId: PASS_PRICE_KEY,
+    targetName: 'Pass price',
+    detail: `Price ₹${before} -> ₹${n}.`,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  })
+
+  return { ok: true, status: 200, passPrice: n }
 }
 
 function settingsPayload({ override, paid, updatedAt = null, updatedBy = null }) {

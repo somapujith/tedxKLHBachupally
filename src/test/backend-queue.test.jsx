@@ -68,10 +68,6 @@ beforeEach(() => {
         registration: { id: 'reg-cold-1', email: 'cold@example.com', fullName: 'Cold Start' },
       })
     }
-    if (url === '/api/payment/order') {
-      // Stop the flow here so the Razorpay SDK is never needed.
-      return jsonResponse({ ok: false, error: 'stop-here-for-test' }, false)
-    }
     throw new Error(`unexpected fetch: ${url}`)
   })
   vi.stubGlobal('fetch', fetchMock)
@@ -312,7 +308,7 @@ describe('Register — queue gate on a cold backend', () => {
     // Past 30s the gate opens and the real submit chain runs.
     await advance(8_000)
     expect(registerPosted()).toBe(true)
-    expect(fetchMock).toHaveBeenCalledWith('/api/payment/order', expect.any(Object))
+    expect(screen.getByText(/scan and pay/i)).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 

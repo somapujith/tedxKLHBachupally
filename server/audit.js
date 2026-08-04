@@ -28,6 +28,11 @@ export const AUDIT_ACTIONS = {
   ADMIN_REACTIVATED: 'admin_reactivated',
   TICKET_REVOKED: 'ticket_revoked',
   CAPACITY_UPDATED: 'capacity_updated',
+  PRICE_UPDATED: 'price_updated',
+  PAYMENT_APPROVED: 'payment_approved',
+  PAYMENT_REJECTED: 'payment_rejected',
+  SUPPORT_RESOLVED: 'support_resolved',
+  SUPPORT_REOPENED: 'support_reopened',
 }
 
 const MAX_PAGE = 500

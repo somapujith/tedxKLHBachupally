@@ -11,7 +11,14 @@ import {
 } from '../../server/admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from '../../server/admin-users.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from '../../server/audit.js'
-import { getSettings, updateSeatCapacity } from '../../server/settings.js'
+import { getSettings, updateSeatCapacity, updatePassPrice } from '../../server/settings.js'
+import {
+  listPendingVerifications,
+  getPaymentProof,
+  approvePayment,
+  rejectPayment,
+} from '../../server/payments.js'
+import { listSupportTickets, resolveSupportTicket } from '../../server/support.js'
 import { withApi, LIMITS } from '../../server/http.js'
 
 // One function for every authenticated admin endpoint.
@@ -64,6 +71,47 @@ const RESOURCES = {
         context: requestContext(req),
       }),
   },
+  // Bank-transfer submissions awaiting a human. GET lists them; GET with
+  // ?id=<uuid> returns that row's proof image on its own (the list omits the
+  // base64 so opening the queue stays cheap).
+  verifications: {
+    auth: ADMIN,
+    GET: async (req) =>
+      req.query?.id
+        ? getPaymentProof(req.query.id)
+        : listPendingVerifications({ limit: req.query?.limit }),
+    // Approving is what issues the pass and sends the confirmation mail.
+    POST: async (req, { auth }) => {
+      const actor = actorFrom(auth)
+      const context = requestContext(req)
+      return req.body?.reject
+        ? rejectPayment(
+            { registrationId: req.body?.registrationId, reason: req.body?.reason },
+            actor,
+            context,
+          )
+        : approvePayment({ registrationId: req.body?.registrationId }, actor, context)
+    },
+  },
+  // Attendee-raised support tickets. Any admin can work the queue: answering one
+  // uses the same attendee-facing authority check-in and resend already grant.
+  support: {
+    auth: ADMIN,
+    GET: async (req) =>
+      listSupportTickets({ status: req.query?.status, limit: req.query?.limit }),
+    // Explicit `resolved: false` reopens; anything else (including omitted)
+    // resolves, so the common case is a bare {ticketId}.
+    POST: async (req, { auth }) =>
+      resolveSupportTicket(
+        {
+          ticketId: req.body?.ticketId,
+          resolved: req.body?.resolved !== false,
+          note: req.body?.note,
+        },
+        actorFrom(auth),
+        requestContext(req),
+      ),
+  },
   'audit-log': {
     auth: SUPER,
     GET: async (req) =>
@@ -86,12 +134,12 @@ const RESOURCES = {
   settings: {
     auth: SUPER,
     GET: async () => getSettings(),
+    // A payload carrying `price` routes to the pass-price setter; anything else
+    // is a capacity change. They are separate settings with separate validation.
     PATCH: async (req, { auth }) =>
-      updateSeatCapacity(
-        { capacity: req.body?.capacity },
-        actorFrom(auth),
-        requestContext(req),
-      ),
+      req.body?.price === undefined
+        ? updateSeatCapacity({ capacity: req.body?.capacity }, actorFrom(auth), requestContext(req))
+        : updatePassPrice({ price: req.body?.price }, actorFrom(auth), requestContext(req)),
   },
   // Invalidate a generated QR pass; "resend-ticket" afterwards issues a new one.
   'revoke-ticket': {

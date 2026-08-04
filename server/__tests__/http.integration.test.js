@@ -1,13 +1,12 @@
 // @vitest-environment node
 // Drives the real Express app through HTTP (supertest) so the actual request path
 // is covered: route wiring, status codes, and — critically — the raw-body webhook
-// middleware ordering (express.raw before express.json). Real Neon DB + Razorpay.
+// Real Neon DB. Covers the register + manual bank-transfer submit endpoints.
 import 'dotenv/config'
-import crypto from 'node:crypto'
 import request from 'supertest'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { app } from '../index.js'
-import { getSql, ensureRegistrationsTable } from '../db.js'
+import { getSql, ensureRegistrationsTable, ensureSupportTicketsTable } from '../db.js'
 
 const sql = getSql()
 const TAG = 'http_test_'
@@ -21,10 +20,19 @@ const guest = (n) => ({
 
 beforeAll(async () => {
   await ensureRegistrationsTable(sql)
+  // Created here, not left to the first request: the cleanup below queries the
+  // table before any handler has had a chance to create it.
+  await ensureSupportTicketsTable(sql)
+  // Tickets first: they carry a registration_id, and leaving them behind would
+  // also leave rows the next run's assertions can see.
+  await sql`DELETE FROM support_tickets WHERE email LIKE ${TAG + '%'}`
   await sql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
 })
 
 afterAll(async () => {
+  // Tickets first: they carry a registration_id, and leaving them behind would
+  // also leave rows the next run's assertions can see.
+  await sql`DELETE FROM support_tickets WHERE email LIKE ${TAG + '%'}`
   await sql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
 })
 
@@ -102,63 +110,112 @@ describe('POST /api/register', () => {
   })
 })
 
-describe('POST /api/payment/order', () => {
-  it('creates an order for a real registration', async () => {
-    const reg = await request(app).post('/api/register').send(guest('order'))
+describe('POST /api/payment/submit', () => {
+  const PNG_1PX =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+  const utr = () => String(Date.now()).slice(-6) + Math.random().toString().slice(2, 8)
+
+  it('accepts a UTR + screenshot and leaves the row awaiting verification', async () => {
+    const reg = await request(app).post('/api/register').send(guest('submit'))
     const res = await request(app)
-      .post('/api/payment/order')
-      .send({ registrationId: reg.body.registration.id })
+      .post('/api/payment/submit')
+      .send({ registrationId: reg.body.registration.id, utrId: utr(), proof: PNG_1PX })
     expect(res.status).toBe(200)
-    expect(res.body.order.id).toMatch(/^order_/)
-    expect(res.body.keyId).toBe(process.env.RAZORPAY_KEY_ID)
+    expect(res.body.ok).toBe(true)
+    expect(res.body.registration.payment_status).toBe('submitted')
   })
 
   it('returns 404 for an unknown registration id', async () => {
     const res = await request(app)
-      .post('/api/payment/order')
-      .send({ registrationId: '00000000-0000-0000-0000-000000000000' })
+      .post('/api/payment/submit')
+      .send({
+        registrationId: '00000000-0000-0000-0000-000000000000',
+        utrId: utr(),
+        proof: PNG_1PX,
+      })
     expect(res.status).toBe(404)
   })
-})
 
-describe('POST /api/payment/verify', () => {
-  it('returns 400 for a bad signature', async () => {
-    const res = await request(app).post('/api/payment/verify').send({
-      razorpay_order_id: 'order_x',
-      razorpay_payment_id: 'pay_x',
-      razorpay_signature: 'bad',
-    })
-    expect(res.status).toBe(400)
-    expect(res.body.error).toMatch(/signature/i)
-  })
-})
-
-describe('POST /api/payment/webhook (raw-body path)', () => {
-  const secret = () => process.env.RAZORPAY_WEBHOOK_SECRET
-
-  it('rejects a body whose signature does not match the raw bytes (400)', async () => {
-    // A wrong signature over a real JSON body — proves the raw body is being HMAC'd.
-    const body = JSON.stringify({ event: 'payment.authorized', payload: {} })
+  it('rejects a submission with no screenshot (400)', async () => {
+    const reg = await request(app).post('/api/register').send(guest('noproofhttp'))
     const res = await request(app)
-      .post('/api/payment/webhook')
-      .set('Content-Type', 'application/json')
-      .set('x-razorpay-signature', 'wrong-signature')
-      .send(body)
+      .post('/api/payment/submit')
+      .send({ registrationId: reg.body.registration.id, utrId: utr(), proof: '' })
     expect(res.status).toBe(400)
   })
 
-  it('accepts a correctly-signed body — HMAC computed over the exact raw bytes Express received', async () => {
-    // If express.json() ran before express.raw() and reparsed the body, the bytes
-    // used for this HMAC would not match and this test would fail — so this guards
-    // the middleware ordering in server/index.js.
-    const body = JSON.stringify({ event: 'payment.authorized', payload: {} })
-    const sig = crypto.createHmac('sha256', secret()).update(body).digest('hex')
+  it('rejects a malformed UTR (400)', async () => {
+    const reg = await request(app).post('/api/register').send(guest('badutrhttp'))
     const res = await request(app)
-      .post('/api/payment/webhook')
-      .set('Content-Type', 'application/json')
-      .set('x-razorpay-signature', sig)
-      .send(body)
-    expect(res.status).toBe(200)
+      .post('/api/payment/submit')
+      .send({ registrationId: reg.body.registration.id, utrId: 'abc', proof: PNG_1PX })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('POST /api/support', () => {
+  it('raises a ticket and returns the wait-for-us confirmation', async () => {
+    const reg = await request(app).post('/api/register').send(guest('supporthttp'))
+    const res = await request(app)
+      .post('/api/support')
+      .send({
+        registrationId: reg.body.registration.id,
+        fullName: 'HTTP Tester',
+        phone: '9876500000',
+        email: email('supporthttp'),
+        subject: 'Payment issue',
+        message: 'My payment went through but I have no pass yet.',
+      })
+    expect(res.status).toBe(201)
     expect(res.body.ok).toBe(true)
+    expect(res.body.message).toMatch(/contact you as soon as possible/i)
+
+    // Stored, linked, and open — the admin queue is what this exists to feed.
+    const rows = await sql`
+      SELECT status, registration_id FROM support_tickets WHERE id = ${res.body.ticket.id}
+    `
+    expect(rows[0].status).toBe('open')
+    expect(rows[0].registration_id).toBe(reg.body.registration.id)
+  }, 20000)
+
+  it('rejects a ticket with no phone number (400)', async () => {
+    const res = await request(app)
+      .post('/api/support')
+      .send({
+        phone: '',
+        email: email('nophonehttp'),
+        message: 'Something is wrong with my registration.',
+      })
+    expect(res.status).toBe(400)
+  })
+
+  it('never changes the registration it references', async () => {
+    const reg = await request(app).post('/api/register').send(guest('untouchedhttp'))
+    await request(app)
+      .post('/api/support')
+      .send({
+        registrationId: reg.body.registration.id,
+        phone: '9876500000',
+        email: email('untouchedhttp'),
+        message: 'Please cancel my registration and refund me.',
+      })
+    const rows = await sql`
+      SELECT payment_status FROM registrations WHERE id = ${reg.body.registration.id}
+    `
+    expect(rows[0].payment_status).toBe('pending')
+  }, 20000)
+})
+
+describe('/api/admin/support', () => {
+  it('requires authentication to read the queue', async () => {
+    const res = await request(app).get('/api/admin/support')
+    expect(res.status).toBe(401)
+  })
+
+  it('requires authentication to resolve a ticket', async () => {
+    const res = await request(app)
+      .post('/api/admin/support')
+      .send({ ticketId: '11111111-2222-4333-8444-555555555555' })
+    expect(res.status).toBe(401)
   })
 })

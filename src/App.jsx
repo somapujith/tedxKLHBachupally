@@ -20,6 +20,7 @@ const AdminShell = lazy(() => import('./admin/AdminShell'))
 const AdminDashboard = lazy(() => import('./admin/AdminDashboard'))
 const AdminRegistrations = lazy(() => import('./admin/AdminRegistrations'))
 const AdminScan = lazy(() => import('./admin/AdminScan'))
+const AdminSupport = lazy(() => import('./admin/AdminSupport'))
 // Superadmin-only screens. Lazy like the rest, so a gate admin who never opens
 // them never downloads them.
 const AdminActivity = lazy(() => import('./admin/AdminActivity'))
@@ -52,6 +53,7 @@ export default function App() {
       <Route path="/admin" element={<AdminRoute page={AdminShell} />}>
         <Route index element={<AdminRoute page={AdminDashboard} />} />
         <Route path="registrations" element={<AdminRoute page={AdminRegistrations} />} />
+        <Route path="support" element={<AdminRoute page={AdminSupport} />} />
         <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
         <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
       </Route>

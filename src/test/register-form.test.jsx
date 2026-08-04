@@ -111,7 +111,7 @@ describe('Register form — conditional fields', () => {
 })
 
 describe('Register form — submit wiring', () => {
-  it('POSTs to /api/register then /api/payment/order on submit', async () => {
+  it('POSTs to /api/register then shows the bank-QR payment step', async () => {
     const fetchMock = vi.fn(async (url, init) => {
       if (url === '/api/register') {
         // Mount-time availability GET rides the same path — answer it with the
@@ -132,13 +132,6 @@ describe('Register form — submit wiring', () => {
             }),
         }
       }
-      if (url === '/api/payment/order') {
-        // Return not-ok so the flow stops before the Razorpay SDK is needed.
-        return {
-          ok: false,
-          text: async () => JSON.stringify({ ok: false, error: 'stop-here-for-test' }),
-        }
-      }
       throw new Error(`unexpected fetch: ${url}`)
     })
     vi.stubGlobal('fetch', fetchMock)
@@ -156,11 +149,13 @@ describe('Register form — submit wiring', () => {
       expect(
         fetchMock.mock.calls.some(([u, i]) => u === '/api/register' && i?.method === 'POST'),
       ).toBe(true)
-      expect(fetchMock).toHaveBeenCalledWith('/api/payment/order', expect.any(Object))
     })
-    // The order call carries the registration id from step 1.
-    const orderCall = fetchMock.mock.calls.find((c) => c[0] === '/api/payment/order')
-    expect(JSON.parse(orderCall[1].body)).toEqual({ registrationId: 'reg-1' })
+    // Saving the details hands off to the bank-QR step rather than a gateway:
+    // the price and the UTR field are what the buyer sees next. Nothing is
+    // charged or emailed here.
+    expect(await screen.findByText(/scan and pay/i)).toBeInTheDocument()
+    // Appears twice: the price badge and the "rate goes up soon" caption.
+    expect(screen.getAllByText(/early bird/i).length).toBeGreaterThan(0)
   })
 
   it('surfaces a server error message when registration fails', async () => {

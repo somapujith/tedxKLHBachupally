@@ -1,19 +1,28 @@
 // @vitest-environment node
-// Integration tests against the real Neon database + real Razorpay test API.
-// Requires DATABASE_URL and RAZORPAY_* in .env. Cleans up its own rows.
+// Integration tests against the real Neon database. Manual bank-transfer flow.
+// Requires DATABASE_URL in .env. Cleans up its own rows.
 import 'dotenv/config'
-import crypto from 'node:crypto'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { getSql, ensureRegistrationsTable } from '../db.js'
 import { createRegistration } from '../registrations.js'
 import {
-  createOrder,
-  verifyPayment,
-  handleWebhook,
+  submitPaymentProof,
+  listPendingVerifications,
+  getPaymentProof,
+  approvePayment,
+  rejectPayment,
   seatCapacity,
-  REGISTRATION_AMOUNT,
-  CURRENCY,
+  UTR_EXAMPLE,
 } from '../payments.js'
+
+// A 1x1 PNG, small enough to keep the tests fast but a genuinely valid data URL
+// — the submit path parses and mime-checks it exactly as a real screenshot.
+const PNG_1PX =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
+// UTRs are globally unique in the DB, so every test needs its own.
+let utrSeq = 0
+const nextUtr = () => String(Date.now()).slice(-6) + String(utrSeq++).padStart(6, '0')
 
 const sql = getSql()
 const TAG = 'e2e_test_'
@@ -107,90 +116,6 @@ describe('createRegistration (real DB)', () => {
   })
 })
 
-describe('createOrder (real Razorpay test API)', () => {
-  it('returns 400 with no registration id', async () => {
-    const res = await createOrder({ registrationId: null })
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 404 for an unknown registration', async () => {
-    const res = await createOrder({ registrationId: '00000000-0000-0000-0000-000000000000' })
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(404)
-  })
-
-  // The 404 case above passes a well-formed uuid, so it never reached the driver
-  // with bad input. `id` is a uuid column: a malformed value makes Postgres throw
-  // (22P02) instead of matching no rows, which the route turned into a 500.
-  it.each([
-    ['a non-uuid string', 'not-a-uuid'],
-    ['a numeric id', 999999999],
-    ['a sql-ish payload', "' OR 1=1 --"],
-  ])('rejects %s with 400, not a thrown 500', async (_label, id) => {
-    const res = await createOrder({ registrationId: id })
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-  })
-
-  it('creates a Razorpay order and binds it to the registration', async () => {
-    const reg = await createRegistration(validReg('order'))
-    const res = await createOrder({ registrationId: reg.registration.id })
-    expect(res.ok).toBe(true)
-    expect(res.order.id).toMatch(/^order_/)
-    expect(res.order.amount).toBe(REGISTRATION_AMOUNT)
-    expect(res.order.currency).toBe(CURRENCY)
-    expect(res.keyId).toBe(process.env.RAZORPAY_KEY_ID)
-    const rows = await sql`SELECT razorpay_order_id, amount FROM registrations WHERE id = ${reg.registration.id}`
-    expect(rows[0].razorpay_order_id).toBe(res.order.id)
-    expect(rows[0].amount).toBe(REGISTRATION_AMOUNT)
-  })
-
-  it('refuses to create an order for an already-paid registration (409)', async () => {
-    const reg = await createRegistration(validReg('orderpaid'))
-    await sql`UPDATE registrations SET payment_status = 'paid' WHERE id = ${reg.registration.id}`
-    const res = await createOrder({ registrationId: reg.registration.id })
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(409)
-  })
-})
-
-describe('verifyPayment — signature gate', () => {
-  it('rejects missing fields (400)', async () => {
-    const res = await verifyPayment({})
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects a wrong signature (400)', async () => {
-    const res = await verifyPayment({
-      razorpay_order_id: 'order_x',
-      razorpay_payment_id: 'pay_x',
-      razorpay_signature: 'deadbeef',
-    })
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-    expect(res.error).toMatch(/signature/i)
-  })
-
-  it('passes the signature gate but fails settlement for a non-existent payment (502)', async () => {
-    // Signature is authentic, but payments.fetch() cannot find pay_FAKE -> settle fails.
-    const orderId = 'order_FAKE123'
-    const paymentId = 'pay_FAKE123'
-    const signature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${orderId}|${paymentId}`)
-      .digest('hex')
-    const res = await verifyPayment({
-      razorpay_order_id: orderId,
-      razorpay_payment_id: paymentId,
-      razorpay_signature: signature,
-    })
-    expect(res.ok).toBe(false)
-    // Signature was valid (not a 400 signature error); settlement fetch failed.
-    expect(res.status).toBe(502)
-  })
-})
 
 describe('seatCapacity — env parsing', () => {
   const ORIGINAL = process.env.SEAT_CAPACITY
@@ -215,117 +140,239 @@ describe('seatCapacity — env parsing', () => {
   })
 })
 
-// The hard capacity gate lives inside settlePayment's paid-flip UPDATE (an atomic
-// `... AND (SELECT COUNT(*) ... WHERE payment_status='paid') < capacity`).
-// settlePayment is internal, so we exercise the exact guarded SQL against the DB
-// with the capacity clamped to the current paid count: the flip must match no row
-// (payment NOT ticketed), which is the anti-oversell property.
-describe('settlePayment capacity guard — over-capacity paid payment is not flipped', () => {
-  const TAG = 'e2e_cap_test_'
-  let capSql
+// --- Manual bank-transfer flow ------------------------------------------------
 
-  beforeAll(async () => {
-    capSql = getSql()
-    await capSql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
+describe('submitPaymentProof — validation gates', () => {
+  it('rejects a malformed registration id without throwing a DB cast error', async () => {
+    const res = await submitPaymentProof({
+      registrationId: 'not-a-uuid',
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
   })
 
-  afterAll(async () => {
-    await capSql`DELETE FROM registrations WHERE email LIKE ${TAG + '%'}`
+  it('rejects a UTR that is not 12 characters', async () => {
+    const reg = await createRegistration(validReg('shortutr'))
+    const res = await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: '12345',
+      proof: PNG_1PX,
+    })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
+    expect(res.error).toContain(UTR_EXAMPLE)
   })
 
-  it('the guarded paid-flip returns no row when paid count is already >= capacity', async () => {
-    // Insert one pending row with a bound order id.
-    const orderId = `order_cap_${crypto.randomUUID()}`
-    const ins = await capSql`
-      INSERT INTO registrations (full_name, phone, email, designation, payment_status, razorpay_order_id, amount)
-      VALUES ('Cap Tester', '9876500000', ${email('pending')}, 'guest', 'pending', ${orderId}, ${REGISTRATION_AMOUNT})
-      RETURNING id
-    `
-    expect(ins.length).toBe(1)
-
-    // Clamp capacity to the current paid count so the guard is already at its limit.
-    const paid = await capSql`SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'`
-    const capacity = paid[0].count
-
-    const flipped = await capSql`
-      UPDATE registrations
-      SET payment_status = 'paid', paid_at = COALESCE(paid_at, NOW())
-      WHERE razorpay_order_id = ${orderId}
-        AND payment_status <> 'paid'
-        AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
-      RETURNING id
-    `
-    expect(flipped.length).toBe(0)
-
-    // The row is still pending — no ticket would be issued for it.
-    const after = await capSql`SELECT payment_status FROM registrations WHERE id = ${ins[0].id}`
-    expect(after[0].payment_status).toBe('pending')
+  it('requires a screenshot — a submission with no proof is refused', async () => {
+    const reg = await createRegistration(validReg('noproof'))
+    const res = await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: '',
+    })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
   })
 
-  it('the same flip succeeds once capacity has headroom', async () => {
-    const orderId = `order_cap_${crypto.randomUUID()}`
-    await capSql`
-      INSERT INTO registrations (full_name, phone, email, designation, payment_status, razorpay_order_id, amount)
-      VALUES ('Cap Tester', '9876500000', ${email('room')}, 'guest', 'pending', ${orderId}, ${REGISTRATION_AMOUNT})
-    `
-    // Capacity comfortably above current paid count.
-    const paid = await capSql`SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'`
-    const capacity = paid[0].count + 1000
-
-    const flipped = await capSql`
-      UPDATE registrations
-      SET payment_status = 'paid', paid_at = COALESCE(paid_at, NOW())
-      WHERE razorpay_order_id = ${orderId}
-        AND payment_status <> 'paid'
-        AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
-      RETURNING id
-    `
-    expect(flipped.length).toBe(1)
+  it('rejects a non-image data URL', async () => {
+    const reg = await createRegistration(validReg('pdfproof'))
+    const res = await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: 'data:application/pdf;base64,JVBERi0xLjQK',
+    })
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
   })
 })
 
-describe('handleWebhook — HMAC + body guards', () => {
-  const secret = () => process.env.RAZORPAY_WEBHOOK_SECRET
-
-  it('rejects an empty body (400, not 500)', async () => {
-    const res = await handleWebhook(Buffer.from(''), 'anything')
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects a non-buffer body (400)', async () => {
-    const res = await handleWebhook(undefined, 'anything')
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-  })
-
-  it('rejects a bad signature (400)', async () => {
-    const body = Buffer.from(JSON.stringify({ event: 'payment.captured' }))
-    const res = await handleWebhook(body, 'wrong-signature')
-    expect(res.ok).toBe(false)
-    expect(res.status).toBe(400)
-  })
-
-  it('accepts a valid signature and acks non-actionable events (200)', async () => {
-    const body = Buffer.from(JSON.stringify({ event: 'payment.authorized', payload: {} }))
-    const sig = crypto.createHmac('sha256', secret()).update(body).digest('hex')
-    const res = await handleWebhook(body, sig)
+describe('submit -> verify -> approve', () => {
+  it('moves the row to submitted without paying it or issuing a ticket', async () => {
+    const reg = await createRegistration(validReg('flow1'))
+    const utr = nextUtr()
+    const res = await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: utr,
+      proof: PNG_1PX,
+    })
     expect(res.ok).toBe(true)
-    expect(res.status).toBe(200)
+
+    const [row] = await sql`
+      SELECT payment_status, utr_id, paid_at, ticket_jti, submitted_at
+      FROM registrations WHERE id = ${reg.registration.id}
+    `
+    expect(row.payment_status).toBe('submitted')
+    expect(row.utr_id).toBe(utr)
+    expect(row.submitted_at).toBeTruthy()
+    // The whole point of the manual flow: submitting proves nothing, so no seat
+    // is taken and no pass exists yet.
+    expect(row.paid_at).toBeNull()
+    expect(row.ticket_jti).toBeNull()
   })
 
-  it('acks a payment.captured event with a valid signature even when the order is unknown (200)', async () => {
-    // Valid HMAC; settlement is skipped/ignored for an unknown order — must still 200
-    // so Razorpay does not retry forever.
-    const body = Buffer.from(
-      JSON.stringify({
-        event: 'payment.captured',
-        payload: { payment: { entity: { id: 'pay_unknown', order_id: 'order_unknown' } } },
-      }),
+  it('surfaces the submission in the admin queue, without the base64 image', async () => {
+    const reg = await createRegistration(validReg('flow2'))
+    await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    const queue = await listPendingVerifications({ limit: 500 })
+    const found = queue.registrations.find((r) => r.id === reg.registration.id)
+    expect(found).toBeTruthy()
+    // The list must stay cheap — the proof is fetched one row at a time.
+    expect(found.payment_proof).toBeUndefined()
+  })
+
+  it('returns the proof image on demand', async () => {
+    const reg = await createRegistration(validReg('flow3'))
+    await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    const res = await getPaymentProof(reg.registration.id)
+    expect(res.ok).toBe(true)
+    expect(res.proof).toContain('data:image/png;base64,')
+  })
+
+  it('rejects a duplicate UTR — the same reference cannot buy two seats', async () => {
+    const utr = nextUtr()
+    const a = await createRegistration(validReg('dupa'))
+    const b = await createRegistration(validReg('dupb'))
+    const first = await submitPaymentProof({
+      registrationId: a.registration.id,
+      utrId: utr,
+      proof: PNG_1PX,
+    })
+    expect(first.ok).toBe(true)
+    const second = await submitPaymentProof({
+      registrationId: b.registration.id,
+      utrId: utr,
+      proof: PNG_1PX,
+    })
+    expect(second.ok).toBe(false)
+    expect(second.status).toBe(409)
+  })
+
+  it('refuses a second submission while one is already awaiting verification', async () => {
+    const reg = await createRegistration(validReg('twice'))
+    await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    const again = await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    expect(again.ok).toBe(false)
+    expect(again.status).toBe(409)
+  })
+})
+
+describe('rejectPayment', () => {
+  it('clears the UTR and proof so the buyer can resubmit', async () => {
+    const reg = await createRegistration(validReg('rejected'))
+    const utr = nextUtr()
+    await submitPaymentProof({ registrationId: reg.registration.id, utrId: utr, proof: PNG_1PX })
+
+    const res = await rejectPayment(
+      { registrationId: reg.registration.id, reason: 'No matching credit in the statement.' },
+      { adminUsername: 'tester' },
     )
-    const sig = crypto.createHmac('sha256', secret()).update(body).digest('hex')
-    const res = await handleWebhook(body, sig)
     expect(res.ok).toBe(true)
-    expect(res.status).toBe(200)
+
+    const [row] = await sql`
+      SELECT payment_status, utr_id, payment_proof, rejected_reason
+      FROM registrations WHERE id = ${reg.registration.id}
+    `
+    expect(row.payment_status).toBe('rejected')
+    expect(row.utr_id).toBeNull()
+    expect(row.payment_proof).toBeNull()
+    expect(row.rejected_reason).toContain('No matching credit')
+
+    // The freed UTR must be reusable — otherwise a bad reject would pin it forever.
+    const retry = await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: utr,
+      proof: PNG_1PX,
+    })
+    expect(retry.ok).toBe(true)
+  })
+
+  it('requires a reason', async () => {
+    const reg = await createRegistration(validReg('noreason'))
+    await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+    const res = await rejectPayment(
+      { registrationId: reg.registration.id, reason: '' },
+      { adminUsername: 'tester' },
+    )
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
+  })
+
+  it('will not reject a row that has no pending submission', async () => {
+    const reg = await createRegistration(validReg('nosub'))
+    const res = await rejectPayment(
+      { registrationId: reg.registration.id, reason: 'nothing to reject' },
+      { adminUsername: 'tester' },
+    )
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(409)
+  })
+})
+
+// The hard anti-oversell gate now lives in approvePayment's paid-flip:
+//   ... AND (SELECT COUNT(*) ... WHERE payment_status='paid') < capacity
+// Exercised against the real DB with the capacity clamped to the current paid
+// count: the flip must match no row, so a submission cannot become the (N+1)th seat.
+describe('approvePayment capacity guard', () => {
+  it('does not flip a submission to paid when capacity is already full', async () => {
+    const reg = await createRegistration(validReg('overcap'))
+    await submitPaymentProof({
+      registrationId: reg.registration.id,
+      utrId: nextUtr(),
+      proof: PNG_1PX,
+    })
+
+    const [{ count: paidNow }] = await sql`
+      SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
+    `
+    // Capacity exactly equal to the seats already sold => zero seats remain.
+    const capacity = paidNow
+
+    const rows = await sql`
+      UPDATE registrations
+      SET payment_status = 'paid', paid_at = NOW()
+      WHERE id = ${reg.registration.id}
+        AND payment_status = 'submitted'
+        AND (SELECT COUNT(*) FROM registrations WHERE payment_status = 'paid') < ${capacity}
+      RETURNING id
+    `
+    expect(rows.length).toBe(0)
+
+    const [row] = await sql`
+      SELECT payment_status, ticket_jti FROM registrations WHERE id = ${reg.registration.id}
+    `
+    expect(row.payment_status).toBe('submitted')
+    expect(row.ticket_jti).toBeNull()
+  })
+
+  it('refuses to approve a registration that was never submitted', async () => {
+    const reg = await createRegistration(validReg('neversub'))
+    const res = await approvePayment(
+      { registrationId: reg.registration.id },
+      { adminUsername: 'tester' },
+    )
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(409)
   })
 })

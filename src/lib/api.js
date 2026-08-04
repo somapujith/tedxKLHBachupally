@@ -9,9 +9,9 @@
 //     JSON input" at the UI.
 //
 // Retries are OPT-IN per call (`retries` option) and callers must only enable
-// them for idempotent requests. Creating a registration or a Razorpay order is
-// NOT idempotent, so those are sent with retries: 0 — a network blip must not
-// silently create two rows or two orders.
+// them for idempotent requests. Creating a registration or submitting a payment
+// proof is NOT idempotent, so those are sent with retries: 0 — a network blip
+// must not silently create two rows or two submissions.
 
 import { apiUrl } from './apiBase.js'
 
