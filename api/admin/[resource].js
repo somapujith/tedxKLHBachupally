@@ -168,7 +168,29 @@ const RESOURCES = {
   },
 }
 
+// Vercel's dynamic-route matcher merges the path segment into req.query
+// alongside the real query string, and a key that appears more than once
+// arrives as an ARRAY, not a string. Every downstream validator here is
+// string-only — isUuid() rejects a non-string outright — so an array-shaped
+// `id` turned a valid proof request into a bare 400 with nothing logged.
+// Collapsing to the first value at the boundary means each resource can keep
+// treating req.query.* as a plain string, on both deploy targets.
+function firstQueryValue(value) {
+  if (Array.isArray(value)) return value.length ? String(value[0]) : ''
+  return value === undefined || value === null ? '' : String(value)
+}
+
+function normalizeQuery(query) {
+  const out = {}
+  for (const [key, value] of Object.entries(query || {})) {
+    out[key] = firstQueryValue(value)
+  }
+  return out
+}
+
 async function handler(req, res) {
+  // Reassigned once, up front, so every resource below reads normalized values.
+  req.query = normalizeQuery(req.query)
   const key = String(req.query?.resource || '')
   // hasOwnProperty, not `RESOURCES[key]` directly — a request for
   // /api/admin/constructor must be a 404, not a truthy prototype member.
