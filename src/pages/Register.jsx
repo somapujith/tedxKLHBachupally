@@ -14,6 +14,7 @@ import paymentQr from '../assets/images/payment-qr.png'
 
 const UTR_EXAMPLE = '123456789012'
 const FALLBACK_PRICE = 449
+const REGISTRATION_OPEN_MESSAGE = 'Registrations will be opened on 5th August, 7:00AM'
 
 // Screenshots come off phones at 3-8MB, well past what a JSON body should
 // carry. Downscale to at most 1400px on the long edge and re-encode as JPEG
@@ -98,6 +99,7 @@ export default function Register() {
   // capacity gates stay authoritative; null (fetch failed / loading) just falls
   // back to the static capacity so the form never blocks on this call.
   const [availability, setAvailability] = useState(null)
+  const [registrationsOpen, setRegistrationsOpen] = useState(true)
 
   useEffect(() => {
     if (success) return // refetch when the form returns after a confirmation
@@ -107,6 +109,7 @@ export default function Register() {
         if (cancelled || !ok) return
         if (typeof data.remaining !== 'number' || typeof data.capacity !== 'number') return
         setAvailability(data)
+        if (data.registrationOpen === false) setRegistrationsOpen(false)
         // Never gate mid-checkout: this probe can resolve tens of seconds late
         // (cold backend + retry), and tearing the form down under someone who is
         // typing card details — or already paid — is worse than letting the
@@ -181,6 +184,11 @@ export default function Register() {
         body: form,
         retries: 0,
       })
+      if (data.registrationOpen === false) {
+        setRegistrationsOpen(false)
+        setError(REGISTRATION_OPEN_MESSAGE)
+        return
+      }
       if (data.soldOut) {
         setSoldOut(true)
         return
@@ -261,20 +269,15 @@ export default function Register() {
   // confirmation (email echo, payment id) even if the last seat went to them.
   if (soldOut && !success) {
     return (
-      <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
-        <RedGlow className="left-1/2 top-10 -translate-x-1/2" size={520} />
-        <div className="relative">
-          <Eyebrow className="mb-5">Sold out</Eyebrow>
-          <h1 className="mb-6 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">
-            Every seat is claimed.
-          </h1>
-          <p className="text-lg leading-relaxed text-paper/70">
-            All seats for TEDxKLH Bachupally have been booked. No further registrations can be
-            accepted. Follow us for announcements about future events.
-          </p>
-        </div>
-      </div>
+      <RegisterState eyebrow="Sold out" title="Every seat is claimed.">
+        All seats for TEDxKLH Bachupally have been booked. No further registrations can be
+        accepted. Follow us for announcements about future events.
+      </RegisterState>
     )
+  }
+
+  if (!registrationsOpen && !success && !pending) {
+    return <RegisterState eyebrow="Registrations locked" title={REGISTRATION_OPEN_MESSAGE} />
   }
 
   if (success) {
@@ -564,6 +567,19 @@ export default function Register() {
             </div>
           </aside>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function RegisterState({ eyebrow, title, children }) {
+  return (
+    <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
+      <RedGlow className="left-1/2 top-10 -translate-x-1/2" size={520} />
+      <div className="relative">
+        <Eyebrow className="mb-5">{eyebrow}</Eyebrow>
+        <h1 className="mb-6 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">{title}</h1>
+        {children ? <p className="text-lg leading-relaxed text-paper/70">{children}</p> : null}
       </div>
     </div>
   )

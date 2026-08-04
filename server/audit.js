@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = {
   ADMIN_REACTIVATED: 'admin_reactivated',
   TICKET_REVOKED: 'ticket_revoked',
   CAPACITY_UPDATED: 'capacity_updated',
+  REGISTRATION_ACCESS_UPDATED: 'registration_access_updated',
   PRICE_UPDATED: 'price_updated',
   PAYMENT_APPROVED: 'payment_approved',
   PAYMENT_REJECTED: 'payment_rejected',

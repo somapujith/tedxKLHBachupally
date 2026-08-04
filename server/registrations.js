@@ -1,4 +1,5 @@
 import { getSql, ensureSchemaOnce, withDbRetry } from './db.js'
+import { getRegistrationStatus } from './settings.js'
 
 const CAMPUSES = [
   'KLH Bachupally Campus',
@@ -47,6 +48,16 @@ export async function createRegistration(body) {
 
   const sql = getSql()
   await ensureSchemaOnce(sql)
+  const registration = await getRegistrationStatus(sql)
+  if (!registration.open) {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Registrations will be opened on 5th August, 7:00AM',
+      registrationOpen: false,
+      registrationOpensAt: registration.opensAt,
+    }
+  }
 
   const college = data.designation === 'guest' ? null : data.college
   const collegeOther =

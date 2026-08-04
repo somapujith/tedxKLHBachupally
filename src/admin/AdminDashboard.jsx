@@ -555,7 +555,10 @@ function SuperSection({ superStats, settings, onSaved }) {
         <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-white/12 to-transparent" />
       </div>
 
-      <CapacityCard settings={settings} onSaved={onSaved} />
+      <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+        <RegistrationAccessCard settings={settings} onSaved={onSaved} />
+        <CapacityCard settings={settings} onSaved={onSaved} />
+      </div>
 
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         <Stat label="Emails sent" value={String(sent)} sub="Passes delivered to Resend" icon={STAT_ICONS.mail} />
@@ -621,6 +624,64 @@ function SuperSection({ superStats, settings, onSaved }) {
 
       <NavTile to="/admin/activity" title="Full activity log" hint="Every admin action and ticket email" />
     </div>
+  )
+}
+
+function RegistrationAccessCard({ settings, onSaved }) {
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const isOpen = settings?.registrationOpen === true
+  const overridden = settings?.registrationOpenOverridden === true
+  const opensAt = settings?.registrationOpensAt || '2026-08-05T07:00:00+05:30'
+
+  async function setOverride(forceOpen) {
+    setBusy(true)
+    setNote('')
+    const { ok, data } = await adminFetch('/api/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ registrationOpenOverride: forceOpen }),
+    })
+    setNote(ok ? (forceOpen ? 'Registrations enabled.' : 'Scheduled lock restored.') : data.error || 'Could not update registration access.')
+    setBusy(false)
+    if (ok) onSaved?.()
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <Label>Registrations</Label>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[28px] font-semibold leading-none tracking-tight md:text-[32px]">
+              {isOpen ? 'Open' : 'Locked'}
+            </span>
+            {overridden && (
+              <span className="rounded-full border border-red/30 bg-red/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-red">
+                Manual
+              </span>
+            )}
+          </div>
+          <div className="mt-2 text-xs text-paper/40">
+            {overridden
+              ? `Opened early by ${settings?.registrationUpdatedBy || 'a superadmin'}`
+              : `Scheduled to open on ${fmtRegistrationOpenAt(opensAt)}`}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!overridden ? (
+            <Button size="md" variant="primary" onClick={() => setOverride(true)} disabled={busy}>
+              {busy ? 'Saving…' : 'Enable now'}
+            </Button>
+          ) : (
+            <Button size="md" onClick={() => setOverride(false)} disabled={busy}>
+              {busy ? 'Saving…' : 'Use schedule'}
+            </Button>
+          )}
+        </div>
+      </div>
+      {note && <div className="mt-3 text-xs text-paper/50">{note}</div>}
+    </Card>
   )
 }
 
@@ -738,6 +799,22 @@ function CapacityCard({ settings, onSaved }) {
       {note && <div className="mt-3 text-xs text-paper/50">{note}</div>}
     </Card>
   )
+}
+
+function fmtRegistrationOpenAt(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '5th August at 7:00 am'
+  return date
+    .toLocaleString('en-IN', {
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+      timeZone: 'Asia/Kolkata',
+    })
+    .replace(',', ' at')
+    .toLowerCase()
 }
 
 function Breakdown({ title, items, nameKey }) {

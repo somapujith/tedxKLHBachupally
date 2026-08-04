@@ -29,7 +29,7 @@ import {
 } from './admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from './admin-users.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from './audit.js'
-import { getSettings, updateSeatCapacity } from './settings.js'
+import { getSettings, updateRegistrationOpenOverride, updateSeatCapacity } from './settings.js'
 
 const app = express()
 const port = Number(process.env.PORT) || 3001
@@ -187,6 +187,8 @@ app.post('/api/register', async (req, res) => {
         ok: false,
         error: result.error,
         errors: result.errors,
+        registrationOpen: result.registrationOpen,
+        registrationOpensAt: result.registrationOpensAt,
       })
     }
     return res.status(result.status).json({
@@ -536,11 +538,27 @@ app
     const auth = await requireSuperAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
-      const result = await updateSeatCapacity(
-        { capacity: req.body?.capacity },
-        actorFrom(auth),
-        requestContext(req),
-      )
+      const body = req.body || {}
+      const actor = actorFrom(auth)
+      const context = requestContext(req)
+      let result
+      if (body.capacity !== undefined) {
+        result = await updateSeatCapacity({ capacity: body.capacity }, actor, context)
+      } else if (body.price !== undefined) {
+        result = await updatePassPrice({ price: body.price }, actor, context)
+      } else if (body.registrationOpenOverride !== undefined) {
+        result = await updateRegistrationOpenOverride(
+          { forceOpen: body.registrationOpenOverride },
+          actor,
+          context,
+        )
+      } else {
+        result = {
+          ok: false,
+          status: 400,
+          error: 'Provide capacity, price, or registrationOpenOverride.',
+        }
+      }
       return res.status(result.status).json(result)
     } catch (err) {
       console.error('Settings update error:', err)

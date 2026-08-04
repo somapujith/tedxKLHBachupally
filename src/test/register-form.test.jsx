@@ -69,6 +69,37 @@ describe('Register form — live pass availability', () => {
     await waitFor(() => expect(screen.getByText(/every seat is claimed/i)).toBeInTheDocument())
     expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument()
   })
+
+  it('replaces the form with the scheduled opening notice while registrations are locked', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url, init) => {
+        if (url === '/api/register' && init?.method !== 'POST') {
+          return {
+            ok: true,
+            status: 200,
+            headers: { get: () => null },
+            text: async () =>
+              JSON.stringify({
+                ok: true,
+                db: 'connected',
+                capacity: 250,
+                remaining: 250,
+                soldOut: false,
+                registrationOpen: false,
+                registrationOpensAt: '2026-08-05T07:00:00+05:30',
+              }),
+          }
+        }
+        throw new Error(`unexpected fetch: ${url}`)
+      }),
+    )
+    renderForm()
+    await waitFor(() =>
+      expect(screen.getByText(/registrations will be opened on 5th august, 7:00am/i)).toBeInTheDocument(),
+    )
+    expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument()
+  })
 })
 
 describe('Register form — conditional fields', () => {

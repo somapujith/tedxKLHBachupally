@@ -12,7 +12,7 @@
 
 import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
-import { getSeatCapacity, getPassPrice } from './settings.js'
+import { getSeatCapacity, getPassPrice, getRegistrationStatus } from './settings.js'
 import { recordAudit, AUDIT_ACTIONS } from './audit.js'
 
 export const CURRENCY = 'INR'
@@ -40,6 +40,7 @@ export async function seatAvailability() {
   await ensureSchemaOnce(sql)
   const capacity = await getSeatCapacity(sql)
   const passPrice = await getPassPrice(sql)
+  const registration = await getRegistrationStatus(sql)
   const paidCount = await withDbRetry(() => sql`
     SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
   `)
@@ -47,7 +48,15 @@ export async function seatAvailability() {
   const remaining = Math.max(0, capacity - sold)
   // `sold` stays server-side: remaining/capacity is everything the page needs,
   // and a public paid-count is a real-time revenue feed for anyone with curl.
-  return { capacity, remaining, soldOut: remaining === 0, passPrice, currency: CURRENCY }
+  return {
+    capacity,
+    remaining,
+    soldOut: remaining === 0,
+    passPrice,
+    currency: CURRENCY,
+    registrationOpen: registration.open,
+    registrationOpensAt: registration.opensAt,
+  }
 }
 
 // Split a data URL into its mime type and raw base64 payload. Returns null for

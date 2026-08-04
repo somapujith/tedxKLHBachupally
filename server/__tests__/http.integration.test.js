@@ -67,6 +67,8 @@ describe('GET /api/register', () => {
     expect(res.body.capacity).toBe(capacity)
     expect(res.body.remaining).toBe(Math.max(0, capacity - row.paid))
     expect(res.body.soldOut).toBe(res.body.remaining === 0)
+    expect(typeof res.body.registrationOpen).toBe('boolean')
+    expect(res.body.registrationOpensAt).toBe('2026-08-05T07:00:00+05:30')
     // The paid count itself must NOT be public — it is a live revenue feed.
     expect(res.body.sold).toBeUndefined()
   })

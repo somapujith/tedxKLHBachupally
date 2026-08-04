@@ -11,6 +11,8 @@ import {
   seatCapacity,
   getSeatCapacity,
   getSettings,
+  getRegistrationStatus,
+  updateRegistrationOpenOverride,
   updateSeatCapacity,
 } from '../settings.js'
 import { revokeTicket } from '../admin.js'
@@ -48,6 +50,12 @@ describe('updateSeatCapacity validation — 400 before any DB access', () => {
     ['an array capacity', { capacity: [] }],
   ])('rejects %s with 400', async (_label, body) => {
     const res = await updateSeatCapacity(body, actor)
+    expect(res.ok).toBe(false)
+    expect(res.status).toBe(400)
+  })
+
+  it('rejects a non-boolean registration override before any DB access', async () => {
+    const res = await updateRegistrationOpenOverride({ forceOpen: 'yes' }, actor)
     expect(res.ok).toBe(false)
     expect(res.status).toBe(400)
   })
@@ -125,6 +133,48 @@ describe.skipIf(!hasDb)('seat capacity override round-trip (real DB)', () => {
     expect(res.ok).toBe(true)
     expect(res.settings.seatCapacity).toBe(effective)
     await updateSeatCapacity({ capacity: null }, actor)
+  }, 30000)
+})
+
+describe.skipIf(!hasDb)('registration access override round-trip (real DB)', () => {
+  let sql
+  let priorValue = null
+
+  beforeAll(async () => {
+    const { getSql, ensureSettingsTable } = await import('../db.js')
+    sql = getSql()
+    await ensureSettingsTable(sql)
+    const rows = await sql`SELECT value FROM app_settings WHERE key = 'registration_open_override' LIMIT 1`
+    priorValue = rows[0]?.value ?? null
+  }, 30000)
+
+  afterAll(async () => {
+    if (priorValue === null) {
+      await sql`DELETE FROM app_settings WHERE key = 'registration_open_override'`
+    } else {
+      await sql`
+        INSERT INTO app_settings (key, value) VALUES ('registration_open_override', ${priorValue})
+        ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+      `
+    }
+    await sql`DELETE FROM admin_audit_log WHERE admin_username LIKE ${TAG + '%'}`
+  }, 30000)
+
+  it('opens early when overridden and falls back to schedule when cleared', async () => {
+    const opened = await updateRegistrationOpenOverride({ forceOpen: true }, actor)
+    expect(opened.ok).toBe(true)
+    expect(opened.settings.registrationOpen).toBe(true)
+    expect(opened.settings.registrationOpenOverridden).toBe(true)
+
+    const read = await getRegistrationStatus()
+    expect(read.open).toBe(true)
+    expect(read.overridden).toBe(true)
+    expect(read.opensAt).toBe('2026-08-05T07:00:00+05:30')
+
+    const cleared = await updateRegistrationOpenOverride({ forceOpen: false }, actor)
+    expect(cleared.ok).toBe(true)
+    expect(cleared.settings.registrationOpenOverridden).toBe(false)
+    expect(cleared.settings.registrationOpensAt).toBe('2026-08-05T07:00:00+05:30')
   }, 30000)
 })
 

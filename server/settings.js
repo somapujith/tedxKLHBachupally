@@ -17,6 +17,8 @@ const SEAT_CAPACITY_KEY = 'seat_capacity'
 const DEFAULT_PASS_PRICE = 449
 const PASS_PRICE_KEY = 'pass_price'
 const MAX_PASS_PRICE = 1000000
+const REGISTRATION_OPEN_OVERRIDE_KEY = 'registration_open_override'
+const REGISTRATION_OPENS_AT = '2026-08-05T07:00:00+05:30'
 // Sanity ceiling, not a business rule — it stops a pasted phone number from
 // becoming the cap. 0 stays legal: it means the event is closed.
 const MAX_SEAT_CAPACITY = 100000
@@ -102,6 +104,25 @@ function parseStoredPrice(value) {
 }
 
 let lastKnownPrice = null
+let lastKnownRegistrationOpenOverride = null
+
+function registrationOpensAt() {
+  return REGISTRATION_OPENS_AT
+}
+
+function registrationsScheduledOpen() {
+  const at = Date.parse(REGISTRATION_OPENS_AT)
+  return Number.isFinite(at) ? Date.now() >= at : true
+}
+
+function parseStoredRegistrationOpenOverride(value) {
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') return null
+  if (typeof value === 'string' && value.trim() === '') return null
+  const v = String(value).trim().toLowerCase()
+  if (v === 'true' || v === '1') return true
+  if (v === 'false' || v === '0') return false
+  return null
+}
 
 // Never throws, for the same reason getSeatCapacity does not: this read sits on
 // the public register page, and a settings blip must not dark the pay screen.
@@ -162,7 +183,43 @@ export async function updatePassPrice({ price }, actor = {}, context = {}) {
   return { ok: true, status: 200, passPrice: n }
 }
 
-function settingsPayload({ override, paid, updatedAt = null, updatedBy = null }) {
+export async function getRegistrationStatus(sql = getSql()) {
+  try {
+    await withDbRetry(() => ensureSettings(sql))
+    const rows = await withDbRetry(
+      () => sql`SELECT value, updated_at, updated_by FROM app_settings WHERE key = ${REGISTRATION_OPEN_OVERRIDE_KEY} LIMIT 1`,
+    )
+    const stored = parseStoredRegistrationOpenOverride(rows[0]?.value)
+    lastKnownRegistrationOpenOverride = stored
+    return {
+      open: stored === true || registrationsScheduledOpen(),
+      opensAt: registrationOpensAt(),
+      overridden: stored === true,
+      updatedAt: rows[0]?.updated_at ?? null,
+      updatedBy: rows[0]?.updated_by ?? null,
+    }
+  } catch (err) {
+    console.error('Registration-open read failed; using last known value:', err?.message || err)
+    return {
+      open: lastKnownRegistrationOpenOverride === true || registrationsScheduledOpen(),
+      opensAt: registrationOpensAt(),
+      overridden: lastKnownRegistrationOpenOverride === true,
+      updatedAt: null,
+      updatedBy: null,
+    }
+  }
+}
+
+function settingsPayload({
+  override,
+  paid,
+  updatedAt = null,
+  updatedBy = null,
+  registrationOpen = registrationsScheduledOpen(),
+  registrationOpenOverridden = false,
+  registrationUpdatedAt = null,
+  registrationUpdatedBy = null,
+}) {
   return {
     seatCapacity: override ?? seatCapacity(),
     overridden: override !== null,
@@ -170,6 +227,11 @@ function settingsPayload({ override, paid, updatedAt = null, updatedBy = null })
     paid,
     updatedAt,
     updatedBy,
+    registrationOpen,
+    registrationOpensAt: registrationOpensAt(),
+    registrationOpenOverridden,
+    registrationUpdatedAt,
+    registrationUpdatedBy,
   }
 }
 
@@ -179,13 +241,17 @@ function settingsPayload({ override, paid, updatedAt = null, updatedBy = null })
 export async function getSettings() {
   const sql = getSql()
   await ensureSettings(sql)
-  const [setting] = await sql`
-    SELECT value, updated_at, updated_by FROM app_settings
-    WHERE key = ${SEAT_CAPACITY_KEY} LIMIT 1
+  const rows = await sql`
+    SELECT key, value, updated_at, updated_by FROM app_settings
+    WHERE key IN (${SEAT_CAPACITY_KEY}, ${REGISTRATION_OPEN_OVERRIDE_KEY})
   `
+  const byKey = new Map(rows.map((row) => [row.key, row]))
+  const setting = byKey.get(SEAT_CAPACITY_KEY)
+  const registrationSetting = byKey.get(REGISTRATION_OPEN_OVERRIDE_KEY)
   const [count] = await sql`
     SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
   `
+  const registrationOverride = parseStoredRegistrationOpenOverride(registrationSetting?.value)
   return {
     ok: true,
     status: 200,
@@ -194,6 +260,10 @@ export async function getSettings() {
       paid: count?.paid ?? 0,
       updatedAt: setting?.updated_at ?? null,
       updatedBy: setting?.updated_by ?? null,
+      registrationOpen: registrationOverride === true || registrationsScheduledOpen(),
+      registrationOpenOverridden: registrationOverride === true,
+      registrationUpdatedAt: registrationSetting?.updated_at ?? null,
+      registrationUpdatedBy: registrationSetting?.updated_by ?? null,
     }),
   }
 }
@@ -270,5 +340,61 @@ export async function updateSeatCapacity({ capacity }, actor = {}, context = {})
       paid: count?.paid ?? 0,
       updatedBy: actor.adminUsername || null,
     }),
+  }
+}
+
+export async function updateRegistrationOpenOverride({ forceOpen }, actor = {}, context = {}) {
+  if (typeof forceOpen !== 'boolean') {
+    return { ok: false, status: 400, error: 'registrationOpenOverride must be true or false.' }
+  }
+
+  const sql = getSql()
+  await ensureSettings(sql)
+  const before = await getRegistrationStatus(sql)
+
+  if (forceOpen) {
+    await sql`
+      INSERT INTO app_settings (key, value, updated_at, updated_by)
+      VALUES (${REGISTRATION_OPEN_OVERRIDE_KEY}, 'true', NOW(), ${actor.adminUsername || null})
+      ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value, updated_at = NOW(), updated_by = EXCLUDED.updated_by
+    `
+  } else {
+    await sql`DELETE FROM app_settings WHERE key = ${REGISTRATION_OPEN_OVERRIDE_KEY}`
+  }
+
+  await recordAudit({
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    action: AUDIT_ACTIONS.REGISTRATION_ACCESS_UPDATED,
+    targetType: 'setting',
+    targetId: REGISTRATION_OPEN_OVERRIDE_KEY,
+    targetName: 'Registration access',
+    detail: forceOpen
+      ? `Registrations opened early. Scheduled opening remains ${registrationOpensAt()}.`
+      : `Manual early-open cleared; registrations follow the scheduled opening (${registrationOpensAt()}).`,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  })
+
+  const [capacitySetting] = await sql`
+    SELECT value FROM app_settings WHERE key = ${SEAT_CAPACITY_KEY} LIMIT 1
+  `
+  const [count] = await sql`
+    SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
+  `
+
+  return {
+    ok: true,
+    status: 200,
+    settings: settingsPayload({
+      override: parseStoredCapacity(capacitySetting?.value),
+      paid: count?.paid ?? 0,
+      registrationOpen: forceOpen || registrationsScheduledOpen(),
+      registrationOpenOverridden: forceOpen,
+      registrationUpdatedBy: actor.adminUsername || null,
+    }),
+    previousRegistrationOpen: before.open,
   }
 }
