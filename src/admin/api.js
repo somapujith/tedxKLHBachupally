@@ -54,6 +54,32 @@ async function readJson(res) {
   }
 }
 
+// Serialize a request body exactly once.
+//
+// This wrapper always sends Content-Type: application/json, so a caller that
+// passes a plain object — `body: { registrationId }` — used to hand fetch an
+// object, which stringifies it as "[object Object]". The server then received
+// a JSON content type carrying non-JSON, and express.json()/Vercel's parser
+// rejected it with a bare 400 BEFORE any route ran. That is why the failure
+// looked like a broken endpoint (no error envelope, nothing in the server log)
+// while GET on the same path worked: only the POSTs carried a body.
+//
+// Passing through anything the browser can serialize itself (FormData, Blob,
+// URLSearchParams, ArrayBuffer) keeps this from corrupting a future upload.
+function encodeBody(body) {
+  if (body === undefined || body === null) return undefined
+  if (typeof body === 'string') return body
+  if (
+    typeof FormData !== 'undefined' && body instanceof FormData ||
+    typeof Blob !== 'undefined' && body instanceof Blob ||
+    typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams ||
+    typeof ArrayBuffer !== 'undefined' && ArrayBuffer.isView(body)
+  ) {
+    return body
+  }
+  return JSON.stringify(body)
+}
+
 // Authenticated fetch for /api/admin/*. Injects the Bearer token, parses the
 // body defensively and returns { status, ok, data } so callers can branch on
 // specific statuses (e.g. 409 already-checked-in). A 401 clears the session
@@ -63,6 +89,7 @@ export async function adminFetch(path, options = {}) {
   try {
     res = await fetch(apiUrl(path), {
       ...options,
+      body: encodeBody(options.body),
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${getToken()}`,
