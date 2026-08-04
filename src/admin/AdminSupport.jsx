@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken } from './api'
-import { Alert, Button, Card, EmptyState, Input, RefreshBar, SearchIcon } from './ui'
+import {
+  Alert,
+  Button,
+  Card,
+  CheckCircleIcon,
+  EmptyState,
+  Input,
+  RefreshBar,
+  SearchIcon,
+  SegmentedControl,
+} from './ui'
 
 // Support tickets raised by attendees from the registration confirmation screen.
 // The queue is worked by phone/email outside the app — this screen exists to
@@ -97,27 +107,13 @@ export default function AdminSupport() {
         </div>
 
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-          <div className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                aria-pressed={filter === f.key}
-                className={[
-                  'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                  filter === f.key ? 'bg-white/10 text-paper' : 'text-paper/55 hover:text-paper',
-                ].join(' ')}
-              >
-                {f.label}
-                {f.key === 'open' && openCount > 0 && (
-                  <span className="ml-2 rounded-full bg-red px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    {openCount}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            // The open-count badge rides on the "Open" tab only.
+            options={FILTERS.map((f) => (f.key === 'open' ? { ...f, count: openCount } : f))}
+            value={filter}
+            onChange={setFilter}
+            ariaLabel="Filter tickets by status"
+          />
         </div>
       </div>
 
@@ -130,9 +126,19 @@ export default function AdminSupport() {
 
       <div className="space-y-3">
         {visible.length === 0 && !loading && (
-          <EmptyState>
-            {filter === 'open' ? 'No open tickets. Nobody is waiting.' : 'No tickets found.'}
-          </EmptyState>
+          <Card>
+            <EmptyState
+              tone={filter === 'open' ? 'good' : 'neutral'}
+              icon={filter === 'open' ? <CheckCircleIcon /> : undefined}
+              hint={
+                filter === 'open'
+                  ? 'Tickets raised from the confirmation screen land here.'
+                  : 'Try a different search or filter.'
+              }
+            >
+              {filter === 'open' ? 'Inbox zero — nobody is waiting' : 'No tickets found'}
+            </EmptyState>
+          </Card>
         )}
         {visible.map((row) => (
           <TicketCard key={row.id} row={row} onChanged={() => load(filter)} />
@@ -165,7 +171,9 @@ function TicketCard({ row, onChanged }) {
   }
 
   return (
-    <Card className="p-4">
+    // Open tickets carry a red left edge: the one place red earns its keep here,
+    // because "someone is still waiting" is the only urgent state on this screen.
+    <Card pad="sm" className={isOpen ? 'border-l-2 border-l-red/70' : undefined}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -174,15 +182,21 @@ function TicketCard({ row, onChanged }) {
             </span>
             <span
               className={[
-                'rounded-full border px-2.5 py-0.5 text-[11px] font-medium',
+                'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium',
                 isOpen
                   ? 'border-red/40 bg-red/10 text-red'
                   : 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
               ].join(' ')}
             >
+              <span
+                aria-hidden
+                className={`h-1.5 w-1.5 rounded-full ${isOpen ? 'bg-red' : 'bg-emerald-400'}`}
+              />
               {isOpen ? 'open' : 'resolved'}
             </span>
-            {row.subject && <span className="text-xs text-paper/45">{row.subject}</span>}
+            {row.subject && (
+              <span className="rounded-md bg-white/[0.06] px-2 py-0.5 text-xs text-paper/55">{row.subject}</span>
+            )}
           </div>
 
           {/* Contact details are the point of the screen — plain tel:/mailto:
@@ -202,7 +216,7 @@ function TicketCard({ row, onChanged }) {
         </span>
       </div>
 
-      <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-paper/75">
+      <p className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-white/[0.07] bg-black/20 p-3 text-sm leading-relaxed text-paper/75">
         {row.message}
       </p>
 

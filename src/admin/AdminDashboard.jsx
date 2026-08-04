@@ -404,13 +404,11 @@ function VerificationQueue({ items, onChanged }) {
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={openId === reg.id ? 'subtle' : 'primary'}
-                    onClick={() => openVerify(reg)}
-                    disabled={busyId === reg.id}
-                  >
+                  {/* Deliberately not red: a queue of N rows would otherwise
+                      show N primary buttons and flatten the hierarchy. The red
+                      commit lives on "Verified — send pass" inside the panel,
+                      which is the step that actually issues the seat. */}
+                  <Button type="button" size="sm" onClick={() => openVerify(reg)} disabled={busyId === reg.id}>
                     {openId === reg.id ? 'Close' : 'Verify'}
                   </Button>
                   <Button type="button" size="sm" onClick={() => resend(reg)} disabled={busyId === reg.id}>
@@ -682,25 +680,34 @@ function CapacityCard({ settings, onSaved }) {
   }
 
   return (
-    <Card className="p-5">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <Card>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
           <Label>Seat capacity</Label>
-          <div className="mt-2 text-[26px] font-semibold leading-none tracking-tight tabular-nums">
-            {typeof current === 'number' ? (
-              current
-            ) : (
-              <span className="inline-block h-6 w-16 animate-pulse rounded bg-white/10 align-middle" />
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-[28px] font-semibold leading-none tracking-tight tabular-nums md:text-[32px]">
+              {typeof current === 'number' ? (
+                current
+              ) : (
+                <span className="inline-block h-7 w-20 animate-pulse rounded-md bg-white/10 align-middle motion-reduce:animate-none" />
+              )}
+            </span>
+            <span className="text-xs text-paper/40">seats</span>
+            {settings?.overridden && (
+              <span className="rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-paper/55">
+                Custom
+              </span>
             )}
           </div>
           <div className="mt-2 text-xs text-paper/40">
             {settings?.overridden
-              ? `Custom value${settings.updatedBy ? ` · set by ${settings.updatedBy}` : ''} · default is ${settings.fallbackCapacity}`
+              ? `Set by ${settings.updatedBy || 'an admin'} · default is ${settings.fallbackCapacity}`
               : 'Deploy default — set a custom value to change it live'}
             {` · ${paid} paid`}
           </div>
           {belowPaid && (
-            <div className="mt-2 text-xs text-red">
+            <div className="mt-2 flex items-center gap-1.5 text-xs text-red">
+              <span aria-hidden className="h-1.5 w-1.5 flex-none rounded-full bg-red" />
               Capacity is below seats already sold — registrations read as sold out.
             </div>
           )}
@@ -736,30 +743,36 @@ function CapacityCard({ settings, onSaved }) {
 function Breakdown({ title, items, nameKey }) {
   const list = Array.isArray(items) ? items : []
   const max = Math.max(1, ...list.map((i) => Number(i.count) || 0))
+  const total = list.reduce((sum, i) => sum + (Number(i.count) || 0), 0)
 
   return (
-    <Card className="p-5">
-      <Label>{title}</Label>
+    <Card>
+      <CardHeader title={title} meta={total > 0 ? `${total} total` : null} />
       {list.length === 0 ? (
-        <p className="mt-4 text-sm text-paper/35">No data yet.</p>
+        <EmptyState hint="Numbers appear here once registrations start coming in.">No data yet</EmptyState>
       ) : (
-        <ul className="mt-4 space-y-3.5">
-          {list.map((item) => {
-            const count = Number(item.count) || 0
-            return (
-              <li key={item[nameKey] ?? '—'}>
-                <div className="mb-1.5 flex items-baseline justify-between gap-4 text-sm">
-                  <span className="truncate capitalize text-paper/75">{item[nameKey] ?? '—'}</span>
-                  <span className="flex-none tabular-nums text-paper/45">{count}</span>
-                </div>
-                <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.07]">
-                  <div className="h-full rounded-full bg-red/70" style={{ width: `${(count / max) * 100}%` }} />
-                </div>
-              </li>
-            )
-          })}
+        <ul className="space-y-4">
+          {list.map((item) => (
+            <BarRow
+              key={item[nameKey] ?? '—'}
+              label={item[nameKey] ?? '—'}
+              value={item.count}
+              max={max}
+              total={total}
+            />
+          ))}
         </ul>
       )}
     </Card>
   )
+}
+
+// "Aarav Menon" -> "AM". Falls back to a dash so the avatar never renders empty.
+function initials(name) {
+  const parts = String(name ?? '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+  if (parts.length === 0) return '—'
+  return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase()
 }

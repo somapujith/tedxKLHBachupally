@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
-import { Alert, Button, Card, EmptyState, Input, RefreshBar, SearchIcon, StatusBadge } from './ui'
+import {
+  Alert,
+  Button,
+  Card,
+  EmptyState,
+  Input,
+  RefreshBar,
+  SearchIcon,
+  SegmentedControl,
+  StatusBadge,
+} from './ui'
 
 const FILTERS = [
   { key: 'all', label: 'All' },
@@ -94,22 +104,7 @@ export default function AdminRegistrations() {
 
         {/* Segmented status filter — scrolls horizontally on narrow phones. */}
         <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
-          <div className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
-            {FILTERS.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                aria-pressed={filter === f.key}
-                className={[
-                  'whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                  filter === f.key ? 'bg-white/10 text-paper' : 'text-paper/55 hover:text-paper',
-                ].join(' ')}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl options={FILTERS} value={filter} onChange={setFilter} ariaLabel="Filter by status" />
         </div>
       </div>
 
@@ -122,18 +117,30 @@ export default function AdminRegistrations() {
 
       {/* Mobile: attendee cards. */}
       <div className="space-y-3 md:hidden">
-        {visible.length === 0 && !loading && <EmptyState>No registrations found.</EmptyState>}
+        {visible.length === 0 && !loading && (
+          <Card>
+            <EmptyState
+              hint={
+                q
+                  ? 'Try a different name, email, phone or college.'
+                  : 'Registrations appear here as attendees sign up.'
+              }
+            >
+              {q ? 'No match for that search' : 'No registrations yet'}
+            </EmptyState>
+          </Card>
+        )}
         {visible.map((row) => (
           <RegistrationCard key={row.id ?? row.email} row={row} onRevoked={() => load(filter)} />
         ))}
       </div>
 
       {/* Desktop: dense table. */}
-      <Card className="hidden overflow-hidden md:block">
+      <Card pad="none" className="hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
+              <tr className="border-b border-white/10 bg-white/[0.02] text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
                 <th className="px-4 py-3 font-medium">Attendee</th>
                 <th className="px-4 py-3 font-medium">Contact</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
@@ -145,8 +152,16 @@ export default function AdminRegistrations() {
             <tbody>
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-paper/40">
-                    {loading ? 'Loading…' : 'No registrations found.'}
+                  <td colSpan={6} className="p-0">
+                    <EmptyState
+                      hint={
+                        q
+                          ? 'Try a different name, email, phone or college.'
+                          : 'Registrations appear here as attendees sign up.'
+                      }
+                    >
+                      {loading ? 'Loading registrations…' : q ? 'No match for that search' : 'No registrations yet'}
+                    </EmptyState>
                   </td>
                 </tr>
               )}
@@ -213,15 +228,27 @@ function RegistrationCard({ row, onRevoked }) {
   const { status, isPaid, canRevoke, note, busy, resend, revoke } = usePassActions(row, onRevoked)
 
   return (
-    <Card className="p-4">
+    <Card pad="sm">
       <div className="flex items-start justify-between gap-3">
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
           aria-expanded={open}
-          className="min-w-0 flex-1 rounded-lg text-left"
+          className="group -m-1 min-w-0 flex-1 rounded-lg p-1 text-left transition-colors hover:bg-white/[0.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red/60"
         >
-          <div className="truncate text-[15px] font-medium tracking-tight">{row.full_name ?? '—'}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="truncate text-[15px] font-medium tracking-tight">{row.full_name ?? '—'}</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              aria-hidden
+              className={`h-3.5 w-3.5 flex-none text-paper/35 transition-transform duration-200 motion-reduce:transition-none ${open ? 'rotate-180' : ''}`}
+            >
+              <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
           <div className="mt-0.5 truncate text-xs text-paper/45">{row.college ?? '—'}</div>
         </button>
         <StatusBadge status={status} />

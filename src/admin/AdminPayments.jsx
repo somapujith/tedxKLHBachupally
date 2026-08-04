@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
-import { Alert, Card, EmptyState, Input, RefreshBar, SearchIcon } from './ui'
+import { Alert, Card, EmptyState, Input, Label, RefreshBar, SearchIcon } from './ui'
 
 // The verified-payment ledger. Every approved bank transfer with the UTR
 // reference front and centre, because reconciliation starts from a line on a
@@ -80,18 +80,16 @@ export default function AdminPayments() {
     <section className="space-y-4">
       {error && <Alert>{error}</Alert>}
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="p-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
-            Verified payments
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
+        <Card pad="none" className="p-4 md:p-5">
+          <Label>Verified payments</Label>
+          <div className="mt-3 text-[28px] font-semibold leading-none tracking-tight tabular-nums md:text-[32px]">
+            {totals.count}
           </div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums text-paper">{totals.count}</div>
         </Card>
-        <Card className="p-4">
-          <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
-            Total collected
-          </div>
-          <div className="mt-1 text-2xl font-semibold tabular-nums text-paper">
+        <Card pad="none" className="p-4 md:p-5">
+          <Label>Total collected</Label>
+          <div className="mt-3 text-[28px] font-semibold leading-none tracking-tight tabular-nums md:text-[32px]">
             {fmtRupees(totals.amount)}
           </div>
         </Card>
@@ -127,12 +125,20 @@ export default function AdminPayments() {
       {/* Mobile: one card per payment. */}
       <div className="space-y-3 md:hidden">
         {rows.length === 0 && !loading && (
-          <EmptyState>
-            {search.trim() ? 'No payment matches that search.' : 'No verified payments yet.'}
-          </EmptyState>
+          <Card>
+            <EmptyState
+              hint={
+                search.trim()
+                  ? 'Try the full UTR reference, or the attendee’s name.'
+                  : 'Approved bank transfers are listed here with their reference.'
+              }
+            >
+              {search.trim() ? 'No payment matches that search' : 'No verified payments yet'}
+            </EmptyState>
+          </Card>
         )}
         {rows.map((row) => (
-          <Card key={row.id} className="p-4">
+          <Card key={row.id} pad="sm">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-paper">{row.full_name}</div>
@@ -142,11 +148,9 @@ export default function AdminPayments() {
                 {fmtRupees(row.amount)}
               </div>
             </div>
-            <div className="mt-3 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-              <div className="text-[10px] font-medium uppercase tracking-[0.08em] text-paper/45">
-                UTR ID
-              </div>
-              <div className="select-all font-mono text-sm tracking-wider text-paper">
+            <div className="mt-3 rounded-lg border border-white/[0.07] bg-black/25 px-3 py-2">
+              <Label className="text-[10px]">UTR ID</Label>
+              <div className="mt-0.5 select-all font-mono text-sm tracking-wider text-paper">
                 {row.utr_id || '—'}
               </div>
             </div>
@@ -161,11 +165,11 @@ export default function AdminPayments() {
       </div>
 
       {/* Desktop: dense ledger table. */}
-      <Card className="hidden overflow-hidden md:block">
+      <Card pad="none" className="hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
+              <tr className="border-b border-white/10 bg-white/[0.02] text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
                 <th className="px-4 py-3 font-medium">UTR ID</th>
                 <th className="px-4 py-3 font-medium">Attendee</th>
                 <th className="px-4 py-3 text-right font-medium">Amount</th>
@@ -177,17 +181,28 @@ export default function AdminPayments() {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-paper/40">
-                    {loading
-                      ? 'Loading…'
-                      : search.trim()
-                        ? 'No payment matches that search.'
-                        : 'No verified payments yet.'}
+                  <td colSpan={6} className="p-0">
+                    <EmptyState
+                      hint={
+                        search.trim()
+                          ? 'Try the full UTR reference, or the attendee’s name.'
+                          : 'Approved bank transfers are listed here with their reference.'
+                      }
+                    >
+                      {loading
+                        ? 'Loading payments…'
+                        : search.trim()
+                          ? 'No payment matches that search'
+                          : 'No verified payments yet'}
+                    </EmptyState>
                   </td>
                 </tr>
               )}
               {rows.map((row) => (
-                <tr key={row.id} className="border-b border-white/5 last:border-0">
+                <tr
+                  key={row.id}
+                  className="border-b border-white/[0.06] transition-colors last:border-0 hover:bg-white/[0.03]"
+                >
                   {/* select-all so one click copies the reference for pasting
                       into a bank statement search. */}
                   <td className="whitespace-nowrap px-4 py-3">

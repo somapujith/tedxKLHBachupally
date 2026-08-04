@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
-import { Alert, Button, Card, EmptyState, RefreshBar } from './ui'
+import { Alert, Card, EmptyState, RefreshBar, SegmentedControl } from './ui'
 
 // Superadmin activity screen: the admin audit trail and the ticket-email log,
 // under one tab. Both answer the same class of question after the event ("who
@@ -75,19 +75,13 @@ function Pill({ tone = 'neutral', children }) {
   )
 }
 
-function FilterRow({ options, value, onChange }) {
+// Filters are a selection, not a commitment, so they use the neutral segmented
+// treatment rather than a row of red primary buttons — red is reserved for the
+// action that actually changes something.
+function FilterRow({ options, value, onChange, ariaLabel }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => (
-        <Button
-          key={option.key}
-          size="sm"
-          variant={value === option.key ? 'primary' : 'subtle'}
-          onClick={() => onChange(option.key)}
-        >
-          {option.label}
-        </Button>
-      ))}
+    <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+      <SegmentedControl options={options} value={value} onChange={onChange} ariaLabel={ariaLabel} />
     </div>
   )
 }
@@ -135,13 +129,7 @@ export default function AdminActivity() {
     <div className="space-y-5">
       {error && <Alert>{error}</Alert>}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {VIEWS.map((v) => (
-          <Button key={v.key} variant={view === v.key ? 'primary' : 'subtle'} onClick={() => setView(v.key)}>
-            {v.label}
-          </Button>
-        ))}
-      </div>
+      <SegmentedControl options={VIEWS} value={view} onChange={setView} ariaLabel="Log to show" />
 
       <RefreshBar
         left={view === 'audit' ? `${auditRows.length} actions` : `${emailRows.length} emails`}
@@ -152,12 +140,22 @@ export default function AdminActivity() {
 
       {view === 'audit' ? (
         <>
-          <FilterRow options={ACTION_FILTERS} value={actionFilter} onChange={setActionFilter} />
+          <FilterRow
+            options={ACTION_FILTERS}
+            value={actionFilter}
+            onChange={setActionFilter}
+            ariaLabel="Filter admin actions"
+          />
           <AuditList rows={auditRows} loading={loading} />
         </>
       ) : (
         <>
-          <FilterRow options={EMAIL_FILTERS} value={emailFilter} onChange={setEmailFilter} />
+          <FilterRow
+            options={EMAIL_FILTERS}
+            value={emailFilter}
+            onChange={setEmailFilter}
+            ariaLabel="Filter ticket emails"
+          />
           <EmailList rows={emailRows} loading={loading} />
         </>
       )}
@@ -168,15 +166,17 @@ export default function AdminActivity() {
 function AuditList({ rows, loading }) {
   if (!rows.length) {
     return (
-      <Card className="p-2">
-        <EmptyState>{loading ? 'Loading activity…' : 'No activity recorded yet.'}</EmptyState>
+      <Card pad="none">
+        <EmptyState hint="Sign-ins, scans and pass resends are all recorded here.">
+          {loading ? 'Loading activity…' : 'No activity recorded yet'}
+        </EmptyState>
       </Card>
     )
   }
   return (
-    <Card className="divide-y divide-white/[0.06]">
+    <Card pad="none" className="divide-y divide-white/[0.06]">
       {rows.map((row) => (
-        <div key={row.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div key={row.id} className="flex flex-col gap-2 p-4 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <Pill tone={row.result === 'failure' ? 'bad' : 'ok'}>
@@ -209,16 +209,18 @@ function AuditList({ rows, loading }) {
 function EmailList({ rows, loading }) {
   if (!rows.length) {
     return (
-      <Card className="p-2">
-        <EmptyState>{loading ? 'Loading emails…' : 'No ticket emails logged yet.'}</EmptyState>
+      <Card pad="none">
+        <EmptyState hint="Every pass email, automatic or resent, is logged here.">
+          {loading ? 'Loading emails…' : 'No ticket emails logged yet'}
+        </EmptyState>
       </Card>
     )
   }
   const tone = { sent: 'ok', failed: 'bad', skipped: 'warn' }
   return (
-    <Card className="divide-y divide-white/[0.06]">
+    <Card pad="none" className="divide-y divide-white/[0.06]">
       {rows.map((row) => (
-        <div key={row.id} className="flex flex-col gap-2 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div key={row.id} className="flex flex-col gap-2 p-4 transition-colors hover:bg-white/[0.02] sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <Pill tone={tone[row.status] || 'neutral'}>{row.status}</Pill>

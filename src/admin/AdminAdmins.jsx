@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getAdminName, getToken, isSuperAdmin } from './api'
-import { Alert, Button, Card, EmptyState, Field, Input, Label, RefreshBar } from './ui'
+import { Alert, Button, Card, CardHeader, EmptyState, Field, Input, RefreshBar, SegmentedControl } from './ui'
 
 // Superadmin account management: who can sign in, at what level, and how many
 // passes each of them has scanned.
@@ -114,9 +114,9 @@ export default function AdminAdmins() {
 
       <RefreshBar left={`${admins.length} accounts`} refreshedAt={refreshedAt} loading={loading} onRefresh={load} />
 
-      <Card className="p-5">
-        <Label>Add an admin</Label>
-        <form onSubmit={onCreate} className="mt-4 grid gap-4 md:grid-cols-2">
+      <Card>
+        <CardHeader title="Add an admin" />
+        <form onSubmit={onCreate} className="grid gap-4 md:grid-cols-2">
           <Field id="new-username" label="Username" hint="Lowercase letters, numbers, dot, dash or underscore.">
             <Input
               id="new-username"
@@ -146,17 +146,17 @@ export default function AdminAdmins() {
             />
           </Field>
           <Field id="new-role" label="Role" hint="Superadmins also see the activity log and statistics.">
-            <div className="flex gap-2">
-              {['admin', 'superadmin'].map((role) => (
-                <Button
-                  key={role}
-                  variant={form.role === role ? 'primary' : 'subtle'}
-                  onClick={() => setForm({ ...form, role })}
-                >
-                  {ROLE_LABELS[role]}
-                </Button>
-              ))}
-            </div>
+            {/* Neutral segmented choice — "Create admin" below is the committing
+                action and stays the only red control in this form. */}
+            <SegmentedControl
+              options={[
+                { key: 'admin', label: ROLE_LABELS.admin },
+                { key: 'superadmin', label: ROLE_LABELS.superadmin },
+              ]}
+              value={form.role}
+              onChange={(role) => setForm({ ...form, role })}
+              ariaLabel="Role for the new admin"
+            />
           </Field>
           <div className="md:col-span-2">
             <Button type="submit" variant="primary" disabled={creating}>
@@ -167,11 +167,13 @@ export default function AdminAdmins() {
       </Card>
 
       {admins.length === 0 ? (
-        <Card className="p-2">
-          <EmptyState>{loading ? 'Loading admins…' : 'No admin accounts yet.'}</EmptyState>
+        <Card pad="none">
+          <EmptyState hint="Accounts you create above appear here.">
+            {loading ? 'Loading admins…' : 'No admin accounts yet'}
+          </EmptyState>
         </Card>
       ) : (
-        <Card className="divide-y divide-white/[0.06]">
+        <Card pad="none" className="divide-y divide-white/[0.06]">
           {admins.map((admin) => (
             <AdminRow
               key={admin.id}
@@ -191,7 +193,7 @@ export default function AdminAdmins() {
 
 function AdminRow({ admin, busy, isSelf, onToggleActive, onToggleRole, onResetPassword }) {
   return (
-    <div className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-white/[0.02] lg:flex-row lg:items-center lg:justify-between">
       <div className="min-w-0 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-paper">{admin.username}</span>

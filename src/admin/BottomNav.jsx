@@ -77,20 +77,30 @@ function TeamIcon() {
 
 function Tab({ to, label, icon, accent = false }) {
   return (
-    <NavLink to={to} end className="flex flex-1 flex-col items-center justify-center gap-1 py-2.5">
+    <NavLink
+      to={to}
+      end
+      className="flex flex-1 flex-col items-center justify-center gap-1 rounded-xl py-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red/60"
+    >
       {({ isActive }) => (
         <>
           <span
             className={[
-              'flex h-9 w-9 items-center justify-center rounded-xl transition-colors',
-              accent ? 'bg-red text-white' : isActive ? 'bg-white/10 text-paper' : 'text-paper/45',
+              'flex h-9 w-9 items-center justify-center rounded-xl',
+              'transition-[background-color,color,transform,box-shadow] duration-200',
+              'active:scale-90 motion-reduce:transform-none motion-reduce:transition-none',
+              accent
+                ? 'bg-red text-white shadow-[0_1px_0_0_rgba(255,255,255,0.2)_inset,0_6px_16px_-6px_rgba(230,43,30,0.95)]'
+                : isActive
+                  ? 'bg-white/[0.12] text-paper shadow-[0_1px_0_0_rgba(255,255,255,0.08)_inset]'
+                  : 'text-paper/45',
             ].join(' ')}
           >
             {icon}
           </span>
           <span
             className={[
-              'text-[11px] font-medium transition-colors',
+              'text-[11px] font-medium transition-colors duration-200',
               isActive && !accent ? 'text-paper' : 'text-paper/45',
             ].join(' ')}
           >
