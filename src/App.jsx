@@ -1,18 +1,27 @@
-import { lazy, Suspense } from 'react'
-import { Routes, Route, Outlet } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Routes, Route, Outlet, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
-import Home from './pages/Home'
-import Speakers from './pages/Speakers'
-import Theme from './pages/Theme'
-import About from './pages/About'
-import Team from './pages/Team'
-import Blog from './pages/Blog'
-import Partners from './pages/Partners'
-import Sponsor from './pages/Sponsor'
-import Register from './pages/Register'
-import Contact from './pages/Contact'
-import { Volunteer, Nominate, Schedule } from './pages/ClosedPages'
-import NotFound from './pages/NotFound'
+import { applySeo, applyNoindex } from './lib/seo'
+
+// Public pages are lazy too, same reasoning as the admin pages below: each page's
+// own weight (and anything it pulls in, like three.js on Home) should only ship
+// to the route that actually needs it, not to every page via the entry chunk.
+const Home = lazy(() => import('./pages/Home'))
+const Speakers = lazy(() => import('./pages/Speakers'))
+const Theme = lazy(() => import('./pages/Theme'))
+const About = lazy(() => import('./pages/About'))
+const Team = lazy(() => import('./pages/Team'))
+const Blog = lazy(() => import('./pages/Blog'))
+const Partners = lazy(() => import('./pages/Partners'))
+const Sponsor = lazy(() => import('./pages/Sponsor'))
+const Register = lazy(() => import('./pages/Register'))
+const Contact = lazy(() => import('./pages/Contact'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+// ClosedPages exports three named components from one module — each lazy()
+// call needs a default export, so unwrap the named export into one.
+const Volunteer = lazy(() => import('./pages/ClosedPages').then((m) => ({ default: m.Volunteer })))
+const Nominate = lazy(() => import('./pages/ClosedPages').then((m) => ({ default: m.Nominate })))
+const Schedule = lazy(() => import('./pages/ClosedPages').then((m) => ({ default: m.Schedule })))
 
 // Admin pages are lazy so html5-qrcode & co. stay out of the public bundle.
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
@@ -27,11 +36,29 @@ const AdminActivity = lazy(() => import('./admin/AdminActivity'))
 const AdminAdmins = lazy(() => import('./admin/AdminAdmins'))
 const AdminPayments = lazy(() => import('./admin/AdminPayments'))
 
+// Rewrites the document head on every navigation. A client-side route change
+// does not reload the document, so without this every page after the first
+// would keep the previous page's title, description and canonical — and
+// Googlebot, which crawls each URL as a fresh load, would still be right to
+// read them as duplicates of the entry page.
+function Seo() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    if (pathname.startsWith('/admin')) applyNoindex()
+    else applySeo(pathname)
+  }, [pathname])
+  return null
+}
+
 // Public pages keep the site chrome (nav + footer); admin routes render bare.
+// Only the routed page content suspends — Layout (nav/footer) still renders
+// immediately on every navigation, so the fallback never has to reproduce it.
 function PublicShell() {
   return (
     <Layout>
-      <Outlet />
+      <Suspense fallback={<div className="min-h-[60vh]" />}>
+        <Outlet />
+      </Suspense>
     </Layout>
   )
 }
@@ -46,7 +73,9 @@ function AdminRoute({ page: Page }) {
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <Seo />
+      <Routes>
       <Route path="/admin/login" element={<AdminRoute page={AdminLogin} />} />
       {/* Scanner renders bare (immersive full-screen, no bottom nav). */}
       <Route path="/admin/scan" element={<AdminRoute page={AdminScan} />} />
@@ -78,6 +107,7 @@ export default function App() {
         <Route path="/nominate" element={<Nominate />} />
         <Route path="*" element={<NotFound />} />
       </Route>
-    </Routes>
+      </Routes>
+    </>
   )
 }

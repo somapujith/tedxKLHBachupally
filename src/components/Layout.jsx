@@ -1,13 +1,30 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
 import { nav, event } from '../data/site'
 import { useBackendWarmup } from '../hooks/useBackendWarmup'
 import { Button } from './ui'
 import { GrainOverlay } from './texture'
-import ColorBends from './ColorBends'
 import logo from '../assets/logo-white-tedx.svg'
 import instagramIcon from '../assets/images/instagram.svg'
+
+// Lazy so three.js (the whole cost of this component) only ever ships to a page
+// that actually renders the background — never as part of Layout's own chunk,
+// which wraps every public route.
+const ColorBends = lazy(() => import('./ColorBends'))
+
+// True when the OS asked for less motion, or the browser reports a metered /
+// slow connection (Data Saver). Either way, downloading three.js and running a
+// decorative shader background is a pure cost with no benefit to this user.
+function shouldSkipWebglEffects() {
+  const reduceMotion =
+    typeof window !== 'undefined' &&
+    window.matchMedia &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const saveData =
+    typeof navigator !== 'undefined' && navigator.connection && navigator.connection.saveData
+  return Boolean(reduceMotion || saveData)
+}
 
 const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
 const linkedinUrl = 'https://www.linkedin.com/company/tedxklhbachupally/about/?viewAsMember=true'
@@ -83,26 +100,31 @@ export default function Layout({ children }) {
     <div className="relative min-h-screen bg-ink text-paper flex flex-col">
       <ScrollToTop lenisRef={lenisRef} />
       <GrainOverlay />
-      {location.pathname !== '/' && (
+      {location.pathname !== '/' && !shouldSkipWebglEffects() && (
         <div
           aria-hidden
           className="pointer-events-none fixed inset-0 z-0 opacity-30 [mask-image:linear-gradient(to_bottom,transparent_5%,black_55%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_5%,black_55%)]"
         >
-          <ColorBends
-            colors={['#E62B1E', '#7a1410', '#2b0503']}
-            rotation={30}
-            speed={0.15}
-            scale={1.5}
-            frequency={1.4}
-            warpStrength={1}
-            mouseInfluence={0.15}
-            parallax={0.3}
-            noise={0.1}
-            iterations={2}
-            intensity={0.9}
-            bandWidth={6}
-            transparent
-          />
+          {/* Suspense fallback is empty: this div is a decorative overlay on top of
+              the page's own background, so there is nothing to fill in while the
+              chunk loads. */}
+          <Suspense fallback={null}>
+            <ColorBends
+              colors={['#E62B1E', '#7a1410', '#2b0503']}
+              rotation={30}
+              speed={0.15}
+              scale={1.5}
+              frequency={1.4}
+              warpStrength={1}
+              mouseInfluence={0.15}
+              parallax={0.3}
+              noise={0.1}
+              iterations={2}
+              intensity={0.9}
+              bandWidth={6}
+              transparent
+            />
+          </Suspense>
         </div>
       )}
       <header className="sticky top-0 z-50 border-b border-paper/10 bg-ink/90 backdrop-blur-md">

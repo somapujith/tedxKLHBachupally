@@ -11,35 +11,38 @@ function renderAt(path) {
   )
 }
 
+// Every page below /App renders behind a Suspense boundary (public routes are
+// now React.lazy, same as admin), so its content mounts one microtask after
+// the initial render — hence `findBy*` (which waits) instead of `getBy*`.
 describe('App routing', () => {
-  it('renders the home page', () => {
+  it('renders the home page', async () => {
     renderAt('/')
-    expect(screen.getAllByText(/Humanity/i).length).toBeGreaterThan(0)
+    expect((await screen.findAllByText(/Humanity/i)).length).toBeGreaterThan(0)
   })
 
-  it('renders the theme page', () => {
+  it('renders the theme page', async () => {
     renderAt('/theme')
     // The theme headline is baked into the key-art image, so it is reachable as
     // alt text rather than as a text node. Asserting the alt keeps the headline
     // covered AND fails if the artwork is swapped for one that drops it.
-    expect(screen.getByAltText(/Technology Evolves\. Humanity Leads\./i)).toBeInTheDocument()
+    expect(await screen.findByAltText(/Technology Evolves\. Humanity Leads\./i)).toBeInTheDocument()
   })
 
-  it('renders the team page', () => {
+  it('renders the team page', async () => {
     renderAt('/team')
-    expect(screen.getByText(/One team\./i)).toBeInTheDocument()
+    expect(await screen.findByText(/One team\./i)).toBeInTheDocument()
   })
 
-  it('renders the contact page', () => {
+  it('renders the contact page', async () => {
     renderAt('/contact')
-    expect(screen.getByText(/Say hello\./i)).toBeInTheDocument()
+    expect(await screen.findByText(/Say hello\./i)).toBeInTheDocument()
     expect(screen.getByLabelText(/Message/i)).toBeInTheDocument()
   })
 
-  it('serves the consolidated About page on every legacy about-* URL', () => {
+  it('serves the consolidated About page on every legacy about-* URL', async () => {
     for (const path of ['/about-ted', '/about-tedx', '/about-tedxklh']) {
       const { unmount } = renderAt(path)
-      expect(screen.getByText('About TED & TEDx')).toBeInTheDocument()
+      expect(await screen.findByText('About TED & TEDx')).toBeInTheDocument()
       unmount()
     }
   })

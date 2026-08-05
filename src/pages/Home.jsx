@@ -1,10 +1,14 @@
-import { useRef } from 'react'
+import { lazy, Suspense, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { event, theme } from '../data/site'
 import { Countdown, Reveal, Section, Eyebrow, Button } from '../components/ui'
 import { BinaryDrift, TornEdge } from '../components/texture'
-import LiquidEther from '../components/LiquidEther'
 import heroImage from '../assets/tedxhero1.png'
+
+// Lazy so three.js (the fluid sim's only real cost) ships in its own chunk and
+// only downloads once this section is about to render — never as part of the
+// Home page's own chunk, let alone the entry bundle.
+const LiquidEther = lazy(() => import('../components/LiquidEther'))
 
 // Single, consistent "read more" CTA — small mono uppercase, red, trailing arrow.
 function ReadMore({ to, href, children }) {
@@ -46,7 +50,14 @@ export default function Home() {
     <div>
       {/* ── HERO ───────────────────────────────────────────────── */}
       <section className="relative flex min-h-[88vh] items-center overflow-hidden">
-        <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {/* LCP element: eager (never loading="lazy") and fetchpriority="high" so the
+            browser's preload scanner fetches it before it discovers anything else. */}
+        <img
+          src={heroImage}
+          alt=""
+          fetchpriority="high"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/75 to-ink/10" />
         <BinaryDrift className="opacity-60" columns={12} />
         <div className="relative z-10 w-full px-6 md:px-12 lg:px-20">
@@ -148,20 +159,24 @@ export default function Home() {
       {/* Reads top-down as one beat: label → statement → terms → CTA → trust footer. */}
       <section className="relative overflow-hidden px-6 text-center">
         <div className="absolute inset-0" aria-hidden="true">
-          <LiquidEther
-            colors={['#e62b1e', '#ff6f61', '#7a0f0a']}
-            mouseForce={10}
-            cursorSize={75}
-            resolution={0.5}
-            isBounce={true}
-            obstacleRef={closingBoxRef}
-            autoDemo={true}
-            autoSpeed={0.5}
-            autoIntensity={2.2}
-            takeoverDuration={0.25}
-            autoResumeDelay={3000}
-            autoRampDuration={0.6}
-          />
+          {/* Suspense fallback is empty: this div already sits on the page's own
+              background, so there is nothing to visually fill in while the chunk loads. */}
+          <Suspense fallback={null}>
+            <LiquidEther
+              colors={['#e62b1e', '#ff6f61', '#7a0f0a']}
+              mouseForce={10}
+              cursorSize={75}
+              resolution={0.5}
+              isBounce={true}
+              obstacleRef={closingBoxRef}
+              autoDemo={true}
+              autoSpeed={0.5}
+              autoIntensity={2.2}
+              takeoverDuration={0.25}
+              autoResumeDelay={3000}
+              autoRampDuration={0.6}
+            />
+          </Suspense>
         </div>
         <div className="relative mx-auto max-w-5xl py-24 md:py-32">
           <div
