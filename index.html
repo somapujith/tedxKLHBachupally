@@ -6,11 +6,132 @@
     <!-- maximum-scale=1 stops iOS Safari's focus auto-zoom; since iOS 10 it no
          longer blocks manual pinch-zoom, so accessibility is preserved. -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-    <title>TEDxKLH Bachupally — Technology Evolves. Humanity Leads.</title>
-    <meta name="description" content="TEDxKLH Bachupally, Edition 01 · 2026. A single day of 12 ideas, staged in front of a city that listens." />
+    <title>TEDxKLH Bachupally 2026 — Technology Evolves. Humanity Leads.</title>
+    <meta name="description" content="TEDxKLH Bachupally, Edition 01 — 22 August 2026 at KLH Bachupally Campus, Hyderabad. 12 speakers, one day, 250 seats. Book your pass." />
+    <link rel="canonical" href="https://www.tedxklhbachupally.in/" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="theme-color" content="#0a0a0a" />
+
+    <!-- Open Graph / Twitter. These are read by the crawler from the SERVED
+         HTML, before any JavaScript runs — a social scraper does not execute
+         the bundle — so the defaults live here rather than in React. The
+         per-route <Seo> component overwrites them at runtime for users and for
+         Googlebot, which does render. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="TEDxKLH Bachupally" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:title" content="TEDxKLH Bachupally 2026 — Technology Evolves. Humanity Leads." />
+    <meta property="og:description" content="Edition 01 — 22 August 2026 at KLH Bachupally Campus, Hyderabad. 12 speakers, one day, 250 seats." />
+    <meta property="og:url" content="https://www.tedxklhbachupally.in/" />
+    <meta property="og:image" content="https://www.tedxklhbachupally.in/og/tedxklh-2026-1200x630.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="TEDxKLH Bachupally — the TEDx logo on a lit auditorium stage." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://www.tedxklhbachupally.in/og/tedxklh-2026-1200x630.jpg" />
+    <meta name="twitter:title" content="TEDxKLH Bachupally 2026 — Technology Evolves. Humanity Leads." />
+    <meta name="twitter:description" content="Edition 01 — 22 August 2026 at KLH Bachupally Campus, Hyderabad. 12 speakers, one day, 250 seats." />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Structured data, static in the document head so Google's Event rich
+         results do not depend on the SPA booting. Facts here MUST stay in sync
+         with src/data/event.js — that module is the source of truth. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Event",
+            "@id": "https://www.tedxklhbachupally.in/#event",
+            "name": "TEDxKLH Bachupally 2026 — Edition 01",
+            "description": "An inquiry into our shared essence. Exploring what keeps us uniquely human in a world reshaped by accelerating technology, automation, and shifting cultural landscapes.",
+            "startDate": "2026-08-22T09:30:00+05:30",
+            "endDate": "2026-08-22T15:00:00+05:30",
+            "eventStatus": "https://schema.org/EventScheduled",
+            "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+            "url": "https://www.tedxklhbachupally.in/",
+            "inLanguage": "en-IN",
+            "maximumAttendeeCapacity": 250,
+            "image": ["https://www.tedxklhbachupally.in/og/tedxklh-2026-1200x630.jpg"],
+            "location": {
+              "@type": "Place",
+              "name": "KLH Bachupally Campus",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "KL University, Bachupally, Nizampet Road",
+                "addressLocality": "Hyderabad",
+                "addressRegion": "Telangana",
+                "postalCode": "500090",
+                "addressCountry": "IN"
+              },
+              "geo": {
+                "@type": "GeoCoordinates",
+                "latitude": 17.5449,
+                "longitude": 78.3822
+              }
+            },
+            "offers": {
+              "@type": "Offer",
+              "name": "TEDxKLH Bachupally 2026 Pass",
+              "price": "449",
+              "priceCurrency": "INR",
+              "availability": "https://schema.org/InStock",
+              "url": "https://www.tedxklhbachupally.in/register",
+              "validFrom": "2026-07-25T00:00:00+05:30"
+            },
+            "organizer": {
+              "@id": "https://www.tedxklhbachupally.in/#organization"
+            },
+            "performer": [
+              { "@type": "Person", "name": "Ananya Rao" },
+              { "@type": "Person", "name": "Vikram Iyer" },
+              { "@type": "Person", "name": "Meher Shaik" },
+              { "@type": "Person", "name": "Rohit Naidu" },
+              { "@type": "Person", "name": "Siri Pranati" },
+              { "@type": "Person", "name": "Arjun Deshpande" },
+              { "@type": "Person", "name": "Kavya Menon" },
+              { "@type": "Person", "name": "Imran Qureshi" },
+              { "@type": "Person", "name": "Dr. Nithya Raman" },
+              { "@type": "Person", "name": "Karan Malhotra" },
+              { "@type": "Person", "name": "Dr. Aisha Rahman" },
+              { "@type": "Person", "name": "Siddharth Mehta" }
+            ]
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://www.tedxklhbachupally.in/#organization",
+            "name": "TEDxKLH Bachupally",
+            "url": "https://www.tedxklhbachupally.in/",
+            "email": "tedxklhb@klh.edu.in",
+            "sameAs": ["https://www.instagram.com/tedxklhbachupally"],
+            "location": {
+              "@type": "Place",
+              "name": "KLH Bachupally Campus",
+              "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "KL University, Bachupally, Nizampet Road",
+                "addressLocality": "Hyderabad",
+                "addressRegion": "Telangana",
+                "postalCode": "500090",
+                "addressCountry": "IN"
+              }
+            },
+            "disambiguatingDescription": "An independently organized TEDx event operated under license from TED."
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://www.tedxklhbachupally.in/#website",
+            "url": "https://www.tedxklhbachupally.in/",
+            "name": "TEDxKLH Bachupally",
+            "inLanguage": "en-IN",
+            "publisher": { "@id": "https://www.tedxklhbachupally.in/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body class="bg-ink text-paper font-body">
     <div id="root"></div>

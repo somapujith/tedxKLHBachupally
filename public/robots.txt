@@ -1,0 +1,21 @@
+# TEDxKLH Bachupally — https://www.tedxklhbachupally.in
+# Public pages are open to every crawler. The admin console and the API are not
+# content: they are authenticated surfaces, and a crawler following them only
+# burns crawl budget on 401s.
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+# Google's Event rich results are worth more than a few saved requests, so the
+# render-blocking assets stay crawlable — Googlebot must be able to fetch the JS
+# and CSS to see the page at all (this is a client-rendered SPA).
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /api/
+
+Sitemap: https://www.tedxklhbachupally.in/sitemap.xml

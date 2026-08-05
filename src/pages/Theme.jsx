@@ -10,6 +10,12 @@ export default function Theme() {
     <div className="relative overflow-hidden">
       {/* Key-art hero — headline is baked into the artwork; capped so it fits without scroll */}
       <section className="relative h-[calc(100vh-6rem)] overflow-hidden bg-ink">
+        {/* The headline lives inside the artwork, so the page had no heading
+            element at all — its first was an h2 further down. Google anchors
+            topical relevance on the h1, and a screen reader needs one to
+            announce what this page is. Visually hidden, so the key art is
+            untouched. */}
+        <h1 className="sr-only">Theme 2026: Technology Evolves. Humanity Leads.</h1>
         <img
           src={themeHero}
           alt="Technology Evolves. Humanity Leads. — TEDxKLH Bachupally"

@@ -11,7 +11,7 @@
     "db:migrate": "node server/migrate.js",
     "db:seed-admin": "node server/seed-admin.js",
     "email:preview": "node scripts/preview-ticket-email.mjs",
-    "build": "vite build",
+    "build": "vite build && node scripts/prerender.mjs",
     "preview": "vite preview",
     "test": "vitest run"
   },
