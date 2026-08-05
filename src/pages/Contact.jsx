@@ -1,11 +1,16 @@
 import { useRef, useState } from 'react'
 import { Eyebrow, Button } from '../components/ui'
 import { RedGlow } from '../components/texture'
-import { event } from '../data/site'
+import { event, contact } from '../data/site'
 import { apiFetch } from '../lib/api'
 
-const CONTACT_EMAIL = 'tedxklhbachupally@klh.edu.in'
-const INSTAGRAM_URL = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
+// Both read from the data layer so this page, the footer, the ticket email and
+// the Organization schema can never disagree — the address here had drifted to
+// a second, different mailbox. The Instagram URL is the clean canonical form:
+// the ?igsh= tracking parameter belongs on a share link, never on a `sameAs`
+// value or a page a crawler reads.
+const CONTACT_EMAIL = contact.email
+const INSTAGRAM_URL = contact.instagram
 
 const initial = { name: '', email: '', phone: '', subject: '', message: '', website: '' }
 

@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import Lenis from 'lenis'
-import { nav, event } from '../data/site'
+import { nav, event, contact } from '../data/site'
 import { useBackendWarmup } from '../hooks/useBackendWarmup'
 import { Button } from './ui'
 import { GrainOverlay } from './texture'
@@ -26,8 +26,13 @@ function shouldSkipWebglEffects() {
   return Boolean(reduceMotion || saveData)
 }
 
-const instagramUrl = 'https://www.instagram.com/tedxklhbachupally?igsh=ZnljMmcydTZia3Fj'
-const linkedinUrl = 'https://www.linkedin.com/company/tedxklhbachupally/about/?viewAsMember=true'
+// Canonical, parameter-free profile URLs. The ?igsh= share token and the
+// ?viewAsMember= preview flag are artefacts of however the link was copied —
+// they leak into crawler-visible markup and disagree with the `sameAs` values
+// in the Organization schema, which is exactly the kind of drift that stops
+// Google from tying the site and the profiles to one entity.
+const instagramUrl = contact.instagram
+const linkedinUrl = 'https://www.linkedin.com/company/tedxklhbachupally/'
 
 function isNavActive(to, pathname) {
   if (to === '/about-tedxklh') return pathname.startsWith('/about-')
@@ -284,8 +289,11 @@ export default function Layout({ children }) {
               <p>{event.venue}</p>
               <p>{event.city}</p>
               <p>
-                <a href="mailto:tedxklhbachupally@klh.edu.in" className="hover:text-red transition-colors">
-                  tedxklhbachupally@klh.edu.in
+                {/* Read from the data layer, not typed here. The footer, the
+                    contact page, the ticket email and the Organization schema
+                    must all show one address — they had drifted to two. */}
+                <a href={`mailto:${contact.email}`} className="hover:text-red transition-colors">
+                  {contact.email}
                 </a>
               </p>
               <p>
