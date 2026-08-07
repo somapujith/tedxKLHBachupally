@@ -126,8 +126,33 @@ export function StatusBanner({ title, body }) {
   )
 }
 
+// Shared "no photo yet" fill: a monogram over a faint binary-code texture.
+// Team, Speakers and SpeakerDetail all render this for `photo: null`, so a
+// person reads the same "placeholder, not broken image" language everywhere
+// instead of three pages inventing three different treatments.
+export function PortraitPlaceholder({ name, size = 'text-5xl' }) {
+  return (
+    <div className="relative flex h-full w-full items-center justify-center bg-gradient-to-br from-ink to-[#171717]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 select-none overflow-hidden p-2 font-mono text-[9px] leading-3 tracking-widest text-red/[0.09]"
+      >
+        {Array.from({ length: 10 }).map((_, i) => (
+          <div key={i}>
+            {(i * 3) % 2 ? '01001010' : '10110100'}
+            {(i * 5) % 2 ? '0110' : '1001'}
+          </div>
+        ))}
+      </div>
+      <span className={`relative font-display ${size} tracking-tight text-paper/30 transition-colors duration-500 group-hover:text-red/45`}>
+        {initials(name)}
+      </span>
+    </div>
+  )
+}
+
 // Deterministic initials from a full name (max 2 chars).
-function initials(name) {
+export function initials(name) {
   return name
     .split(' ')
     .filter(Boolean)

@@ -23,7 +23,7 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { PAGE_SEO, SITE_URL, seoFor } from '../src/lib/seo.js'
+import { PAGE_SEO, SPEAKER_SEO, SITE_URL, seoFor } from '../src/lib/seo.js'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
@@ -31,10 +31,15 @@ const template = readFileSync(resolve(dist, 'index.html'), 'utf8')
 
 // Only routes that render their own content. Alias entries (canonical-only) are
 // skipped because vercel.json 301s them, and noindex routes are skipped because
-// a placeholder page has nothing worth pre-rendering.
-const ROUTES = Object.entries(PAGE_SEO)
-  .filter(([, meta]) => meta.title && !meta.noindex)
-  .map(([path]) => path)
+// a placeholder page has nothing worth pre-rendering. Per-speaker routes come
+// from SPEAKER_SEO, generated straight off src/data/event.js, so a new speaker
+// is prerendered automatically without touching this script.
+const ROUTES = [
+  ...Object.entries(PAGE_SEO)
+    .filter(([, meta]) => meta.title && !meta.noindex)
+    .map(([path]) => path),
+  ...Object.keys(SPEAKER_SEO),
+]
 
 // Escape before interpolating into an attribute. Titles carry apostrophes and
 // ampersands ("Partners & Sponsors"), and an unescaped & is invalid HTML that

@@ -30,6 +30,12 @@ import photoNaveena from '../assets/images/team/naveena.jpg'
 import photoGanesh from '../assets/images/team/ganesh.jpg'
 import photoLakshmiPrasanna from '../assets/images/team/lakshmi-prasanna.jpg'
 import photoSubramanyam from '../assets/images/team/subramanyam.jpg'
+import photoAlekhya from '../assets/images/speakers/alekhya.jpg'
+import photoGopalan from '../assets/images/speakers/gopalan.jpg'
+import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
+import photoTezan from '../assets/images/speakers/tezan.jpg'
+import photoVinuthna from '../assets/images/speakers/vinuthna.jpg'
+import { speakers as speakerData } from './event'
 
 export const nav = [
   { label: 'Theme', to: '/theme' },
@@ -40,18 +46,34 @@ export const nav = [
 ]
 
 // Event facts, the speaker roster and public contact details live in a separate,
-// asset-free module so the build-time prerenderer can import them from Node.
-// Re-exported here so every existing `from '../data/site'` import still resolves.
-export { event, speakers, contact } from './event'
+// asset-free module so the build-time prerenderer (plain Node, no Vite/JSX) can
+// import them too. `speakers` there stays photo-free for that reason — real
+// headshots are asset imports, which only this (browser-bundled) module can do,
+// so they're merged in here by slug and re-exported under the same name every
+// existing `from '../data/site'` import already expects.
+export { event, contact } from './event'
+
+const speakerPhotos = {
+  'alekhya-singapore': photoAlekhya,
+  'gopalan-uppiliappan': photoGopalan,
+  'tejaswini-adada': photoTejaswini,
+  'tezan-sahu': photoTezan,
+  'vinuthna-jagarlapudi': photoVinuthna,
+}
+
+export const speakers = speakerData.map((s) => ({
+  ...s,
+  photo: speakerPhotos[s.slug] || s.photo,
+}))
 
 export const schedule = [
   { time: '09:30', label: 'Doors Open & Registration' },
   { time: '10:00', label: 'Opening — Theme Reveal' },
-  { time: '10:20', label: 'Session I · Signals', slugs: ['ananya-rao', 'vikram-iyer', 'meher-shaik', 'rohit-naidu'] },
+  { time: '10:20', label: 'Session I · Signals', slugs: ['alekhya-singapore', 'tezan-sahu'] },
   { time: '11:40', label: 'Interval — Idea Lounge & Networking' },
-  { time: '12:10', label: 'Session II · Roots', slugs: ['siri-pranati', 'arjun-deshpande', 'kavya-menon', 'imran-qureshi'] },
+  { time: '12:10', label: 'Session II · Roots', slugs: ['tejaswini-adada'] },
   { time: '13:30', label: 'Lunch & Speaker Salons' },
-  { time: '14:30', label: 'Session III · Futures', slugs: ['nithya-raman', 'karan-malhotra', 'aisha-rahman', 'siddharth-mehta'] },
+  { time: '14:30', label: 'Session III · Futures', slugs: ['gopalan-uppiliappan', 'vinuthna-jagarlapudi'] },
   { time: '15:50', label: 'Closing Remarks' },
 ]
 
@@ -71,8 +93,8 @@ export const theme = {
     },
     {
       n: '003/003',
-      title: 'Twelve speakers. One question.',
-      body: 'We invited twelve people who have already had to make that choice — in a lab, on a stage, in an operating theatre, in a courtroom, in a slum, in a studio. They will not tell you what to think. They will tell you what it cost them to think it.',
+      title: 'Five speakers. One question.',
+      body: 'We invited five people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage. They will not tell you what to think. They will tell you what it cost them to think it.',
     },
   ],
 }
@@ -100,7 +122,7 @@ export const aboutPage = {
       'We are staging our first edition and building toward becoming one of South India’s most ambitious independent TEDx programs.',
     ],
     stats: [
-      { value: '12', label: 'Speakers' },
+      { value: '5', label: 'Speakers' },
       { value: '1', label: 'Stage, one day' },
       { value: '100%', label: 'Student-run' },
       { value: '01', label: 'First edition' },
@@ -167,7 +189,7 @@ export const team = [
 
 export const blogPosts = [
   { slug: 'behind-the-theme', title: 'Behind the Theme: Technology Evolves. Humanity Leads.', category: 'Curation', readTime: '5 min read', excerpt: 'How we landed on the theme for our 2026 edition and why negotiating with intelligence itself is the defining problem of our generation.', author: 'Karthik Verma', date: '2026-07-12' },
-  { slug: 'curating-twelve-voices', title: 'Curating Twelve Voices: The Rehearsal Process', category: 'Behind The Scenes', readTime: '7 min read', excerpt: 'What happens when you bring an AI researcher, a spoken word poet, and a climate engineer into the same room? A look inside our curation process.', author: 'Sneha Reddy', date: '2026-06-28' },
+  { slug: 'curating-five-voices', title: 'Curating Five Voices: The Rehearsal Process', category: 'Behind The Scenes', readTime: '7 min read', excerpt: 'What happens when you bring a dermatologist, a business leader, an oncologist, an AI scientist, and a singer into the same room? A look inside our curation process.', author: 'Sneha Reddy', date: '2026-06-28' },
   { slug: 'the-anatomy-of-a-red-dot', title: 'The Anatomy of a Red Circle: Stage Design', category: 'Production', readTime: '4 min read', excerpt: 'Designing a cinematic stage environment at the KL University auditorium. Balancing projection design, lighting grids, and speakers’ comfort.', author: 'Pranav Bose', date: '2026-06-15' },
   { slug: 'how-to-nominate-a-speaker', title: 'How to Nominate a Speaker for TEDxKLH 2026', category: 'Guide', readTime: '3 min read', excerpt: 'We look for ideas, not resumes. Here is a breakdown of what makes a proposal catch our curation team’s attention.', author: 'Aditi Sharma', date: '2026-05-30' },
 ]

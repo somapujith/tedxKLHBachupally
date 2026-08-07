@@ -27,6 +27,8 @@ const ROUTES = [
   ['/blog', /Notes from behind the red circle\./i],
   ['/partners', /The companies in the room\./i],
   ['/register', /Claim your seat\./i],
+  ['/speakers', /The line-up ·/i],
+  ['/speakers/tezan-sahu', /Applied Scientist 2, Microsoft/i],
   ['/volunteer', /Build it with us\./i],
   ['/schedule', /Coming soon\./i],
   ['/sponsor', /Put your name in the room\./i],
@@ -44,6 +46,14 @@ describe('every route renders its own page content', () => {
 
   it('renders the 404 page for an unknown path', async () => {
     renderAt('/this-does-not-exist')
+    expect(await screen.findByText(/There's no talk here\./i)).toBeInTheDocument()
+  })
+
+  // A speaker slug is user/CMS-editable data, not a route the router itself can
+  // validate — an unknown slug must fall through to the same 404 content instead
+  // of rendering a blank page or throwing.
+  it('renders the 404 page for an unknown speaker slug', async () => {
+    renderAt('/speakers/this-speaker-does-not-exist')
     expect(await screen.findByText(/There's no talk here\./i)).toBeInTheDocument()
   })
 

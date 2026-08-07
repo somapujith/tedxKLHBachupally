@@ -30,19 +30,67 @@ export const event = {
     'An inquiry into our shared essence. Exploring what keeps us uniquely human in a world reshaped by accelerating technology, automation, and shifting cultural landscapes.',
 }
 
+// Real TEDxKLH Bachupally 2026 line-up. Sourced from the official TED event
+// page (ted.com/tedx/events/69686) — bios kept close to that copy so the site
+// never claims a credential TED itself doesn't list.
+// `photo` is deliberately null until real headshots land: Speakers.jsx and
+// SpeakerDetail.jsx both fall back to a monogram tile, same pattern as `team`.
 export const speakers = [
-  { n: 1, slug: 'ananya-rao', name: 'Ananya Rao', category: 'Technology', role: 'AI Researcher', talk: 'The Quiet Intelligence' },
-  { n: 2, slug: 'vikram-iyer', name: 'Vikram Iyer', category: 'Science', role: 'Astrophysicist', talk: 'Listening to the Dark' },
-  { n: 3, slug: 'meher-shaik', name: 'Meher Shaik', category: 'Arts', role: 'Spoken Word Poet', talk: 'Mother Tongue, Machine Tongue' },
-  { n: 4, slug: 'rohit-naidu', name: 'Rohit Naidu', category: 'Climate', role: 'Climate Engineer', talk: 'Carbon, Concrete, Conscience' },
-  { n: 5, slug: 'siri-pranati', name: 'Siri Pranati', category: 'Health', role: 'Neurosurgeon', talk: 'Hands That Read Minds' },
-  { n: 6, slug: 'arjun-deshpande', name: 'Arjun Deshpande', category: 'Society', role: 'Founder, Aadhaar Health Collective', talk: 'Medicine As a Right' },
-  { n: 7, slug: 'kavya-menon', name: 'Kavya Menon', category: 'Technology', role: 'Robotics Engineer', talk: 'Soft Machines' },
-  { n: 8, slug: 'imran-qureshi', name: 'Imran Qureshi', category: 'Arts', role: 'Documentary Filmmaker', talk: 'Frames of Resistance' },
-  { n: 9, slug: 'nithya-raman', name: 'Dr. Nithya Raman', category: 'Climate', role: 'Marine Biologist', talk: 'Voice of the Oceans' },
-  { n: 10, slug: 'karan-malhotra', name: 'Karan Malhotra', category: 'Society', role: 'Urban Architect', talk: 'Vertical Forests' },
-  { n: 11, slug: 'aisha-rahman', name: 'Dr. Aisha Rahman', category: 'Technology', role: 'AI Ethicist', talk: 'The Code of Empathy' },
-  { n: 12, slug: 'siddharth-mehta', name: 'Siddharth Mehta', category: 'Science', role: 'Renewable Energy Pioneer', talk: 'Power of the Soil' },
+  {
+    n: 1,
+    slug: 'alekhya-singapore',
+    name: 'Dr. Alekhya Singapore',
+    category: 'Health',
+    role: 'Consultant Dermatologist & Trichologist',
+    credentials: 'MBBS · DDVL · Healthcare Management, ISB',
+    highlight: 'Named India’s first “Dermapreneur” by Times Network',
+    bio: 'Dr. Alekhya Singapore is a consultant dermatologist, trichologist, and founder of The Skin Sensé Clinic in Hyderabad, with over 14 years of experience. Named India’s first “Dermapreneur” by Times Network, she focuses on clinical, aesthetic, and pediatric dermatology, holding an MBBS, a DDVL, and a healthcare management degree from ISB.',
+    photo: null,
+  },
+  {
+    n: 2,
+    slug: 'gopalan-uppiliappan',
+    name: 'Gopalan Uppiliappan',
+    category: 'Business',
+    role: 'Group CEO, RC Manubhai Group',
+    credentials: 'B.Tech Chemical Engineering · MBA, IIM Bangalore · Executive Diploma, London Business School',
+    highlight: 'Over 25 years of multinational executive experience',
+    bio: 'Gopalan Uppiliappan is a business transformation leader with over 25 years of multinational executive experience. His expertise spans turnarounds, operational scaling, and fiscal restructuring of major conglomerates. He holds a B.Tech in Chemical Engineering, an MBA from IIM Bangalore, and an Executive Diploma from London Business School.',
+    photo: null,
+  },
+  {
+    n: 3,
+    slug: 'tejaswini-adada',
+    name: 'Dr. Tejaswini Adada',
+    category: 'Health',
+    role: 'Consultant Medical Oncologist, Hematologist & Digital Health Innovator',
+    credentials: 'Co-founder & CEO, Cancer Conscious Clinics',
+    highlight: 'Over 14 years of cross-sector healthcare experience',
+    bio: 'Dr. Tejaswini Adada is a physician-scientist, medical oncologist, and healthcare entrepreneur based in Hyderabad. Co-founder and CEO of Cancer Conscious Clinics, she brings over 14 years of cross-sector healthcare experience from premier institutions including Malla Reddy Narayana and HCG Cancer Centre.',
+    photo: null,
+  },
+  {
+    n: 4,
+    slug: 'tezan-sahu',
+    name: 'Tezan Sahu',
+    category: 'Technology',
+    role: 'Applied Scientist 2, Microsoft',
+    credentials: 'IIT Bombay · Multiple US patents in applied AI',
+    highlight: 'Author, Beyond Code',
+    bio: 'Tezan Sahu is an AI engineer and technical speaker, an IIT Bombay alumnus working on the M365 Copilot Extensibility Platform. He authored the tech career guide Beyond Code and holds multiple US patents in applied AI.',
+    photo: null,
+  },
+  {
+    n: 5,
+    slug: 'vinuthna-jagarlapudi',
+    name: 'Vinuthna Jagarlapudi',
+    category: 'Arts',
+    role: 'Singer, Content Creator & Creative Director',
+    credentials: 'Creative Director, Hyderabad Feed · MA Applied Psychology (in progress)',
+    highlight: 'Featured on Zee Telugu’s Sa Re Ga Ma Pa, 2022',
+    bio: 'Vinuthna Jagarlapudi is a professional playback singer, independent indie artist, and digital content creator based in Hyderabad. She appeared on Zee Telugu’s Sa Re Ga Ma Pa in 2022 and serves as Creative Director at Hyderabad Feed while pursuing an MA in Applied Psychology.',
+    photo: null,
+  },
 ]
 
 // Public contact + social identity. Used by the footer, the Contact page, and

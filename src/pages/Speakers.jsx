@@ -1,67 +1,78 @@
 import { Link } from 'react-router-dom'
 import { event, speakers } from '../data/site'
-import { Eyebrow, Reveal } from '../components/ui'
+import { Eyebrow, Reveal, Button, PortraitPlaceholder } from '../components/ui'
 import { BinaryDrift, RedGlow } from '../components/texture'
 
-// Fixed display order for the six fields on stage. Driving the strip from this
-// list (rather than from whatever order the roster happens to be in) keeps the
-// index stable when a speaker is added, and the `.filter` below drops any field
-// that has no talk yet instead of rendering an empty cell.
-const CATEGORY_ORDER = ['Technology', 'Science', 'Arts', 'Climate', 'Health', 'Society']
+// Fixed display order for the fields on stage. Used only to build the
+// comma-separated sentence in the hero lede — the same names are this page's
+// long-tail search surface, so they read as a real sentence rather than a
+// separate index the reader has to parse before ever reaching a name.
+const CATEGORY_ORDER = ['Health', 'Technology', 'Business', 'Arts', 'Science', 'Climate', 'Society']
 
-const categories = CATEGORY_ORDER.map((name) => ({
-  name,
-  count: speakers.filter((s) => s.category === name).length,
-})).filter((c) => c.count > 0)
+const categories = CATEGORY_ORDER.filter((name) => speakers.some((s) => s.category === name))
 
-// A readable, comma-separated list of the fields for the lede: the same twelve
-// names and six categories are this page's long-tail search surface, so they
-// appear as real sentences, not only as labels on cards.
 function joinFields(names) {
   if (names.length < 2) return names.join('')
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
 }
 
-// One roster cell. The name is an <h2> because it is the heading of this
-// speaker's block — the category, role and talk title are all real text under
-// it, never colour-coded meaning. The card is not a link (there are no speaker
-// detail pages yet), so the hover is a quiet wash plus a hairline, not a
-// link-like lift that would promise a click it cannot deliver.
+// Full-bleed portrait card: photo (or monogram placeholder) fills the frame,
+// name + role sit on a bottom scrim. The caption is pinned to the bottom edge
+// with absolute positioning rather than flex/mt-auto, so a two-line role never
+// drifts the text block relative to the card next to it — every caption sits
+// on the exact same baseline regardless of how much text it holds.
 function SpeakerCard({ speaker }) {
   return (
-    <Reveal className="group relative border-b border-r border-paper/10 transition-colors duration-300 hover:bg-paper/[0.03]">
-      <span
-        aria-hidden
-        className="absolute left-0 top-0 h-px w-0 bg-red transition-all duration-300 ease-out motion-reduce:transition-none group-hover:w-full"
-      />
-      <article className="flex h-full flex-col p-6 md:p-8">
-        <div className="flex items-baseline justify-between gap-4">
-          <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-red">
+    <Reveal className="h-full">
+      <Link
+        to={`/speakers/${speaker.slug}`}
+        className="group relative block aspect-[3/4] h-full overflow-hidden border border-paper/10 transition-colors duration-300 hover:border-red/50"
+      >
+        {speaker.photo ? (
+          <img
+            src={speaker.photo}
+            alt={speaker.name}
+            loading="lazy"
+            style={speaker.photoPos ? { objectPosition: speaker.photoPos } : undefined}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0">
+            <PortraitPlaceholder name={speaker.name.replace(/^Dr\.?\s+/i, '')} />
+          </div>
+        )}
+
+        {/* Top row: category + index, floating over the image */}
+        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4 md:p-5">
+          <span className="rounded-full bg-ink/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/90 backdrop-blur-sm">
             {speaker.category}
           </span>
-          <span aria-hidden className="font-mono text-[11px] tracking-widest text-paper/25">
+          <span aria-hidden className="font-mono text-[11px] tracking-widest text-paper/60">
             {String(speaker.n).padStart(2, '0')}
           </span>
         </div>
 
-        <h2 className="mt-5 font-display text-2xl leading-tight tracking-tight md:text-3xl">
-          {speaker.name}
-        </h2>
-        <p className="mt-2 text-sm leading-relaxed text-paper/70">{speaker.role}</p>
-
-        <div className="mt-8 border-t border-paper/10 pt-5">
-          <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/50">Talk</div>
-          <p className="mt-2 font-display text-lg leading-snug tracking-tight text-paper/90 md:text-xl">
-            {speaker.talk}
-          </p>
+        {/* Bottom scrim + caption */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink via-ink/80 to-transparent pb-5 pt-16">
+          <div className="px-5">
+            <h2 className="font-display text-xl leading-tight tracking-tight text-paper md:text-2xl">
+              {speaker.name}
+            </h2>
+            <p className="mt-1 text-sm leading-snug text-paper/70">{speaker.role}</p>
+          </div>
         </div>
-      </article>
+
+        <span
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-0.5 w-full origin-left scale-x-0 bg-red transition-transform duration-300 ease-out motion-reduce:transition-none group-hover:scale-x-100"
+        />
+      </Link>
     </Reveal>
   )
 }
 
 export default function Speakers() {
-  const fields = joinFields(categories.map((c) => c.name))
+  const fields = joinFields(categories)
 
   return (
     <div>
@@ -82,37 +93,14 @@ export default function Speakers() {
         </div>
       </section>
 
-      {/* Field index — static, text-first. Category is stated, never implied by colour. */}
-      <section className="px-6">
-        <div className="mx-auto max-w-6xl py-16 md:py-20">
-          <Eyebrow className="mb-6 flex items-center gap-2">
-            <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-red" />
-            {categories.length} fields on one stage
-          </Eyebrow>
-          <ul className="grid grid-cols-2 border-l border-t border-paper/10 sm:grid-cols-3 lg:grid-cols-6">
-            {categories.map((c) => (
-              <li
-                key={c.name}
-                className="border-b border-r border-paper/10 px-5 py-6 transition-colors duration-300 hover:bg-paper/[0.03]"
-              >
-                <div className="font-display text-lg tracking-tight text-paper/90">{c.name}</div>
-                <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50">
-                  {c.count} {c.count === 1 ? 'talk' : 'talks'}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </section>
-
       {/* Roster */}
-      <section className="px-6 pb-16 md:pb-24">
+      <section className="px-6 py-16 md:py-24">
         <div className="mx-auto max-w-6xl">
-          <Eyebrow className="mb-6 flex items-center gap-2">
+          <Eyebrow className="mb-8 flex items-center gap-2">
             <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-red" />
             Speakers · {event.year}
           </Eyebrow>
-          <div className="grid grid-cols-1 border-l border-t border-paper/10 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
             {speakers.map((speaker) => (
               <SpeakerCard key={speaker.slug} speaker={speaker} />
             ))}
@@ -133,18 +121,9 @@ export default function Speakers() {
                 {event.date} · {event.time} · {event.venue}, {event.city}.
               </p>
             </div>
-            <Link
-              to="/register"
-              className="group inline-flex min-h-[44px] items-center gap-2 rounded-full border border-red/50 px-6 font-mono text-[11px] uppercase tracking-[0.2em] text-red transition-colors hover:bg-red hover:text-paper focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red focus-visible:ring-offset-2 focus-visible:ring-offset-ink"
-            >
-              Book your seat
-              <span
-                aria-hidden
-                className="transition-transform duration-300 motion-reduce:transition-none group-hover:translate-x-1"
-              >
-                →
-              </span>
-            </Link>
+            <Button to="/register" variant="primary">
+              Book your seat →
+            </Button>
           </div>
         </Reveal>
       </section>

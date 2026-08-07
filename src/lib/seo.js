@@ -9,6 +9,8 @@
 // Every fact here traces to src/data/event.js. When the date, venue or price
 // changes there, the strings below and the JSON-LD in index.html must follow.
 
+import { speakers } from '../data/event.js'
+
 export const SITE_URL = 'https://www.tedxklhbachupally.in'
 const SITE_NAME = 'TEDxKLH Bachupally'
 
@@ -19,20 +21,20 @@ export const PAGE_SEO = {
   '/': {
     title: 'TEDxKLH Bachupally 2026 | Technology Evolves, Humanity Leads',
     description:
-      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 12 speakers, one stage, ₹449. Reserve your seat.',
+      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 5 speakers, one stage, ₹449. Reserve your seat.',
   },
   '/register': {
     title: 'Register for TEDxKLH Bachupally 2026 | ₹449',
     description:
       'Claim your seat at TEDxKLH Bachupally, Sat Aug 22, 2026. ₹449 per pass, 250 seats, KL University Bachupally Campus, Hyderabad. Register now.',
   },
-  // The page renders all 12 names, roles and talk titles from
-  // src/data/event.js, so this description matches what a crawler actually
-  // finds — and so do the JSON-LD `performer` entries in index.html.
+  // The page renders all names, roles and bios from src/data/event.js, so
+  // this description matches what a crawler actually finds — and so do the
+  // JSON-LD `performer` entries in index.html.
   '/speakers': {
     title: 'Speakers | TEDxKLH Bachupally 2026',
     description:
-      '12 speakers across Technology, Science, Arts, Climate, Health & Society take the TEDxKLH stage, Aug 22, 2026 in Hyderabad.',
+      '5 speakers across Health, Business, Technology & Arts take the TEDxKLH stage, Aug 22, 2026 in Hyderabad.',
   },
   '/theme': {
     title: 'Theme 2026: Technology Evolves, Humanity Leads | TEDxKLH',
@@ -99,6 +101,18 @@ export const PAGE_SEO = {
   },
 }
 
+// One entry per speaker, keyed the same way as PAGE_SEO so seoFor and the
+// prerenderer can treat `/speakers/:slug` exactly like any static route.
+export const SPEAKER_SEO = Object.fromEntries(
+  speakers.map((s) => [
+    `/speakers/${s.slug}`,
+    {
+      title: `${s.name} | TEDxKLH Bachupally 2026`,
+      description: `${s.name}, ${s.role}, speaks at TEDxKLH Bachupally, Sat Aug 22, 2026 in Hyderabad. ${s.highlight}.`,
+    },
+  ]),
+)
+
 const FALLBACK = PAGE_SEO['/']
 
 // Resolve the metadata for a pathname. Unknown paths (the 404) get the site
@@ -106,7 +120,7 @@ const FALLBACK = PAGE_SEO['/']
 // to distrust the sitemap.
 export function seoFor(pathname) {
   const path = pathname !== '/' && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
-  const entry = PAGE_SEO[path]
+  const entry = PAGE_SEO[path] || SPEAKER_SEO[path]
 
   if (!entry) {
     return { ...FALLBACK, canonical: `${SITE_URL}${path}`, noindex: true }

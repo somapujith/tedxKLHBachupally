@@ -8,6 +8,7 @@ import { applySeo, applyNoindex } from './lib/seo'
 // to the route that actually needs it, not to every page via the entry chunk.
 const Home = lazy(() => import('./pages/Home'))
 const Speakers = lazy(() => import('./pages/Speakers'))
+const SpeakerDetail = lazy(() => import('./pages/SpeakerDetail'))
 const Theme = lazy(() => import('./pages/Theme'))
 const About = lazy(() => import('./pages/About'))
 const Team = lazy(() => import('./pages/Team'))
@@ -92,6 +93,7 @@ export default function App() {
       <Route element={<PublicShell />}>
         <Route path="/" element={<Home />} />
         <Route path="/speakers" element={<Speakers />} />
+        <Route path="/speakers/:slug" element={<SpeakerDetail />} />
         <Route path="/theme" element={<Theme />} />
         <Route path="/about-tedxklh" element={<About />} />
         <Route path="/about-ted" element={<About />} />
