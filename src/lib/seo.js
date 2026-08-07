@@ -21,7 +21,7 @@ export const PAGE_SEO = {
   '/': {
     title: 'TEDxKLH Bachupally 2026 | Technology Evolves, Humanity Leads',
     description:
-      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 5 speakers, one stage, ₹449. Reserve your seat.',
+      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 6 speakers, one stage, ₹449. Reserve your seat.',
   },
   '/register': {
     title: 'Register for TEDxKLH Bachupally 2026 | ₹449',
@@ -34,7 +34,7 @@ export const PAGE_SEO = {
   '/speakers': {
     title: 'Speakers | TEDxKLH Bachupally 2026',
     description:
-      '5 speakers across Health, Business, Technology & Arts take the TEDxKLH stage, Aug 22, 2026 in Hyderabad.',
+      '6 speakers across Health, Business, Technology & Arts take the TEDxKLH stage, Aug 22, 2026 in Hyderabad.',
   },
   '/theme': {
     title: 'Theme 2026: Technology Evolves, Humanity Leads | TEDxKLH',

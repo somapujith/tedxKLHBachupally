@@ -556,7 +556,7 @@ export default function Register() {
               <div className="mt-6 border-t border-paper/10 pt-6">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">Includes</div>
                 <ul className="mt-3 space-y-2 text-sm text-paper/70">
-                  {['All 5 talks, live', 'Idea Lounge & installations', 'Speaker salons', 'Lunch & networking'].map((x) => (
+                  {['All 6 talks, live', 'Idea Lounge & installations', 'Speaker salons', 'Lunch & networking'].map((x) => (
                     <li key={x} className="flex items-start gap-2">
                       <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 bg-red" />
                       {x}

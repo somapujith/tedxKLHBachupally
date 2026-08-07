@@ -91,6 +91,17 @@ export const speakers = [
     bio: 'Vinuthna Jagarlapudi is a professional playback singer, independent indie artist, and digital content creator based in Hyderabad. She appeared on Zee Telugu’s Sa Re Ga Ma Pa in 2022 and serves as Creative Director at Hyderabad Feed while pursuing an MA in Applied Psychology.',
     photo: null,
   },
+  {
+    n: 6,
+    slug: 'sampath-akondi',
+    name: 'Sampath Akondi',
+    category: 'Arts',
+    role: 'Writer & Content Creator',
+    credentials: '100K+ followers, Instagram · @sampath_akondi',
+    highlight: 'Known for comedic, relatable Telugu short-form storytelling',
+    bio: 'Sampath Akondi is a Telugu writer and content creator known for short-form videos that turn everyday overthinking, relationships, and modern life into comedic, relatable storytelling. His reels and clips have built an audience of over 100,000 followers across Instagram and YouTube.',
+    photo: null,
+  },
 ]
 
 // Public contact + social identity. Used by the footer, the Contact page, and

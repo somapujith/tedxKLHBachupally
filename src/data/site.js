@@ -71,7 +71,7 @@ export const schedule = [
   { time: '10:00', label: 'Opening — Theme Reveal' },
   { time: '10:20', label: 'Session I · Signals', slugs: ['alekhya-singapore', 'tezan-sahu'] },
   { time: '11:40', label: 'Interval — Idea Lounge & Networking' },
-  { time: '12:10', label: 'Session II · Roots', slugs: ['tejaswini-adada'] },
+  { time: '12:10', label: 'Session II · Roots', slugs: ['tejaswini-adada', 'sampath-akondi'] },
   { time: '13:30', label: 'Lunch & Speaker Salons' },
   { time: '14:30', label: 'Session III · Futures', slugs: ['gopalan-uppiliappan', 'vinuthna-jagarlapudi'] },
   { time: '15:50', label: 'Closing Remarks' },
@@ -93,8 +93,8 @@ export const theme = {
     },
     {
       n: '003/003',
-      title: 'Five speakers. One question.',
-      body: 'We invited five people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage. They will not tell you what to think. They will tell you what it cost them to think it.',
+      title: 'Six speakers. One question.',
+      body: 'We invited six people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage, on a screen. They will not tell you what to think. They will tell you what it cost them to think it.',
     },
   ],
 }
@@ -122,7 +122,7 @@ export const aboutPage = {
       'We are staging our first edition and building toward becoming one of South India’s most ambitious independent TEDx programs.',
     ],
     stats: [
-      { value: '5', label: 'Speakers' },
+      { value: '6', label: 'Speakers' },
       { value: '1', label: 'Stage, one day' },
       { value: '100%', label: 'Student-run' },
       { value: '01', label: 'First edition' },
@@ -189,7 +189,7 @@ export const team = [
 
 export const blogPosts = [
   { slug: 'behind-the-theme', title: 'Behind the Theme: Technology Evolves. Humanity Leads.', category: 'Curation', readTime: '5 min read', excerpt: 'How we landed on the theme for our 2026 edition and why negotiating with intelligence itself is the defining problem of our generation.', author: 'Karthik Verma', date: '2026-07-12' },
-  { slug: 'curating-five-voices', title: 'Curating Five Voices: The Rehearsal Process', category: 'Behind The Scenes', readTime: '7 min read', excerpt: 'What happens when you bring a dermatologist, a business leader, an oncologist, an AI scientist, and a singer into the same room? A look inside our curation process.', author: 'Sneha Reddy', date: '2026-06-28' },
+  { slug: 'curating-six-voices', title: 'Curating Six Voices: The Rehearsal Process', category: 'Behind The Scenes', readTime: '7 min read', excerpt: 'What happens when you bring a dermatologist, a business leader, an oncologist, an AI scientist, a singer, and a comedy writer into the same room? A look inside our curation process.', author: 'Sneha Reddy', date: '2026-06-28' },
   { slug: 'the-anatomy-of-a-red-dot', title: 'The Anatomy of a Red Circle: Stage Design', category: 'Production', readTime: '4 min read', excerpt: 'Designing a cinematic stage environment at the KL University auditorium. Balancing projection design, lighting grids, and speakers’ comfort.', author: 'Pranav Bose', date: '2026-06-15' },
   { slug: 'how-to-nominate-a-speaker', title: 'How to Nominate a Speaker for TEDxKLH 2026', category: 'Guide', readTime: '3 min read', excerpt: 'We look for ideas, not resumes. Here is a breakdown of what makes a proposal catch our curation team’s attention.', author: 'Aditi Sharma', date: '2026-05-30' },
 ]
