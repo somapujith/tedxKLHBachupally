@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { event, speakers } from '../data/site'
+import { event, speakers, isRevealed } from '../data/site'
 import { Eyebrow, Reveal, Button, PortraitPlaceholder } from '../components/ui'
 import { BinaryDrift, RedGlow } from '../components/texture'
 
@@ -9,11 +9,35 @@ import { BinaryDrift, RedGlow } from '../components/texture'
 // separate index the reader has to parse before ever reaching a name.
 const CATEGORY_ORDER = ['Health', 'Technology', 'Business', 'Arts', 'Science', 'Climate', 'Society']
 
-const categories = CATEGORY_ORDER.filter((name) => speakers.some((s) => s.category === name))
-
 function joinFields(names) {
   if (names.length < 2) return names.join('')
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+}
+
+// "Friday, August 8" + "9:00 AM IST" — always read in India time regardless
+// of the visitor's own timezone, since that's the timezone the reveal
+// actually happens in.
+function formatRevealMoment(iso) {
+  const d = new Date(iso)
+  const date = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'Asia/Kolkata' })
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kolkata' })
+  return `${date} at ${time} IST`
+}
+
+// The next batch of speakers still to unlock: the earliest upcoming
+// `revealDate` and everyone who shares it (always 2, by the current
+// schedule, but this reads off the data rather than assuming that).
+// Compares actual timestamps (`getTime()`), not the raw ISO strings — two
+// equal instants written with different offsets (`+05:30` vs `Z`) would
+// otherwise sort wrong and fail the "shares it" equality check.
+function nextReveal(allSpeakers) {
+  const upcoming = allSpeakers.filter((s) => !isRevealed(s))
+  if (upcoming.length === 0) return null
+  const nextTime = Math.min(...upcoming.map((s) => new Date(s.revealDate).getTime()))
+  return {
+    count: upcoming.filter((s) => new Date(s.revealDate).getTime() === nextTime).length,
+    when: formatRevealMoment(nextTime),
+  }
 }
 
 // Full-bleed portrait card: photo (or monogram placeholder) fills the frame,
@@ -69,7 +93,16 @@ function SpeakerCard({ speaker }) {
 }
 
 export default function Speakers() {
+  // Two speakers unlock per day at 9 AM IST (src/data/event.js `revealDate`).
+  // The roster grid, field list, and "X speakers revealed" copy are all
+  // driven off this filtered set, so no unrevealed speaker's name, bio, or
+  // category ever renders early. The total roster size (`speakers.length`)
+  // is shown regardless — the final headcount is announced upfront, only the
+  // identities roll out — same framing as the "N / 6" index on each profile.
+  const revealed = speakers.filter((s) => isRevealed(s))
+  const categories = CATEGORY_ORDER.filter((name) => revealed.some((s) => s.category === name))
   const fields = joinFields(categories)
+  const upcoming = nextReveal(speakers)
 
   return (
     <div>
@@ -79,14 +112,29 @@ export default function Speakers() {
         <BinaryDrift className="opacity-70" columns={10} />
         <div className="relative mx-auto max-w-6xl py-24 md:py-32">
           <Eyebrow className="mb-5">The line-up · {event.edition}</Eyebrow>
-          <h1 className="mb-6 max-w-4xl font-display text-4xl leading-[1.05] tracking-tight md:text-7xl">
-            {speakers.length} speakers. <span className="text-red">One question.</span>
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-paper/70">
-            {fields} — {speakers.length} talks, one stage, one afternoon. The full
-            TEDxKLH Bachupally roster takes the red circle on {event.date} at{' '}
-            {event.venue}, {event.city}.
-          </p>
+          {revealed.length === 0 ? (
+            <>
+              <h1 className="mb-6 max-w-4xl font-display text-4xl leading-[1.05] tracking-tight md:text-7xl">
+                {speakers.length} speakers. <span className="text-red">One reveal at a time.</span>
+              </h1>
+              <p className="max-w-2xl text-lg leading-relaxed text-paper/70">
+                We're unveiling the TEDxKLH Bachupally line-up two speakers a day. The
+                first two take the red circle on {event.date} at {event.venue}, {event.city}
+                {upcoming && <> — the reveal itself starts {upcoming.when}.</>}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="mb-6 max-w-4xl font-display text-4xl leading-[1.05] tracking-tight md:text-7xl">
+                {revealed.length} speakers. <span className="text-red">One question.</span>
+              </h1>
+              <p className="max-w-2xl text-lg leading-relaxed text-paper/70">
+                {fields} — {revealed.length} of {speakers.length} talks revealed so far. The full
+                TEDxKLH Bachupally roster takes the red circle on {event.date} at{' '}
+                {event.venue}, {event.city}.
+              </p>
+            </>
+          )}
         </div>
       </section>
 
@@ -97,11 +145,32 @@ export default function Speakers() {
             <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-red" />
             Speakers · {event.year}
           </Eyebrow>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-            {speakers.map((speaker) => (
-              <SpeakerCard key={speaker.slug} speaker={speaker} />
-            ))}
-          </div>
+
+          {revealed.length === 0 && upcoming ? (
+            <Reveal className="relative overflow-hidden rounded-lg border border-dashed border-paper/20 px-8 py-16 text-center md:py-24">
+              <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-red">
+                Next reveal
+              </p>
+              <p className="mt-4 font-display text-3xl tracking-tight md:text-4xl">
+                {upcoming.count} speakers reveal {upcoming.when}
+              </p>
+              <p className="mt-3 text-sm text-paper/60">
+                Check back then — or follow along so you don't miss it.
+              </p>
+            </Reveal>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+              {revealed.map((speaker) => (
+                <SpeakerCard key={speaker.slug} speaker={speaker} />
+              ))}
+            </div>
+          )}
+
+          {revealed.length > 0 && upcoming && (
+            <p className="mt-8 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/45">
+              {upcoming.count} more revealing {upcoming.when}
+            </p>
+          )}
         </div>
       </section>
 

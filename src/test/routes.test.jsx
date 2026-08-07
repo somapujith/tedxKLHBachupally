@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../App'
@@ -28,7 +28,6 @@ const ROUTES = [
   ['/partners', /The companies in the room\./i],
   ['/register', /Claim your seat\./i],
   ['/speakers', /The line-up ·/i],
-  ['/speakers/tezan-sahu', /Applied Scientist 2, Microsoft/i],
   ['/volunteer', /Build it with us\./i],
   ['/schedule', /Coming soon\./i],
   ['/sponsor', /Put your name in the room\./i],
@@ -68,5 +67,54 @@ describe('every route renders its own page content', () => {
       expect(screen.queryByText(/There's no talk here\./i)).not.toBeInTheDocument()
       unmount()
     }
+  })
+})
+
+// Speakers unlock on a schedule (src/data/event.js `revealDate`), so unlike
+// every other route above, what these pages render depends on "now" — these
+// tests pin the clock instead of depending on whatever day the suite runs.
+describe('speaker reveal gating', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('shows the pre-reveal countdown and no speaker cards before the first reveal', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-07T12:00:00+05:30'))
+    renderAt('/speakers')
+    expect(await screen.findByText(/2 speakers reveal/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Applied Scientist 2, Microsoft/i)).not.toBeInTheDocument()
+  })
+
+  it('renders a revealed speaker and lists only revealed speakers on the roster', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-09T12:00:00+05:30'))
+    const detail = renderAt('/speakers/tezan-sahu')
+    expect(await screen.findByText(/Applied Scientist 2, Microsoft/i)).toBeInTheDocument()
+    detail.unmount()
+
+    renderAt('/speakers')
+    expect(await screen.findByText(/4 speakers/i)).toBeInTheDocument()
+    expect(screen.queryByText(/Vinuthna Jagarlapudi/i)).not.toBeInTheDocument()
+  })
+
+  it('404s a not-yet-revealed speaker even though its slug is real', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-07T12:00:00+05:30'))
+    renderAt('/speakers/tezan-sahu')
+    expect(await screen.findByText(/There's no talk here\./i)).toBeInTheDocument()
+  })
+
+  // Regression test: with exactly 2 speakers revealed, naive prev/next modulo
+  // arithmetic makes both links resolve to the same other speaker. That must
+  // collapse to ONE "Also revealed" card, not two links to the same person.
+  it('shows a single "also revealed" card, not duplicate prev/next, when only 2 speakers are revealed', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-08T12:00:00+05:30'))
+    renderAt('/speakers/alekhya-singapore')
+    expect(await screen.findByText(/Also revealed/i)).toBeInTheDocument()
+    expect(screen.queryByText(/^Previous$/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/^Next$/i)).not.toBeInTheDocument()
+    expect(screen.getAllByText('Gopalan Uppiliappan')).toHaveLength(1)
   })
 })

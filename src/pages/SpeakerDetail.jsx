@@ -1,15 +1,14 @@
 import { Link, useParams } from 'react-router-dom'
-import { event, speakers } from '../data/site'
+import { event, speakers, isRevealed } from '../data/site'
 import { Eyebrow, Reveal, PortraitPlaceholder } from '../components/ui'
 import { BinaryDrift, RedGlow } from '../components/texture'
 import NotFound from './NotFound'
 
-// Portrait placeholder — same monogram + texture fallback as the Team page.
-// A real photo gets the full portrait ratio; the placeholder collapses to a
+// Portrait placeholder — same monogram + texture fallback as the Team page,
+// used for any speaker whose `photo` is still null in src/data/event.js. A
+// real photo gets the full portrait ratio; the placeholder collapses to a
 // short fixed band instead of stretching an empty box the same size a photo
 // would fill, which reads as a broken image rather than a "coming soon".
-// Swap `speaker.photo` in src/data/event.js once a real headshot exists;
-// nothing else on this page needs to change.
 function SpeakerPortrait({ speaker }) {
   return (
     <div className={`relative w-full overflow-hidden bg-ink ${speaker.photo ? 'aspect-[3/4]' : 'h-56 md:h-full'}`}>
@@ -46,11 +45,11 @@ function SpeakerThumb({ speaker }) {
   )
 }
 
-// Prev/next nav card: round thumbnail, direction label, name + role. Both
-// directions share one layout (thumb, then text) rather than mirroring —
-// mirrored text alignment reads as "two different components", not a pair.
+// One nav card: round thumbnail, label, name + role. `direction` is null for
+// the two-revealed-speakers case (see below), where "Previous"/"Next" would
+// be a meaningless label on the one other speaker there is to link to.
 function SpeakerNavCard({ speaker, direction }) {
-  const label = direction === 'prev' ? 'Previous' : 'Next'
+  const label = direction === 'prev' ? 'Previous' : direction === 'next' ? 'Next' : 'Also revealed'
   const arrow = direction === 'prev' ? '←' : '→'
   return (
     <Link
@@ -73,13 +72,25 @@ function SpeakerNavCard({ speaker, direction }) {
 
 export default function SpeakerDetail() {
   const { slug } = useParams()
-  const index = speakers.findIndex((s) => s.slug === slug)
-  const speaker = speakers[index]
+  const speaker = speakers.find((s) => s.slug === slug)
 
-  if (!speaker) return <NotFound />
+  // A slug for a speaker who hasn't been revealed yet renders the same 404 as
+  // an unknown slug — the reveal schedule (src/data/event.js `revealDate`)
+  // must never be bypassable by guessing a future speaker's URL.
+  if (!speaker || !isRevealed(speaker)) return <NotFound />
 
-  const prev = speakers[(index - 1 + speakers.length) % speakers.length]
-  const next = speakers[(index + 1) % speakers.length]
+  // Prev/next only ever cycles through OTHER revealed speakers, so a visitor
+  // can never land one click away from a page that immediately 404s. With
+  // exactly 2 speakers revealed (day one of the schedule), prev and next
+  // both resolve to that one other speaker — rendered as a single "Also
+  // revealed" card instead of two identical "Previous"/"Next" links to the
+  // same person. With 1 (or, degenerately, 0) revealed, there's no one else
+  // to link to and the section doesn't render at all.
+  const revealed = speakers.filter((s) => isRevealed(s))
+  const index = revealed.findIndex((s) => s.slug === slug)
+  const prev = revealed.length > 1 ? revealed[(index - 1 + revealed.length) % revealed.length] : null
+  const next = revealed.length > 1 ? revealed[(index + 1) % revealed.length] : null
+  const showsSamePersonTwice = revealed.length === 2
 
   return (
     <div>
@@ -136,12 +147,20 @@ export default function SpeakerDetail() {
       </section>
 
       {/* Prev / next */}
-      <section className="px-6 py-16 md:py-20">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
-          <SpeakerNavCard speaker={prev} direction="prev" />
-          <SpeakerNavCard speaker={next} direction="next" />
-        </div>
-      </section>
+      {prev && next && (
+        <section className="px-6 py-16 md:py-20">
+          <div className={`mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:gap-5 ${showsSamePersonTwice ? '' : 'sm:grid-cols-2'}`}>
+            {showsSamePersonTwice ? (
+              <SpeakerNavCard speaker={next} direction={null} />
+            ) : (
+              <>
+                <SpeakerNavCard speaker={prev} direction="prev" />
+                <SpeakerNavCard speaker={next} direction="next" />
+              </>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

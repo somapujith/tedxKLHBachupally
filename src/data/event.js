@@ -35,6 +35,10 @@ export const event = {
 // never claims a credential TED itself doesn't list.
 // `photo` is deliberately null until real headshots land: Speakers.jsx and
 // SpeakerDetail.jsx both fall back to a monogram tile, same pattern as `team`.
+// `revealDate` drives the daily reveal — two speakers unlock at 9 AM IST per
+// day, in roster order, starting Aug 8 2026. `isRevealed` below is the single
+// place that reads "now"; Speakers.jsx and SpeakerDetail.jsx both filter
+// through it so a speaker can never appear on one page before the other.
 export const speakers = [
   {
     n: 1,
@@ -44,6 +48,7 @@ export const speakers = [
     role: 'Consultant Dermatologist & Trichologist',
     credentials: 'MBBS · DDVL · Healthcare Management, ISB',
     highlight: 'Named India’s first “Dermapreneur” by Times Network',
+    revealDate: '2026-08-08T09:00:00+05:30',
     bio: 'Dr. Alekhya Singapore is a consultant dermatologist, trichologist, and founder of The Skin Sensé Clinic in Hyderabad, with over 14 years of experience. Named India’s first “Dermapreneur” by Times Network, she focuses on clinical, aesthetic, and pediatric dermatology, holding an MBBS, a DDVL, and a healthcare management degree from ISB.',
     photo: null,
   },
@@ -55,6 +60,7 @@ export const speakers = [
     role: 'Group CEO, RC Manubhai Group',
     credentials: 'B.Tech Chemical Engineering · MBA, IIM Bangalore · Executive Diploma, London Business School',
     highlight: 'Over 25 years of multinational executive experience',
+    revealDate: '2026-08-08T09:00:00+05:30',
     bio: 'Gopalan Uppiliappan is a business transformation leader with over 25 years of multinational executive experience. His expertise spans turnarounds, operational scaling, and fiscal restructuring of major conglomerates. He holds a B.Tech in Chemical Engineering, an MBA from IIM Bangalore, and an Executive Diploma from London Business School.',
     photo: null,
   },
@@ -66,6 +72,7 @@ export const speakers = [
     role: 'Consultant Medical Oncologist, Hematologist & Digital Health Innovator',
     credentials: 'Co-founder & CEO, Cancer Conscious Clinics',
     highlight: 'Over 14 years of cross-sector healthcare experience',
+    revealDate: '2026-08-09T09:00:00+05:30',
     bio: 'Dr. Tejaswini Adada is a physician-scientist, medical oncologist, and healthcare entrepreneur based in Hyderabad. Co-founder and CEO of Cancer Conscious Clinics, she brings over 14 years of cross-sector healthcare experience from premier institutions including Malla Reddy Narayana and HCG Cancer Centre.',
     photo: null,
   },
@@ -77,6 +84,7 @@ export const speakers = [
     role: 'Applied Scientist 2, Microsoft',
     credentials: 'IIT Bombay · Multiple US patents in applied AI',
     highlight: 'Author, Beyond Code',
+    revealDate: '2026-08-09T09:00:00+05:30',
     bio: 'Tezan Sahu is an AI engineer and technical speaker, an IIT Bombay alumnus working on the M365 Copilot Extensibility Platform. He authored the tech career guide Beyond Code and holds multiple US patents in applied AI.',
     photo: null,
   },
@@ -88,6 +96,7 @@ export const speakers = [
     role: 'Singer, Content Creator & Creative Director',
     credentials: 'Creative Director, Hyderabad Feed · MA Applied Psychology (in progress)',
     highlight: 'Featured on Zee Telugu’s Sa Re Ga Ma Pa, 2022',
+    revealDate: '2026-08-10T09:00:00+05:30',
     bio: 'Vinuthna Jagarlapudi is a professional playback singer, independent indie artist, and digital content creator based in Hyderabad. She appeared on Zee Telugu’s Sa Re Ga Ma Pa in 2022 and serves as Creative Director at Hyderabad Feed while pursuing an MA in Applied Psychology.',
     photo: null,
   },
@@ -99,10 +108,18 @@ export const speakers = [
     role: 'Writer & Content Creator',
     credentials: '100K+ followers, Instagram · @sampath_akondi',
     highlight: 'Known for comedic, relatable Telugu short-form storytelling',
+    revealDate: '2026-08-10T09:00:00+05:30',
     bio: 'Sampath Akondi is a Telugu writer and content creator known for short-form videos that turn everyday overthinking, relationships, and modern life into comedic, relatable storytelling. His reels and clips have built an audience of over 100,000 followers across Instagram and YouTube.',
     photo: null,
   },
 ]
+
+// True once a speaker's reveal moment has passed. `now` is injectable for
+// tests; every real call site (Speakers.jsx, SpeakerDetail.jsx) leaves it at
+// the default so the check always runs against the visitor's own clock.
+export function isRevealed(speaker, now = new Date()) {
+  return new Date(speaker.revealDate).getTime() <= now.getTime()
+}
 
 // Public contact + social identity. Used by the footer, the Contact page, and
 // the Organization structured data, so all three can never drift apart.

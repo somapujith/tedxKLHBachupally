@@ -35,6 +35,7 @@ import photoGopalan from '../assets/images/speakers/gopalan.jpg'
 import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
 import photoTezan from '../assets/images/speakers/tezan.jpg'
 import photoVinuthna from '../assets/images/speakers/vinuthna.jpg'
+import photoSampath from '../assets/images/speakers/sampath.jpg'
 import { speakers as speakerData } from './event'
 
 export const nav = [
@@ -51,7 +52,7 @@ export const nav = [
 // headshots are asset imports, which only this (browser-bundled) module can do,
 // so they're merged in here by slug and re-exported under the same name every
 // existing `from '../data/site'` import already expects.
-export { event, contact } from './event'
+export { event, contact, isRevealed } from './event'
 
 const speakerPhotos = {
   'alekhya-singapore': photoAlekhya,
@@ -59,6 +60,7 @@ const speakerPhotos = {
   'tejaswini-adada': photoTejaswini,
   'tezan-sahu': photoTezan,
   'vinuthna-jagarlapudi': photoVinuthna,
+  'sampath-akondi': photoSampath,
 }
 
 export const speakers = speakerData.map((s) => ({

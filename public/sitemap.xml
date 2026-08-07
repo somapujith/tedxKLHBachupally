@@ -7,6 +7,13 @@
 
   Priorities are relative to this site, not absolute: the home page and the
   ticket page are what the event lives or dies by, so they lead.
+
+  Per-speaker `/speakers/<slug>` URLs are NOT hand-maintained here — do not
+  add or edit them in this file. scripts/prerender.mjs strips every existing
+  speaker entry from dist/sitemap.xml on each build and regenerates them from
+  SPEAKER_SEO (src/lib/seo.js), which only includes speakers whose reveal
+  moment (src/data/event.js `revealDate`) has already passed. Any edit made
+  here to a speaker URL is silently discarded at build time.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>

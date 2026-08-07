@@ -24,10 +24,59 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PAGE_SEO, SPEAKER_SEO, SITE_URL, seoFor } from '../src/lib/seo.js'
+import { speakers, isRevealed } from '../src/data/event.js'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const dist = resolve(root, 'dist')
-const template = readFileSync(resolve(dist, 'index.html'), 'utf8')
+let template = readFileSync(resolve(dist, 'index.html'), 'utf8')
+
+// The JSON-LD `performer` array and public/sitemap.xml (copied into dist/ by
+// Vite before this script runs) are both hand-authored and both list every
+// speaker unconditionally — neither one is aware of the reveal schedule the
+// way SPEAKER_SEO is. Rewriting both here, off the same gated source SPEAKER_SEO
+// already reads from, closes that gap: an unrevealed speaker's name can't leak
+// into structured data or the sitemap ahead of their reveal moment, without
+// hand-editing either file every time the schedule advances.
+const revealedSpeakers = speakers.filter((s) => isRevealed(s))
+
+function rewritePerformerList(html) {
+  const performerJson = JSON.stringify(revealedSpeakers.map((s) => ({ '@type': 'Person', name: s.name })), null, 14)
+    .replace(/^/gm, '  ') // re-indent to match the surrounding template
+    .trim()
+  return html.replace(/"performer":\s*\[[\s\S]*?\]/, `"performer": ${performerJson}`)
+}
+
+function rewriteSitemap() {
+  const file = resolve(dist, 'sitemap.xml')
+  const xml = readFileSync(file, 'utf8')
+
+  const speakerUrlBlock = (slug) =>
+    `  <url>\n` +
+    `    <loc>${SITE_URL}/speakers/${slug}</loc>\n` +
+    `    <lastmod>${new Date().toISOString().slice(0, 10)}</lastmod>\n` +
+    `    <changefreq>weekly</changefreq>\n` +
+    `    <priority>0.7</priority>\n` +
+    `  </url>\n`
+
+  // Strip every existing `/speakers/<slug>` entry (revealed or not — they're
+  // about to be regenerated from scratch) but leave the bare `/speakers`
+  // listing page and everything else untouched.
+  const stripped = xml.replace(
+    new RegExp(`  <url>\\n\\s*<loc>${SITE_URL}/speakers/[a-z-]+</loc>[\\s\\S]*?</url>\\n`, 'g'),
+    '',
+  )
+
+  const inserted = stripped.replace(
+    new RegExp(`(  <url>\\n\\s*<loc>${SITE_URL}/speakers</loc>[\\s\\S]*?</url>\\n)`),
+    `$1${revealedSpeakers.map((s) => speakerUrlBlock(s.slug)).join('')}`,
+  )
+
+  writeFileSync(file, inserted)
+  console.log(`rewrote   sitemap.xml    -> ${revealedSpeakers.length} of ${speakers.length} speaker URLs (revealed only)`)
+}
+
+template = rewritePerformerList(template)
+rewriteSitemap()
 
 // Only routes that render their own content. Alias entries (canonical-only) are
 // skipped because vercel.json 301s them, and noindex routes are skipped because

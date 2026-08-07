@@ -9,7 +9,7 @@
 // Every fact here traces to src/data/event.js. When the date, venue or price
 // changes there, the strings below and the JSON-LD in index.html must follow.
 
-import { speakers } from '../data/event.js'
+import { speakers, isRevealed } from '../data/event.js'
 
 export const SITE_URL = 'https://www.tedxklhbachupally.in'
 const SITE_NAME = 'TEDxKLH Bachupally'
@@ -101,16 +101,25 @@ export const PAGE_SEO = {
   },
 }
 
-// One entry per speaker, keyed the same way as PAGE_SEO so seoFor and the
-// prerenderer can treat `/speakers/:slug` exactly like any static route.
+// One entry per REVEALED speaker, keyed the same way as PAGE_SEO so seoFor
+// and the prerenderer can treat `/speakers/:slug` like any static route.
+// Filtering by `isRevealed` here — not just in the page components — matters
+// twice over: the prerenderer (scripts/prerender.mjs) only writes static HTML
+// for routes in this object, so an unrevealed speaker's bio never ships to
+// disk or to Googlebot before its reveal moment; and seoFor() below falls
+// through to the generic noindex 404 metadata for anyone who guesses the
+// slug early, instead of `applySeo` announcing the name in the browser tab
+// while the page body renders NotFound.
 export const SPEAKER_SEO = Object.fromEntries(
-  speakers.map((s) => [
-    `/speakers/${s.slug}`,
-    {
-      title: `${s.name} | TEDxKLH Bachupally 2026`,
-      description: `${s.name}, ${s.role}, speaks at TEDxKLH Bachupally, Sat Aug 22, 2026 in Hyderabad. ${s.highlight}.`,
-    },
-  ]),
+  speakers
+    .filter((s) => isRevealed(s))
+    .map((s) => [
+      `/speakers/${s.slug}`,
+      {
+        title: `${s.name} | TEDxKLH Bachupally 2026`,
+        description: `${s.name}, ${s.role}, speaks at TEDxKLH Bachupally, Sat Aug 22, 2026 in Hyderabad. ${s.highlight}.`,
+      },
+    ]),
 )
 
 const FALLBACK = PAGE_SEO['/']
