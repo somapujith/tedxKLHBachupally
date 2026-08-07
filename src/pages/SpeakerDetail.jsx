@@ -27,6 +27,50 @@ function SpeakerPortrait({ speaker }) {
   )
 }
 
+// Small square thumbnail for the prev/next nav — same photo-or-monogram
+// fallback as the hero portrait, just cropped square and much smaller.
+function SpeakerThumb({ speaker }) {
+  return (
+    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full bg-ink sm:h-20 sm:w-20">
+      {speaker.photo ? (
+        <img
+          src={speaker.photo}
+          alt=""
+          style={speaker.photoPos ? { objectPosition: speaker.photoPos } : undefined}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+        />
+      ) : (
+        <PortraitPlaceholder name={speaker.name.replace(/^Dr\.?\s+/i, '')} size="text-lg" />
+      )}
+    </div>
+  )
+}
+
+// Prev/next nav card: round thumbnail, direction label, name + role. Both
+// directions share one layout (thumb, then text) rather than mirroring —
+// mirrored text alignment reads as "two different components", not a pair.
+function SpeakerNavCard({ speaker, direction }) {
+  const label = direction === 'prev' ? 'Previous' : 'Next'
+  const arrow = direction === 'prev' ? '←' : '→'
+  return (
+    <Link
+      to={`/speakers/${speaker.slug}`}
+      className="group flex items-center gap-4 rounded-lg border border-paper/10 p-5 transition-all duration-300 hover:border-red/50 hover:bg-paper/[0.03] sm:gap-5 sm:p-6"
+    >
+      <SpeakerThumb speaker={speaker} />
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50 transition-colors group-hover:text-red">
+          {direction === 'prev' && <span aria-hidden className="transition-transform duration-300 group-hover:-translate-x-1">{arrow}</span>}
+          {label}
+          {direction === 'next' && <span aria-hidden className="transition-transform duration-300 group-hover:translate-x-1">{arrow}</span>}
+        </div>
+        <div className="mt-2 truncate font-display text-xl tracking-tight md:text-2xl">{speaker.name}</div>
+        <div className="mt-0.5 truncate text-sm text-paper/60">{speaker.role}</div>
+      </div>
+    </Link>
+  )
+}
+
 export default function SpeakerDetail() {
   const { slug } = useParams()
   const index = speakers.findIndex((s) => s.slug === slug)
@@ -82,47 +126,20 @@ export default function SpeakerDetail() {
                   {speaker.credentials}
                 </p>
               )}
+
+              <p className="mt-8 max-w-xl text-base leading-relaxed text-paper/75 md:text-lg">
+                {speaker.bio}
+              </p>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* Bio — shares the hero's left edge (max-w-6xl) so the page reads as
-          one column, not two differently-centred blocks; the copy itself
-          still wraps at a readable measure via the inner max-w-3xl. */}
-      <section className="px-6">
-        <Reveal className="mx-auto max-w-6xl py-16 md:py-24">
-          <div className="max-w-3xl">
-            <Eyebrow className="mb-6 flex items-center gap-2">
-              <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-red" />
-              About
-            </Eyebrow>
-            <p className="text-lg leading-relaxed text-paper/80 md:text-xl">{speaker.bio}</p>
-          </div>
-        </Reveal>
-      </section>
-
       {/* Prev / next */}
-      <section className="border-t border-paper/10 px-6">
-        <div className="mx-auto grid max-w-6xl grid-cols-1 sm:grid-cols-2">
-          <Link
-            to={`/speakers/${prev.slug}`}
-            className="group border-b border-paper/10 p-8 transition-colors hover:bg-paper/[0.03] sm:border-b-0 sm:border-r"
-          >
-            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50 group-hover:text-red">
-              ← Previous
-            </div>
-            <div className="mt-3 font-display text-2xl tracking-tight">{prev.name}</div>
-          </Link>
-          <Link
-            to={`/speakers/${next.slug}`}
-            className="group p-8 text-left transition-colors hover:bg-paper/[0.03] sm:text-right"
-          >
-            <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50 group-hover:text-red">
-              Next →
-            </div>
-            <div className="mt-3 font-display text-2xl tracking-tight">{next.name}</div>
-          </Link>
+      <section className="px-6 py-16 md:py-20">
+        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+          <SpeakerNavCard speaker={prev} direction="prev" />
+          <SpeakerNavCard speaker={next} direction="next" />
         </div>
       </section>
     </div>

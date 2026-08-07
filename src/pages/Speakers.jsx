@@ -42,11 +42,8 @@ function SpeakerCard({ speaker }) {
           </div>
         )}
 
-        {/* Top row: category + index, floating over the image */}
-        <div className="absolute inset-x-0 top-0 flex items-center justify-between p-4 md:p-5">
-          <span className="rounded-full bg-ink/60 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.2em] text-paper/90 backdrop-blur-sm">
-            {speaker.category}
-          </span>
+        {/* Index, floating over the image */}
+        <div className="absolute inset-x-0 top-0 flex justify-end p-4 md:p-5">
           <span aria-hidden className="font-mono text-[11px] tracking-widest text-paper/60">
             {String(speaker.n).padStart(2, '0')}
           </span>
