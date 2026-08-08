@@ -2,6 +2,15 @@
 // Integration tests against the real Neon database. Manual bank-transfer flow.
 // Requires DATABASE_URL in .env. Cleans up its own rows.
 import 'dotenv/config'
+// This flow's `approvePayment` sends a real booking-confirmation email as a
+// side effect. Unlike server/__tests__/email.test.js — which mocks the
+// `resend` module itself and needs a real-looking key to exercise that mock —
+// this suite exercises the real payment/registration logic against the real
+// DB and has no reason to also hit the real Resend API with fake
+// `@example.com` addresses. Deleting the key here routes every send through
+// email.js's own "no API key -> skip" path instead of a real, doomed-to-fail
+// network call that only pollutes the production email_log table.
+delete process.env.RESEND_API_KEY
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { getSql, ensureRegistrationsTable } from '../db.js'
 import { createRegistration } from '../registrations.js'
