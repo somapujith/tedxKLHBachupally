@@ -30,6 +30,8 @@ import photoNaveena from '../assets/images/team/naveena.jpg'
 import photoGanesh from '../assets/images/team/ganesh.jpg'
 import photoLakshmiPrasanna from '../assets/images/team/lakshmi-prasanna.jpg'
 import photoSubramanyam from '../assets/images/team/subramanyam.jpg'
+import photoVenkateshwarRao from '../assets/images/team/venkateshwar-rao.jpg'
+import photoKoteshwarRao from '../assets/images/team/koteshwar-rao.jpg'
 import photoAlekhya from '../assets/images/speakers/alekhya.jpg'
 import photoGopalan from '../assets/images/speakers/gopalan.jpg'
 import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
@@ -143,8 +145,13 @@ export const teamDepartments = [
   'Web Development',
 ]
 
-// Leadership shown first on the Team page, one headed row per role.
+// Leadership shown first on the Team page, one headed row per role. The
+// Organiser (matched by exact role text in Team.jsx) gets the large featured
+// card; everyone else here — including the Principal, the institution's
+// patron rather than part of the student organizing team — shares the
+// co-lead row.
 export const teamLeadership = [
+  { name: 'Dr Koteshwar Rao', role: 'Principal', photo: photoKoteshwarRao },
   { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
   { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
   { name: 'Akash', role: 'Curator', photo: null },
@@ -174,7 +181,7 @@ export const team = [
   // Marketing
   { name: 'Suhas G', dept: 'Marketing', role: 'Leader', photo: photoSuhasG },
   { name: 'Pemesh', dept: 'Marketing', role: 'Co Leader', photo: photoPemesh },
-  { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: null },
+  { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
   { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
   { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
   { name: 'Rasagnya', dept: 'Marketing', photo: photoRasagnya },
