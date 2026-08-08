@@ -4,11 +4,6 @@
 // production bug: Vercel's dynamic-route matcher can deliver a query value as
 // an ARRAY, and every validator downstream is string-only.
 import 'dotenv/config'
-// See server/__tests__/payments.integration.test.js for why: this suite drives
-// real registration/verification endpoints against the real DB, which sends
-// real booking emails as a side effect. Deleting the key routes those through
-// email.js's existing "no key -> skip" path instead of a real Resend call.
-delete process.env.RESEND_API_KEY
 import jwt from 'jsonwebtoken'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import handler from '../../api/admin/[resource].js'

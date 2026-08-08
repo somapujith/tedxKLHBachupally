@@ -6,6 +6,17 @@ const FROM_NAME = 'TEDxKLH Bachupally'
 const LOGO_CID = 'tedx-logo'
 const QR_CID = 'tedx-qr'
 
+// The integration test suite (server/__tests__/*.integration.test.js) runs
+// against the real Neon database by design, but was also sending every
+// registration/payment side effect to the real Resend API with fake
+// `@example.com` addresses — which Resend correctly rejects, logging a real
+// 'failed' row to email_log for every test run. Same `NODE_ENV === 'test'`
+// guard server/index.js already uses for its rate limiter; here it routes
+// through the exact same "skip, don't fail" path as a missing API key below,
+// so test runs no longer pollute the operational email log with noise that
+// looks like real delivery failures to whoever is watching it.
+const isTest = process.env.NODE_ENV === 'test'
+
 // Lazily constructed so a missing key never throws at import time (the API
 // modules import this file at cold start, before env is necessarily complete).
 let client = null
@@ -254,8 +265,8 @@ export function bookingText({ fullName, registrationId, utrId, amount }) {
 // submission because a mail could not be sent.
 export async function sendBookingEmail({ to, fullName, registrationId, utrId, amount }) {
   const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.warn('RESEND_API_KEY not set — skipping booking email for', to)
+  if (!apiKey || isTest) {
+    if (!isTest) console.warn('RESEND_API_KEY not set — skipping booking email for', to)
     return { ok: false, skipped: true }
   }
 
@@ -317,8 +328,8 @@ export function ticketText({ fullName, registrationId }) {
 // send claim back on a falsy ok.
 export async function sendTicketEmail({ to, fullName, qrPngBuffer, registrationId }) {
   const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) {
-    console.warn('RESEND_API_KEY not set — skipping ticket email for', to)
+  if (!apiKey || isTest) {
+    if (!isTest) console.warn('RESEND_API_KEY not set — skipping ticket email for', to)
     return { ok: false, skipped: true }
   }
 
