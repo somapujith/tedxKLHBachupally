@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { team, teamDepartments, teamLeadership } from '../data/site'
 import { Eyebrow, TeamCard } from '../components/ui'
 import { BinaryDrift, RedGlow } from '../components/texture'
 
-// Turn a department name into a stable URL/anchor slug.
+// Turn a department name into a stable tab key.
 function slugify(name) {
   return name
     .toLowerCase()
@@ -14,7 +14,6 @@ function slugify(name) {
 }
 
 // Numberless section header — a red circle marker, the title, and a hairline rule.
-// No counts, no zero-padded index; reads the same in any language.
 function SectionHeader({ title, kicker }) {
   return (
     <div className="mb-8">
@@ -32,6 +31,42 @@ function SectionHeader({ title, kicker }) {
   )
 }
 
+// Numbered domain tabs — "01 Leadership", "02 Hospitality", etc. One domain
+// on screen at a time, not every department stacked and scrolled through:
+// browsing the team becomes a choice ("who's on Marketing?") instead of a
+// long scroll past departments you didn't come for.
+function DomainTabs({ tabs, active, onChange }) {
+  return (
+    <div className="-mx-6 overflow-x-auto px-6 sm:mx-0 sm:overflow-visible sm:px-0">
+      <div role="tablist" aria-label="Team domain" className="flex gap-1 border-b border-paper/10">
+        {tabs.map((tab, i) => {
+          const isActive = active === tab.key
+          return (
+            <button
+              key={tab.key}
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => onChange(tab.key)}
+              className={`group relative flex shrink-0 items-center gap-2.5 whitespace-nowrap px-4 py-3.5 font-mono text-[11px] uppercase tracking-[0.2em] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red md:px-5 ${
+                isActive ? 'text-paper' : 'text-paper/45 hover:text-paper/80'
+              }`}
+            >
+              <span className={isActive ? 'text-red' : 'text-paper/25'}>{String(i + 1).padStart(2, '0')}</span>
+              {tab.label}
+              <span
+                aria-hidden
+                className={`absolute inset-x-0 -bottom-px h-0.5 origin-left bg-red transition-transform duration-300 ${
+                  isActive ? 'scale-x-100' : 'scale-x-0'
+                }`}
+              />
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // Featured, extra-wide leadership card for the single Organiser. Larger portrait,
 // bigger type, a hairline red accent bar so it reads as the top of the masthead.
 function FeaturedLeadCard({ member }) {
@@ -39,13 +74,12 @@ function FeaturedLeadCard({ member }) {
   return (
     <motion.article
       initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="group relative flex flex-col overflow-hidden border border-paper/10 bg-paper/[0.02] transition-all duration-300 hover:border-red/50 sm:flex-row"
     >
       <span aria-hidden className="absolute left-0 top-0 z-10 h-full w-1 bg-red/70" />
-      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-ink sm:aspect-auto sm:w-64 md:w-80">
+      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-ink sm:aspect-auto sm:w-72 md:w-96">
         {member.photo ? (
           <img
             src={member.photo}
@@ -82,12 +116,11 @@ function CoLeadCard({ member, index = 0 }) {
   return (
     <motion.article
       initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.06 }}
       className="group relative flex items-center gap-6 overflow-hidden border border-paper/10 bg-paper/[0.02] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-red/50 md:gap-8 md:p-8"
     >
-      <div className="relative h-32 w-32 shrink-0 overflow-hidden bg-ink sm:h-40 sm:w-40 md:h-44 md:w-44">
+      <div className="relative h-36 w-36 shrink-0 overflow-hidden bg-ink sm:h-44 sm:w-44 md:h-52 md:w-52">
         {member.photo ? (
           <img
             src={member.photo}
@@ -106,7 +139,7 @@ function CoLeadCard({ member, index = 0 }) {
       </div>
       <div className="min-w-0">
         <div className="font-mono text-[11px] uppercase tracking-[0.25em] text-red">{member.role}</div>
-        <div className="mt-2 truncate font-display text-2xl tracking-tight md:text-3xl lg:text-4xl">
+        <div className="mt-2 break-words font-display text-2xl leading-tight tracking-tight md:text-3xl">
           {member.name}
         </div>
       </div>
@@ -114,24 +147,21 @@ function CoLeadCard({ member, index = 0 }) {
   )
 }
 
-function TeamSection({ title, kicker, members, anchorId }) {
-  // A lone member (e.g. Productions "GBS Team") shouldn't stretch a 4-col grid.
-  // Cap the column count so a single card sits at a natural card width.
+// Department roster grid. Capped at 3 columns (was 4) — trading a column for
+// a visibly bigger portrait per card, since the frame is the point now.
+function TeamGrid({ members }) {
   const cols =
     members.length === 1
       ? 'grid-cols-1 sm:max-w-xs'
       : members.length === 2
         ? 'grid-cols-2 sm:max-w-md'
-        : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4'
+        : 'grid-cols-2 sm:grid-cols-3'
   return (
-    <section id={anchorId} className="mb-20 scroll-mt-28 last:mb-0">
-      <SectionHeader title={title} kicker={kicker} />
-      <div className={`grid gap-4 ${cols}`}>
-        {members.map((member, i) => (
-          <TeamCard key={`${title}-${member.name}`} member={member} index={i} />
-        ))}
-      </div>
-    </section>
+    <div className={`grid gap-5 md:gap-6 ${cols}`}>
+      {members.map((member, i) => (
+        <TeamCard key={member.name} member={member} index={i} />
+      ))}
+    </div>
   )
 }
 
@@ -139,18 +169,26 @@ export default function Team() {
   const organiser = teamLeadership.find((l) => /^organiser$/i.test(l.role))
   const coLeads = teamLeadership.filter((l) => l !== organiser)
 
-  // Departments that actually have members, with anchor slugs. No counts.
+  // Departments that actually have members. No counts.
   const activeDepartments = useMemo(
     () =>
       teamDepartments
         .map((dept) => ({
           dept,
-          slug: slugify(dept),
+          key: slugify(dept),
           members: team.filter((m) => m.dept === dept),
         }))
         .filter((d) => d.members.length > 0),
     [],
   )
+
+  const tabs = useMemo(
+    () => [{ key: 'leadership', label: 'Leadership' }, ...activeDepartments.map((d) => ({ key: d.key, label: d.dept }))],
+    [activeDepartments],
+  )
+
+  const [active, setActive] = useState('leadership')
+  const activeDept = activeDepartments.find((d) => d.key === active)
 
   return (
     <div>
@@ -171,26 +209,28 @@ export default function Team() {
         </div>
       </section>
 
-      {/* Leadership + departments */}
+      {/* Domain-tabbed roster */}
       <section className="px-6">
         <div className="mx-auto max-w-6xl py-16 md:py-24">
-          {/* Leadership */}
-          <div id="leadership" className="mb-24 scroll-mt-28">
-            <SectionHeader title="Leadership" kicker="Who leads the room" />
-            {organiser && <FeaturedLeadCard member={organiser} />}
-            {coLeads.length > 0 && (
-              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {coLeads.map((lead, i) => (
-                  <CoLeadCard key={lead.name} member={lead} index={i} />
-                ))}
-              </div>
+          <SectionHeader title="The team" kicker="Browse by domain" />
+          <DomainTabs tabs={tabs} active={active} onChange={setActive} />
+
+          <div className="mt-10 md:mt-12">
+            {active === 'leadership' ? (
+              <>
+                {organiser && <FeaturedLeadCard member={organiser} />}
+                {coLeads.length > 0 && (
+                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {coLeads.map((lead, i) => (
+                      <CoLeadCard key={lead.name} member={lead} index={i} />
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              activeDept && <TeamGrid members={activeDept.members} />
             )}
           </div>
-
-          {/* Departments */}
-          {activeDepartments.map(({ dept, slug, members }) => (
-            <TeamSection key={dept} title={dept} members={members} anchorId={slug} />
-          ))}
         </div>
       </section>
     </div>

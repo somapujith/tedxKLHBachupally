@@ -173,8 +173,9 @@ export function TeamCard({ member, index = 0, showIndex = false }) {
       transition={{ duration: 0.45, delay: (index % 8) * 0.05 }}
       className="group relative overflow-hidden border border-paper/10 bg-paper/[0.02] transition-all duration-300 hover:border-red/50 hover:-translate-y-1"
     >
-      {/* Portrait */}
-      <div className="relative aspect-square overflow-hidden bg-ink">
+      {/* Portrait — taller than the old square, so the frame carries more of
+          the card's weight now that the grid runs 3-wide instead of 4. */}
+      <div className="relative aspect-[4/5] overflow-hidden bg-ink">
         {member.photo ? (
           <img
             src={member.photo}
@@ -196,7 +197,7 @@ export function TeamCard({ member, index = 0, showIndex = false }) {
                 </div>
               ))}
             </div>
-            <span className="font-display text-5xl tracking-tight text-paper/30 transition-colors duration-500 group-hover:text-red/45">
+            <span className="font-display text-6xl tracking-tight text-paper/30 transition-colors duration-500 group-hover:text-red/45">
               {initials(member.name)}
             </span>
           </div>
@@ -209,10 +210,10 @@ export function TeamCard({ member, index = 0, showIndex = false }) {
       </div>
 
       {/* Body */}
-      <div className="relative px-4 py-4">
-        <div className="font-display text-base tracking-tight leading-tight">{member.name}</div>
+      <div className="relative px-5 py-5">
+        <div className="font-display text-lg tracking-tight leading-tight md:text-xl">{member.name}</div>
         {member.role && (
-          <div className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
+          <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
         )}
         {member.bio && <p className="mt-3 text-sm leading-relaxed text-paper/60">{member.bio}</p>}
         {showIndex && (
