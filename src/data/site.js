@@ -183,7 +183,7 @@ export const team = [
   { name: 'Suhas G', dept: 'Marketing', role: 'Leader', photo: photoSuhasG },
   { name: 'Pemesh', dept: 'Marketing', role: 'Co Leader', photo: photoPemesh },
   { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
-  { name: 'Sohit', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
+  { name: 'Sohith', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
   { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
   { name: 'Rasagnya', dept: 'Marketing', photo: photoRasagnya },
   { name: 'Akshitha', dept: 'Marketing', photo: photoAkshitha },
