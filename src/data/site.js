@@ -32,6 +32,7 @@ import photoLakshmiPrasanna from '../assets/images/team/lakshmi-prasanna.jpg'
 import photoSubramanyam from '../assets/images/team/subramanyam.jpg'
 import photoVenkateshwarRao from '../assets/images/team/venkateshwar-rao.jpg'
 import photoKoteshwarRao from '../assets/images/team/koteshwar-rao.jpg'
+import photoAkash from '../assets/images/team/akash.jpg'
 import photoAlekhya from '../assets/images/speakers/alekhya.jpg'
 import photoGopalan from '../assets/images/speakers/gopalan.jpg'
 import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
@@ -154,7 +155,7 @@ export const teamLeadership = [
   { name: 'Dr Koteshwar Rao', role: 'Principal', photo: photoKoteshwarRao },
   { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
   { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
-  { name: 'Akash', role: 'Curator', photo: null },
+  { name: 'Akash', role: 'Curator', photo: photoAkash },
   { name: 'Shareef', role: 'Head of Department — CS&IT', photo: photoShareef },
 ]
 
