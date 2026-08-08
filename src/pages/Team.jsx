@@ -67,51 +67,19 @@ function DomainTabs({ tabs, active, onChange }) {
   )
 }
 
-// Featured, extra-wide leadership card for the single Organiser. Larger portrait,
-// bigger type, a hairline red accent bar so it reads as the top of the masthead.
-function FeaturedLeadCard({ member }) {
-  const reduceMotion = useReducedMotion()
-  return (
-    <motion.article
-      initial={reduceMotion ? false : { opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="group relative flex flex-col overflow-hidden border border-paper/10 bg-paper/[0.02] transition-all duration-300 hover:border-red/50 sm:flex-row"
-    >
-      <span aria-hidden className="absolute left-0 top-0 z-10 h-full w-1 bg-red/70" />
-      <div className="relative aspect-square w-full shrink-0 overflow-hidden bg-ink sm:aspect-auto sm:w-72 md:w-96">
-        {member.photo ? (
-          <img
-            src={member.photo}
-            alt={member.name}
-            loading="lazy"
-            style={member.photoPos ? { objectPosition: member.photoPos } : undefined}
-            className="h-full w-full object-cover grayscale contrast-125 transition-all duration-500 group-hover:scale-105 group-hover:grayscale-0"
-          />
-        ) : (
-          <div className="flex h-full min-h-[16rem] w-full items-center justify-center bg-gradient-to-br from-ink to-[#171717]">
-            <span className="font-display text-7xl tracking-tight text-paper/30 transition-colors duration-500 group-hover:text-red/45">
-              {member.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="flex flex-1 flex-col justify-center px-8 py-10 md:px-12">
-        <div className="font-mono text-[11px] uppercase tracking-[0.25em] text-red">{member.role}</div>
-        <div className="mt-3 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">
-          {member.name}
-        </div>
-        <p className="mt-5 max-w-md text-sm leading-relaxed text-paper/55">
-          Sets the direction of the event and carries the team from first idea to
-          final applause.
-        </p>
-      </div>
-    </motion.article>
-  )
+// One rank per role, highest first: Principal > Organiser > Co-organiser >
+// Curator > Head of Department. Anything unrecognized sorts to the end,
+// keeping its relative order, rather than disappearing or crashing.
+const ROLE_RANK = [/^principal$/i, /^organiser$/i, /^co-organiser$/i, /^curator$/i, /head of department/i]
+function rankOf(role) {
+  const i = ROLE_RANK.findIndex((re) => re.test(role))
+  return i === -1 ? ROLE_RANK.length : i
 }
 
-// Compact co-lead card for the two Co-organisers sharing one row.
-function CoLeadCard({ member, index = 0 }) {
+// One card style for every leadership member — no featured/oversized
+// treatment for any single role. Same portrait size across the board; rank
+// is communicated by the role label and by sort order, not by image size.
+function LeadCard({ member, index = 0 }) {
   const reduceMotion = useReducedMotion()
   return (
     <motion.article
@@ -166,8 +134,10 @@ function TeamGrid({ members }) {
 }
 
 export default function Team() {
-  const organiser = teamLeadership.find((l) => /^organiser$/i.test(l.role))
-  const coLeads = teamLeadership.filter((l) => l !== organiser)
+  const leadership = useMemo(
+    () => [...teamLeadership].sort((a, b) => rankOf(a.role) - rankOf(b.role)),
+    [],
+  )
 
   // Departments that actually have members. No counts.
   const activeDepartments = useMemo(
@@ -217,16 +187,11 @@ export default function Team() {
 
           <div className="mt-10 md:mt-12">
             {active === 'leadership' ? (
-              <>
-                {organiser && <FeaturedLeadCard member={organiser} />}
-                {coLeads.length > 0 && (
-                  <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-                    {coLeads.map((lead, i) => (
-                      <CoLeadCard key={lead.name} member={lead} index={i} />
-                    ))}
-                  </div>
-                )}
-              </>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {leadership.map((lead, i) => (
+                  <LeadCard key={lead.name} member={lead} index={i} />
+                ))}
+              </div>
             ) : (
               activeDept && <TeamGrid members={activeDept.members} />
             )}
