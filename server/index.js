@@ -499,7 +499,7 @@ app.get('/api/admin/email-log', adminActionLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
-    const result = await listEmailLog({ status: req.query?.status, limit: req.query?.limit })
+    const result = await listEmailLog({ status: req.query?.status, type: req.query?.type, limit: req.query?.limit })
     return res.status(result.status).json(result)
   } catch (err) {
     console.error('Email log error:', err)

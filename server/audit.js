@@ -189,17 +189,19 @@ export async function listAuditLog({ action, admin, limit } = {}) {
   return { ok: true, status: 200, entries: rows, limit: take }
 }
 
-export async function listEmailLog({ status, limit } = {}) {
+export async function listEmailLog({ status, type, limit } = {}) {
   const sql = getSql()
   await ensureLogSchema(sql)
   const take = clampLimit(limit)
   const statusFilter = status && status !== 'all' ? String(status) : null
+  const typeFilter = type && type !== 'all' ? String(type) : null
 
   const rows = await sql`
     SELECT id, registration_id, to_email, full_name, email_type, status,
            provider_message_id, error, triggered_by, created_at
     FROM email_log
     WHERE (${statusFilter}::text IS NULL OR status = ${statusFilter})
+      AND (${typeFilter}::text IS NULL OR email_type = ${typeFilter})
     ORDER BY created_at DESC
     LIMIT ${take}
   `
@@ -244,6 +246,16 @@ export async function getSuperStats() {
         FROM email_log GROUP BY status ORDER BY COUNT(*) DESC
       ) e) AS email_by_status,
 
+      -- Same rollup, split by email_type too — the Admin > Emails screen shows
+      -- "Confirmation" (booking) and "Pass" (ticket) as separate tabs, and each
+      -- needs its own exact sent/failed/skipped counts. Grouping here rather
+      -- than deriving it from the (LIMIT-capped) row list in listEmailLog below
+      -- keeps the numbers correct even once email_log outgrows that page size.
+      (SELECT COALESCE(json_agg(et), '[]'::json) FROM (
+        SELECT email_type, status, COUNT(*)::int AS count
+        FROM email_log GROUP BY email_type, status ORDER BY email_type, COUNT(*) DESC
+      ) et) AS email_by_type_status,
+
       (SELECT COALESCE(json_agg(t), '[]'::json) FROM (
         SELECT triggered_by, COUNT(*)::int AS count
         FROM email_log GROUP BY triggered_by ORDER BY COUNT(*) DESC
@@ -276,6 +288,7 @@ export async function getSuperStats() {
       byAdmin: s.by_admin,
       checkinsByHour: s.checkins_by_hour,
       emailByStatus: s.email_by_status,
+      emailByTypeStatus: s.email_by_type_status,
       emailByTrigger: s.email_by_trigger,
       actionsByType: s.actions_by_type,
       admins: s.admins,

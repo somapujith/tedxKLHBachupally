@@ -131,7 +131,7 @@ const RESOURCES = {
   },
   'email-log': {
     auth: SUPER,
-    GET: async (req) => listEmailLog({ status: req.query?.status, limit: req.query?.limit }),
+    GET: async (req) => listEmailLog({ status: req.query?.status, type: req.query?.type, limit: req.query?.limit }),
   },
   'super-stats': {
     auth: SUPER,

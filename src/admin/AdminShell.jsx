@@ -15,6 +15,7 @@ const PAGES = {
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
   '/admin/payments': { title: 'Payments', description: 'Every verified bank transfer, by UTR reference.' },
+  '/admin/emails': { title: 'Emails', description: 'Confirmation and pass emails, by delivery status.' },
 }
 
 // `short` is used between md and xl, where a superadmin's six tabs would
@@ -29,6 +30,7 @@ const BASE_TABS = [
 // gains two more.
 const SUPER_TABS = [
   { to: '/admin/payments', label: 'Payments' },
+  { to: '/admin/emails', label: 'Emails' },
   { to: '/admin/activity', label: 'Activity' },
   { to: '/admin/admins', label: 'Admins' },
 ]

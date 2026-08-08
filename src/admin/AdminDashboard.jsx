@@ -636,7 +636,10 @@ function SuperSection({ superStats, settings, onSaved }) {
         </Card>
       </div>
 
-      <NavTile to="/admin/activity" title="Full activity log" hint="Every admin action and ticket email" />
+      <div className="grid gap-3 md:grid-cols-2 md:gap-4">
+        <NavTile to="/admin/emails" title="Confirmation & pass emails" hint="Sent counts and failures, by email type" />
+        <NavTile to="/admin/activity" title="Full activity log" hint="Every admin action and ticket email" />
+      </div>
     </div>
   )
 }
