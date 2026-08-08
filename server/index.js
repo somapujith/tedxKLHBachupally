@@ -120,7 +120,16 @@ const makeLimiter = (max) =>
   })
 
 const loginLimiter = makeLimiter(10) // 10 login attempts / 15 min / IP
-const adminActionLimiter = makeLimiter(60) // lighter cap for checkin / resend
+// Split by blast radius, not by "is this /admin/*". A GET is a dashboard tab
+// load — AdminDashboard alone fires 4-5 of them in parallel, and a superadmin
+// clicking through Dashboard -> Support -> Activity -> Emails in one sitting
+// (plus a refresh or two) blows past a low shared cap in minutes, which is
+// exactly the 429s that motivated this split. A POST/PATCH actually changes
+// state (check someone in, approve a payment, create an admin) and is where
+// a compromised token or a scripted abuser does real damage, so it keeps the
+// tight cap the old single `adminActionLimiter` had.
+const adminReadLimiter = makeLimiter(300) // listings/stats: 20/min average, generous
+const adminWriteLimiter = makeLimiter(60) // mutating actions: unchanged from before
 const contactLimiter = makeLimiter(5) // 5 contact messages / 15 min / IP
 // Support tickets are raised by someone who has already registered and is often
 // anxious (paid, no pass yet), so the IP cap is looser than contact's — the real
@@ -282,7 +291,7 @@ app.get('/api/admin/registrations', async (req, res) => {
   }
 })
 
-app.post('/api/admin/checkin', adminActionLimiter, async (req, res) => {
+app.post('/api/admin/checkin', adminWriteLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -299,7 +308,7 @@ app.post('/api/admin/checkin', adminActionLimiter, async (req, res) => {
   }
 })
 
-app.post('/api/admin/resend-ticket', adminActionLimiter, async (req, res) => {
+app.post('/api/admin/resend-ticket', adminWriteLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -329,7 +338,7 @@ app.post('/api/admin/resend-ticket', adminActionLimiter, async (req, res) => {
 // kept because they still work and something may call them, but these two are
 // what the dashboard actually uses, and they must stay shape-compatible with
 // api/admin/[resource].js or one deploy target breaks while the other passes.
-app.get('/api/admin/verifications', adminActionLimiter, async (req, res) => {
+app.get('/api/admin/verifications', adminReadLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -345,7 +354,7 @@ app.get('/api/admin/verifications', adminActionLimiter, async (req, res) => {
 
 // Approve, or reject when the body carries `reject`. Mirrors the POST branch of
 // the verifications resource in api/admin/[resource].js.
-app.post('/api/admin/verifications', adminActionLimiter, async (req, res) => {
+app.post('/api/admin/verifications', adminWriteLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -367,7 +376,7 @@ app.post('/api/admin/verifications', adminActionLimiter, async (req, res) => {
 
 // Proof is fetched one row at a time — the list query omits the base64 image so
 // opening the queue does not pull megabytes per page.
-app.get('/api/admin/verifications/:id/proof', adminActionLimiter, async (req, res) => {
+app.get('/api/admin/verifications/:id/proof', adminReadLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -379,7 +388,7 @@ app.get('/api/admin/verifications/:id/proof', adminActionLimiter, async (req, re
   }
 })
 
-app.post('/api/admin/verifications/approve', adminActionLimiter, async (req, res) => {
+app.post('/api/admin/verifications/approve', adminWriteLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -395,7 +404,7 @@ app.post('/api/admin/verifications/approve', adminActionLimiter, async (req, res
   }
 })
 
-app.post('/api/admin/verifications/reject', adminActionLimiter, async (req, res) => {
+app.post('/api/admin/verifications/reject', adminWriteLimiter, async (req, res) => {
   const auth = requireAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -418,7 +427,7 @@ app.post('/api/admin/verifications/reject', adminActionLimiter, async (req, res)
 
 app
   .route('/api/admin/support')
-  .get(adminActionLimiter, async (req, res) => {
+  .get(adminReadLimiter, async (req, res) => {
     const auth = requireAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
@@ -432,7 +441,7 @@ app
       return res.status(500).json({ ok: false, error: 'Could not load support tickets.' })
     }
   })
-  .post(adminActionLimiter, async (req, res) => {
+  .post(adminWriteLimiter, async (req, res) => {
     const auth = requireAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
@@ -459,7 +468,7 @@ app
 // (every UTR, every amount, the running total) and a gate admin working the
 // queue has no need for it.
 
-app.get('/api/admin/payments', adminActionLimiter, async (req, res) => {
+app.get('/api/admin/payments', adminReadLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -479,7 +488,7 @@ app.get('/api/admin/payments', adminActionLimiter, async (req, res) => {
 // for an authenticated plain admin so the client shows "not allowed" instead of
 // bouncing to a login screen that would mint the same insufficient token again.
 
-app.get('/api/admin/audit-log', adminActionLimiter, async (req, res) => {
+app.get('/api/admin/audit-log', adminReadLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -495,7 +504,7 @@ app.get('/api/admin/audit-log', adminActionLimiter, async (req, res) => {
   }
 })
 
-app.get('/api/admin/email-log', adminActionLimiter, async (req, res) => {
+app.get('/api/admin/email-log', adminReadLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -507,7 +516,7 @@ app.get('/api/admin/email-log', adminActionLimiter, async (req, res) => {
   }
 })
 
-app.get('/api/admin/super-stats', adminActionLimiter, async (req, res) => {
+app.get('/api/admin/super-stats', adminReadLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -523,7 +532,7 @@ app.get('/api/admin/super-stats', adminActionLimiter, async (req, res) => {
 // sets it ({capacity: <int>}) or clears it ({capacity: null}).
 app
   .route('/api/admin/settings')
-  .get(adminActionLimiter, async (req, res) => {
+  .get(adminReadLimiter, async (req, res) => {
     const auth = await requireSuperAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
@@ -534,7 +543,7 @@ app
       return res.status(500).json({ ok: false, error: 'Could not load settings.' })
     }
   })
-  .patch(adminActionLimiter, async (req, res) => {
+  .patch(adminWriteLimiter, async (req, res) => {
     const auth = await requireSuperAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
@@ -567,7 +576,7 @@ app
   })
 
 // Invalidate a generated QR pass; "resend-ticket" afterwards issues a new one.
-app.post('/api/admin/revoke-ticket', adminActionLimiter, async (req, res) => {
+app.post('/api/admin/revoke-ticket', adminWriteLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)
   if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
   try {
@@ -587,7 +596,7 @@ app.post('/api/admin/revoke-ticket', adminActionLimiter, async (req, res) => {
 // path-parameter route (/admins/:id) would need its own function file.
 app
   .route('/api/admin/admins')
-  .get(adminActionLimiter, async (req, res) => {
+  .get(adminReadLimiter, async (req, res) => {
     const auth = await requireSuperAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
@@ -598,7 +607,7 @@ app
       return res.status(500).json({ ok: false, error: 'Could not load admins.' })
     }
   })
-  .post(adminActionLimiter, async (req, res) => {
+  .post(adminWriteLimiter, async (req, res) => {
     const auth = await requireSuperAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
@@ -609,7 +618,7 @@ app
       return res.status(500).json({ ok: false, error: 'Could not create the admin.' })
     }
   })
-  .patch(adminActionLimiter, async (req, res) => {
+  .patch(adminWriteLimiter, async (req, res) => {
     const auth = await requireSuperAdmin(req)
     if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
     try {
