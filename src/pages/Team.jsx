@@ -117,15 +117,13 @@ function LeadCard({ member, index = 0 }) {
 
 // Department roster grid. Capped at 3 columns (was 4) — trading a column for
 // a visibly bigger portrait per card, since the frame is the point now.
+// Same column tiers regardless of headcount: a small department (e.g.
+// Productions, 2 people) previously got its container width-capped to
+// sm:max-w-md, shrinking those cards well below a bigger department's — a
+// team of 2 isn't a smaller team, just a shorter row.
 function TeamGrid({ members }) {
-  const cols =
-    members.length === 1
-      ? 'grid-cols-1 sm:max-w-xs'
-      : members.length === 2
-        ? 'grid-cols-2 sm:max-w-md'
-        : 'grid-cols-2 sm:grid-cols-3'
   return (
-    <div className={`grid gap-5 md:gap-6 ${cols}`}>
+    <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:gap-6">
       {members.map((member, i) => (
         <TeamCard key={member.name} member={member} index={i} />
       ))}
