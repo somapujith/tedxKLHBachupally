@@ -6,7 +6,7 @@ import { getSeatCapacity } from './settings.js'
 import { recordAudit, AUDIT_ACTIONS } from './audit.js'
 
 const ADMIN_ISSUER = 'tedxklh-admin'
-const STATUSES = ['paid', 'pending', 'checked_in']
+const STATUSES = ['paid', 'pending', 'submitted', 'checked_in']
 
 export const ROLES = { ADMIN: 'admin', SUPERADMIN: 'superadmin' }
 

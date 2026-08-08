@@ -196,21 +196,33 @@ export function Field({ id, label, hint, children }) {
 
 const STATUS_TONES = {
   paid: { dot: 'bg-emerald-400', text: 'text-emerald-300', ring: 'border-emerald-400/25 bg-emerald-400/10' },
+  submitted: { dot: 'bg-violet-400', text: 'text-violet-300', ring: 'border-violet-400/25 bg-violet-400/10' },
   checked_in: { dot: 'bg-sky-400', text: 'text-sky-300', ring: 'border-sky-400/25 bg-sky-400/10' },
   pending: { dot: 'bg-amber-400', text: 'text-amber-300', ring: 'border-amber-400/25 bg-amber-400/10' },
   default: { dot: 'bg-paper/40', text: 'text-paper/60', ring: 'border-white/10 bg-white/[0.04]' },
+}
+
+// The badge's word is the superadmin's *meaning* for a payment_status value,
+// not the raw column name: 'submitted' (buyer paid, admin hasn't verified
+// yet) reads as "Paid", and 'paid' (admin verified, pass issued) reads as
+// "Verified". Renaming the DB values themselves would touch every query in
+// server/payments.js for no reason — only the label shown here changes.
+const STATUS_LABELS = {
+  paid: 'Verified',
+  submitted: 'Paid',
 }
 
 // Dot + word. Reads faster than an all-caps outlined chip and stops the three
 // status colours from fighting the brand red.
 export function StatusBadge({ status }) {
   const tone = STATUS_TONES[status] ?? STATUS_TONES.default
+  const label = STATUS_LABELS[status] ?? String(status ?? '').replace('_', ' ') ?? ''
   return (
     <span
       className={`inline-flex flex-none items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${tone.ring} ${tone.text}`}
     >
       <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${tone.dot}`} />
-      {String(status ?? '').replace('_', ' ') || 'unknown'}
+      {label || 'unknown'}
     </span>
   )
 }

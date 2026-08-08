@@ -3,6 +3,11 @@
 // is covered: route wiring, status codes, and — critically — the raw-body webhook
 // Real Neon DB. Covers the register + manual bank-transfer submit endpoints.
 import 'dotenv/config'
+// See server/__tests__/payments.integration.test.js for why: this suite drives
+// real registration/payment endpoints against the real DB, which sends real
+// booking emails as a side effect. Deleting the key routes those through
+// email.js's existing "no key -> skip" path instead of a real Resend call.
+delete process.env.RESEND_API_KEY
 import request from 'supertest'
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { app } from '../index.js'

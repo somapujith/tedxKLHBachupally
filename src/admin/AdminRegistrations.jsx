@@ -14,10 +14,15 @@ import {
   StatusBadge,
 } from './ui'
 
+// Lifecycle order: pending (not yet paid) -> submitted (paid, awaiting admin
+// verification) -> paid (verified, pass issued) -> checked_in (pass scanned).
+// Labels follow that meaning, not the raw DB column name — 'submitted' reads
+// as "Paid" here and 'paid' reads as "Verified", per the superadmin's terms.
 const FILTERS = [
   { key: 'all', label: 'All' },
-  { key: 'paid', label: 'Paid' },
   { key: 'pending', label: 'Pending' },
+  { key: 'submitted', label: 'Paid' },
+  { key: 'paid', label: 'Verified' },
   { key: 'checked_in', label: 'Checked in' },
 ]
 
