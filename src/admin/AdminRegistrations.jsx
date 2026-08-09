@@ -24,6 +24,7 @@ const REGISTRATION_EXPORT_FIELDS = [
   { key: 'phone', label: 'Phone' },
   { key: 'designation', label: 'Designation' },
   { key: 'college', label: 'College' },
+  { key: 'utr_id', label: 'UTR' },
   { key: 'payment_status', label: 'Payment status' },
   { key: 'created_at', label: 'Registered at' },
   { key: 'paid_at', label: 'Paid at' },
