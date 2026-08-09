@@ -13,6 +13,25 @@ import {
   SegmentedControl,
   StatusBadge,
 } from './ui'
+import ExportCsvButton from './ExportCsvButton'
+
+// Column set for the CSV export — mirrors exactly what listRegistrations
+// returns (server/admin.js), so nothing here can silently drift from what's
+// actually on screen.
+const REGISTRATION_EXPORT_FIELDS = [
+  { key: 'full_name', label: 'Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'designation', label: 'Designation' },
+  { key: 'college', label: 'College' },
+  { key: 'payment_status', label: 'Payment status' },
+  { key: 'created_at', label: 'Registered at' },
+  { key: 'paid_at', label: 'Paid at' },
+  { key: 'checked_in_at', label: 'Checked in at' },
+  { key: 'checked_in_by', label: 'Checked in by' },
+  { key: 'ticket_issued', label: 'Ticket issued', value: (r) => (r.ticket_issued ? 'yes' : 'no'), default: false },
+  { key: 'id', label: 'Registration ID', default: false },
+]
 
 // Lifecycle order: pending (not yet paid) -> submitted (paid, awaiting admin
 // verification) -> paid (verified, pass issued) -> checked_in (pass scanned).
@@ -106,12 +125,17 @@ export default function AdminRegistrations() {
         </div>
       </div>
 
-      <RefreshBar
-        left={loading ? 'Loading…' : `${visible.length} ${visible.length === 1 ? 'registration' : 'registrations'}`}
-        refreshedAt={refreshedAt}
-        loading={loading}
-        onRefresh={() => load(filter)}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <RefreshBar
+            left={loading ? 'Loading…' : `${visible.length} ${visible.length === 1 ? 'registration' : 'registrations'}`}
+            refreshedAt={refreshedAt}
+            loading={loading}
+            onRefresh={() => load(filter)}
+          />
+        </div>
+        <ExportCsvButton rows={visible} fields={REGISTRATION_EXPORT_FIELDS} filename="tedxklh-registrations.csv" />
+      </div>
 
       {/* Mobile: attendee cards. */}
       <div className="space-y-3 md:hidden">

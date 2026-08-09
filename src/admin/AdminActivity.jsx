@@ -2,6 +2,29 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
 import { Alert, Card, EmptyState, RefreshBar, SegmentedControl } from './ui'
+import ExportCsvButton from './ExportCsvButton'
+
+// Mirrors listAuditLog / listEmailLog (server/audit.js) respectively.
+const AUDIT_EXPORT_FIELDS = [
+  { key: 'created_at', label: 'When' },
+  { key: 'admin_username', label: 'Admin' },
+  { key: 'admin_role', label: 'Role', default: false },
+  { key: 'action', label: 'Action' },
+  { key: 'result', label: 'Result' },
+  { key: 'target_name', label: 'Target' },
+  { key: 'target_type', label: 'Target type', default: false },
+  { key: 'detail', label: 'Detail' },
+  { key: 'ip', label: 'IP', default: false },
+]
+const EMAIL_EXPORT_FIELDS = [
+  { key: 'full_name', label: 'Name' },
+  { key: 'to_email', label: 'Email' },
+  { key: 'email_type', label: 'Email type' },
+  { key: 'status', label: 'Status' },
+  { key: 'triggered_by', label: 'Triggered by' },
+  { key: 'error', label: 'Error', default: false },
+  { key: 'created_at', label: 'Sent at' },
+]
 
 // Superadmin activity screen: the admin audit trail and the ticket-email log,
 // under one tab. Both answer the same class of question after the event ("who
@@ -131,12 +154,21 @@ export default function AdminActivity() {
 
       <SegmentedControl options={VIEWS} value={view} onChange={setView} ariaLabel="Log to show" />
 
-      <RefreshBar
-        left={view === 'audit' ? `${auditRows.length} actions` : `${emailRows.length} emails`}
-        refreshedAt={refreshedAt}
-        loading={loading}
-        onRefresh={load}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <RefreshBar
+            left={view === 'audit' ? `${auditRows.length} actions` : `${emailRows.length} emails`}
+            refreshedAt={refreshedAt}
+            loading={loading}
+            onRefresh={load}
+          />
+        </div>
+        {view === 'audit' ? (
+          <ExportCsvButton rows={auditRows} fields={AUDIT_EXPORT_FIELDS} filename="tedxklh-activity.csv" />
+        ) : (
+          <ExportCsvButton rows={emailRows} fields={EMAIL_EXPORT_FIELDS} filename="tedxklh-emails.csv" />
+        )}
+      </div>
 
       {view === 'audit' ? (
         <>

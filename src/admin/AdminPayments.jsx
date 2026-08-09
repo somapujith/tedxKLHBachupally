@@ -2,6 +2,27 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
 import { Alert, Card, EmptyState, Input, Label, RefreshBar, SearchIcon } from './ui'
+import ExportCsvButton from './ExportCsvButton'
+
+// Mirrors exactly what listVerifiedPayments returns (server/payments.js).
+const PAYMENT_EXPORT_FIELDS = [
+  { key: 'full_name', label: 'Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'designation', label: 'Designation' },
+  { key: 'college', label: 'College' },
+  { key: 'college_other', label: 'College (other)', default: false },
+  { key: 'utr_id', label: 'UTR' },
+  { key: 'amount', label: 'Amount' },
+  { key: 'submitted_at', label: 'Submitted at', default: false },
+  { key: 'verified_at', label: 'Verified at' },
+  { key: 'verified_by', label: 'Verified by' },
+  { key: 'paid_at', label: 'Paid at', default: false },
+  { key: 'checked_in_at', label: 'Checked in at' },
+  { key: 'ticket_issued', label: 'Ticket issued', value: (r) => (r.ticket_issued ? 'yes' : 'no'), default: false },
+  { key: 'ticket_revoked', label: 'Ticket revoked', value: (r) => (r.ticket_revoked ? 'yes' : 'no'), default: false },
+  { key: 'id', label: 'Registration ID', default: false },
+]
 
 // The verified-payment ledger. Every approved bank transfer with the UTR
 // reference front and centre, because reconciliation starts from a line on a
@@ -109,18 +130,23 @@ export default function AdminPayments() {
         />
       </div>
 
-      <RefreshBar
-        left={
-          loading
-            ? 'Loading…'
-            : search.trim()
-              ? `${rows.length} matching ${rows.length === 1 ? 'payment' : 'payments'}`
-              : `${rows.length} shown of ${totals.count}`
-        }
-        refreshedAt={refreshedAt}
-        loading={loading}
-        onRefresh={() => load(search.trim())}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <RefreshBar
+            left={
+              loading
+                ? 'Loading…'
+                : search.trim()
+                  ? `${rows.length} matching ${rows.length === 1 ? 'payment' : 'payments'}`
+                  : `${rows.length} shown of ${totals.count}`
+            }
+            refreshedAt={refreshedAt}
+            loading={loading}
+            onRefresh={() => load(search.trim())}
+          />
+        </div>
+        <ExportCsvButton rows={rows} fields={PAYMENT_EXPORT_FIELDS} filename="tedxklh-payments.csv" />
+      </div>
 
       {/* Mobile: one card per payment. */}
       <div className="space-y-3 md:hidden">

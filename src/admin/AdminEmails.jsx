@@ -2,6 +2,20 @@ import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
 import { Alert, Card, EmptyState, Label, RefreshBar, SegmentedControl, fmtDateTime } from './ui'
+import ExportCsvButton from './ExportCsvButton'
+
+// Mirrors exactly what listEmailLog returns (server/audit.js).
+const EMAIL_EXPORT_FIELDS = [
+  { key: 'full_name', label: 'Name' },
+  { key: 'to_email', label: 'Email' },
+  { key: 'email_type', label: 'Email type' },
+  { key: 'status', label: 'Status' },
+  { key: 'triggered_by', label: 'Triggered by' },
+  { key: 'error', label: 'Error', default: false },
+  { key: 'provider_message_id', label: 'Provider message ID', default: false },
+  { key: 'created_at', label: 'Sent at' },
+  { key: 'id', label: 'Log ID', default: false },
+]
 
 // Two tabs over the SAME email_log table, split by `email_type` — Confirmation
 // is the booking email sent the moment a bank-transfer proof is approved;
@@ -182,12 +196,17 @@ export default function AdminEmails() {
         />
       </div>
 
-      <RefreshBar
-        left={`${rows.length} shown`}
-        refreshedAt={refreshedAt}
-        loading={loading}
-        onRefresh={load}
-      />
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 flex-1">
+          <RefreshBar
+            left={`${rows.length} shown`}
+            refreshedAt={refreshedAt}
+            loading={loading}
+            onRefresh={load}
+          />
+        </div>
+        <ExportCsvButton rows={rows} fields={EMAIL_EXPORT_FIELDS} filename={`tedxklh-emails-${active.key}.csv`} />
+      </div>
 
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <SegmentedControl options={STATUS_FILTERS} value={statusFilter} onChange={setStatusFilter} ariaLabel="Filter by status" />
