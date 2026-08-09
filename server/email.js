@@ -110,7 +110,7 @@ export function ticketHtml({ fullName, registrationId }) {
           <!-- Footer -->
           <tr>
             <td align="center" style="padding:24px 32px 28px;background:#111111;">
-              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ffffff;">TEDxKLH Bachupally</div>
+              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;color:#ffffff;">TEDxKLH BACHUPALLY</div>
               <div style="margin-top:8px;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#9a9a9a;">
                 <a href="mailto:${contact.email}" style="color:#9a9a9a;text-decoration:none;">${contact.email}</a>
                 &nbsp;·&nbsp;
@@ -204,7 +204,7 @@ export function bookingHtml({ fullName, registrationId, utrId, amount }) {
           <!-- Footer -->
           <tr>
             <td align="center" style="padding:24px 32px 28px;background:#111111;">
-              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ffffff;">TEDxKLH Bachupally</div>
+              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;color:#ffffff;">TEDxKLH BACHUPALLY</div>
               <div style="margin-top:8px;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#9a9a9a;">
                 <a href="mailto:${contact.email}" style="color:#9a9a9a;text-decoration:none;">${contact.email}</a>
                 &nbsp;·&nbsp;
@@ -441,7 +441,7 @@ export function earlyBirdHtml({ fullName, price }) {
           <!-- Footer -->
           <tr>
             <td align="center" style="padding:24px 32px 28px;background:#111111;">
-              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ffffff;">TEDxKLH Bachupally</div>
+              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;letter-spacing:.14em;color:#ffffff;">TEDxKLH BACHUPALLY</div>
               <div style="margin-top:8px;font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#9a9a9a;">
                 <a href="mailto:${contact.email}" style="color:#9a9a9a;text-decoration:none;">${contact.email}</a>
                 &nbsp;·&nbsp;
