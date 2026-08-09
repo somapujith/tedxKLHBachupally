@@ -48,3 +48,9 @@ services:
         sync: false
       - key: EMAIL_FROM
         sync: false
+      # --- Cron auth: shared secret the GitHub Actions retry job sends as
+      # the x-cron-secret header (.github/workflows/retry-failed-emails.yml).
+      # Generate with `openssl rand -hex 32`; must match the GH repo secret
+      # of the same name exactly.
+      - key: CRON_SECRET
+        sync: false

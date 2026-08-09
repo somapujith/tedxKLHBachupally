@@ -30,6 +30,7 @@ import {
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from './admin-users.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from './audit.js'
 import { getSettings, updateRegistrationOpenOverride, updateSeatCapacity } from './settings.js'
+import { retryFailedTransactionalEmails } from './emailRetry.js'
 
 const app = express()
 const port = Number(process.env.PORT) || 3001
@@ -172,6 +173,32 @@ app.get('/api/health', async (_req, res) => {
   } catch (err) {
     console.error('Health check failed:', err)
     res.status(503).json({ ok: false, db: 'error' })
+  }
+})
+
+// Retries transactional emails held by a Resend quota exhaustion (or any
+// other transient send failure) — see server/emailRetry.js. Not an admin
+// route: called by a scheduled GitHub Actions job (.github/workflows/
+// retry-failed-emails.yml), not a logged-in admin session, so it is gated by
+// a shared secret header instead of requireAdmin's JWT check. Idempotent by
+// design, so the job calling this on a fixed schedule without knowing the
+// exact quota-reset moment is fine — see the module doc for why.
+const cronRetryLimiter = makeLimiter(20)
+app.post('/api/cron/retry-failed-emails', cronRetryLimiter, async (req, res) => {
+  const secret = process.env.CRON_SECRET
+  if (!secret) {
+    return res.status(503).json({ ok: false, error: 'CRON_SECRET not configured.' })
+  }
+  if (req.headers['x-cron-secret'] !== secret) {
+    return res.status(401).json({ ok: false, error: 'Unauthorized.' })
+  }
+  try {
+    const result = await retryFailedTransactionalEmails()
+    console.log(`Email retry: ${result.sent} sent, ${result.stillFailed} still failed, of ${result.attempted} attempted.`)
+    return res.status(200).json(result)
+  } catch (err) {
+    console.error('Email retry error:', err)
+    return res.status(500).json({ ok: false, error: 'Retry run failed.' })
   }
 })
 

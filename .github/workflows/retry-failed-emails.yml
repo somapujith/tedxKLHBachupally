@@ -1,0 +1,64 @@
+# Retries transactional emails (booking confirmation, ticket/QR) held by a
+# Resend daily-quota exhaustion — see server/emailRetry.js for the full
+# rationale. Runs hourly rather than at one guessed reset time because nobody
+# running this job knows Resend's exact reset moment for this account; the
+# retry endpoint is idempotent (only acts on registrations whose LATEST
+# email_log attempt is still 'failed'), so firing before the reset is a
+# harmless no-op, not a duplicate send.
+#
+# SETUP (one-time):
+#   1. Repository variable RETRY_API_URL — the Render service origin, e.g.
+#      https://tedx-api.onrender.com (Settings -> Secrets and variables ->
+#      Actions -> Variables).
+#   2. Repository secret CRON_SECRET — must match the CRON_SECRET set on the
+#      Render service's Environment tab exactly (Settings -> Secrets and
+#      variables -> Actions -> Secrets).
+# Without either, the job exits successfully with a notice rather than
+# failing on every scheduled run.
+
+name: Retry held transactional emails
+
+on:
+  schedule:
+    - cron: '17 * * * *' # hourly, offset from :00 so it doesn't pile onto keep-alive's every-10-minutes runs
+  workflow_dispatch: # allow a manual run right after confirming the quota reset
+
+concurrency:
+  group: retry-failed-emails
+  cancel-in-progress: false # let an in-flight retry finish rather than killing it mid-send
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: POST /api/cron/retry-failed-emails
+        env:
+          RETRY_API_URL: ${{ vars.RETRY_API_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${RETRY_API_URL}" ] || [ -z "${CRON_SECRET}" ]; then
+            echo "::notice::RETRY_API_URL variable or CRON_SECRET secret is not set — skipping."
+            exit 0
+          fi
+
+          target="${RETRY_API_URL%/}/api/cron/retry-failed-emails"
+          echo "Calling ${target}"
+
+          status=$(curl -sS -o /tmp/retry.json -w '%{http_code}' \
+            -X POST \
+            -H "x-cron-secret: ${CRON_SECRET}" \
+            --max-time 90 \
+            --retry 2 --retry-delay 10 --retry-all-errors \
+            "${target}")
+
+          echo "HTTP ${status}"
+          cat /tmp/retry.json || true
+          echo
+
+          if [ "${status}" != "200" ]; then
+            echo "::error::Retry call returned HTTP ${status}"
+            exit 1
+          fi
