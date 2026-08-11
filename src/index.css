@@ -35,3 +35,26 @@ button:focus-visible {
   outline: 1px solid #e62b1e;
   outline-offset: 2px;
 }
+
+/* Entrance for the Instagram follow prompt. Referenced from the component as
+   arbitrary `animate-[fadeIn_...]` / `animate-[popIn_...]` utilities, both
+   guarded by `motion-safe:` there. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

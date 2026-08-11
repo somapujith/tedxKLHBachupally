@@ -12,6 +12,7 @@ import instagramIcon from '../assets/images/instagram.svg'
 // that actually renders the background — never as part of Layout's own chunk,
 // which wraps every public route.
 const ColorBends = lazy(() => import('./ColorBends'))
+const InstagramModal = lazy(() => import('./InstagramModal'))
 
 // True when the OS asked for less motion, or the browser reports a metered /
 // slow connection (Data Saver). Either way, downloading three.js and running a
@@ -239,6 +240,13 @@ export default function Layout({ children }) {
       </header>
 
       <main className="relative z-10 flex-1">{children}</main>
+
+      {/* Lazy so its chunk never blocks first paint — it does not appear for
+          five seconds anyway. Layout wraps only public routes, so the admin
+          console never gets a follow prompt over the check-in scanner. */}
+      <Suspense fallback={null}>
+        <InstagramModal />
+      </Suspense>
 
       <footer className="border-t border-paper/20 mt-24 bg-ink">
         <div className="max-w-6xl mx-auto px-6 pt-16 pb-12 grid grid-cols-2 md:grid-cols-4 gap-10">
