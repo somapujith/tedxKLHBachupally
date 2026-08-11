@@ -27,7 +27,15 @@ const REGISTRATION_EXPORT_FIELDS = [
   { key: 'utr_id', label: 'UTR' },
   { key: 'payment_status', label: 'Payment status' },
   { key: 'created_at', label: 'Registered at' },
-  { key: 'paid_at', label: 'Paid at' },
+  // "Paid at" is submitted_at, NOT paid_at. paid_at is only stamped when an
+  // admin approves, so on this screen — where the 'submitted' filter is
+  // labelled "Paid" — every row an admin thinks of as paid had an empty
+  // paid_at and exported a blank column. submitted_at is the moment the
+  // attendee actually sent the money and entered their UTR, which is what
+  // "paid at" means to whoever reads this file.
+  { key: 'submitted_at', label: 'Paid at' },
+  // The approval moment, stamped by the human who checked the bank statement.
+  { key: 'verified_at', label: 'Verified at' },
   { key: 'checked_in_at', label: 'Checked in at' },
   { key: 'checked_in_by', label: 'Checked in by' },
   { key: 'ticket_issued', label: 'Ticket issued', value: (r) => (r.ticket_issued ? 'yes' : 'no'), default: false },
@@ -291,7 +299,11 @@ function RegistrationCard({ row, onRevoked }) {
         <dl className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-xs text-paper/60">
           <Detail term="Designation" value={row.designation ?? '—'} capitalize />
           <Detail term="Registered" value={row.created_at ? fmtDateTime(row.created_at) : '—'} />
-          {row.paid_at && <Detail term="Paid" value={fmtDateTime(row.paid_at)} />}
+          {/* Same distinction the export makes: "Paid" is when the attendee
+              sent the money, "Verified" is when an admin confirmed it. Reading
+              paid_at for "Paid" showed nothing at all on a submitted row. */}
+          {row.submitted_at && <Detail term="Paid" value={fmtDateTime(row.submitted_at)} />}
+          {row.verified_at && <Detail term="Verified" value={fmtDateTime(row.verified_at)} />}
           <Detail
             term="Checked in"
             value={row.checked_in_at ? `${fmtDateTime(row.checked_in_at)} · by ${row.checked_in_by ?? '—'}` : '—'}
@@ -343,7 +355,14 @@ function RegistrationRow({ row, onRevoked }) {
       </td>
       <td className="px-4 py-3">
         <StatusBadge status={status} />
-        {row.paid_at && <div className="mt-1.5 text-xs text-paper/40">{fmtDateTime(row.paid_at)}</div>}
+        {/* The timestamp under the badge should belong to the state the badge
+            shows: verified rows date from the approval, everything else from
+            the payment submission. */}
+        {(row.verified_at || row.submitted_at) && (
+          <div className="mt-1.5 text-xs text-paper/40">
+            {fmtDateTime(row.verified_at || row.submitted_at)}
+          </div>
+        )}
       </td>
       <td className="px-4 py-3 text-xs text-paper/60">
         {row.checked_in_at ? (
