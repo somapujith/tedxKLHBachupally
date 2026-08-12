@@ -276,6 +276,77 @@ function VerificationQueue({ items, onChanged }) {
   const [proofError, setProofError] = useState('')
   const [busyId, setBusyId] = useState(null)
   const [note, setNote] = useState('')
+  // Bulk selection. Superadmin-only, matching the server's gate on
+  // /api/admin/bulk-verify — a plain admin never sees a checkbox, and would get
+  // a 403 if they forged the request anyway.
+  const canBulk = isSuperAdmin()
+  const [selected, setSelected] = useState(() => new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
+
+  // Drop selections for rows that have left the queue (approved elsewhere, or
+  // rejected), so the count never claims more than is actually on screen.
+  useEffect(() => {
+    setSelected((prev) => {
+      const live = new Set(items.map((i) => i.id))
+      const next = new Set([...prev].filter((id) => live.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [items])
+
+  function toggle(id) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const allSelected = items.length > 0 && selected.size === items.length
+
+  function toggleAll() {
+    setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)))
+  }
+
+  async function verifySelected() {
+    const ids = [...selected]
+    if (ids.length === 0) return
+    if (
+      !window.confirm(
+        `Verify ${ids.length} payment${ids.length === 1 ? '' : 's'} and email ${ids.length === 1 ? 'their pass' : 'their passes'}? This takes ${ids.length === 1 ? 'a seat' : `${ids.length} seats`}.`,
+      )
+    ) {
+      return
+    }
+
+    setBulkBusy(true)
+    setNote('')
+    const { ok, data } = await adminFetch('/api/admin/bulk-verify', {
+      method: 'POST',
+      body: { registrationIds: ids },
+    })
+    setBulkBusy(false)
+
+    if (!ok) {
+      setNote(data.error || 'Could not verify the selected payments.')
+      return
+    }
+
+    // Partial success is normal — a row can lose the capacity gate or fail its
+    // email while the rest go through. Naming the ones that failed matters more
+    // than the totals: those are the rows the superadmin has to act on next.
+    const failures = (data.results || []).filter((r) => !r.ok)
+    setNote(
+      failures.length === 0
+        ? `Verified ${data.approved} payment${data.approved === 1 ? '' : 's'} and emailed their passes.`
+        : `Verified ${data.approved} of ${data.attempted}. Failed: ${failures
+            .map((f) => `${f.name || f.registrationId} (${f.error})`)
+            .join('; ')}`,
+    )
+    setSelected(new Set())
+    setOpenId(null)
+    onChanged()
+  }
 
   // Shared by the Verify toggle and the Retry link, so a transient failure does
   // not force the admin to collapse and reopen the row to try again.
@@ -377,6 +448,33 @@ function VerificationQueue({ items, onChanged }) {
 
       {note && <Alert>{note}</Alert>}
 
+      {/* Batch bar. Only rendered for a superadmin, and only once the queue has
+          something in it — an always-present "select all" over an empty list is
+          just noise. */}
+      {canBulk && items.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-paper/70">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              disabled={bulkBusy}
+              className="h-4 w-4 cursor-pointer accent-red"
+            />
+            {selected.size > 0 ? `${selected.size} selected` : 'Select all'}
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            onClick={verifySelected}
+            disabled={bulkBusy || selected.size === 0}
+          >
+            {bulkBusy ? 'Verifying…' : `Verify selected${selected.size ? ` (${selected.size})` : ''}`}
+          </Button>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <EmptyState
           tone="good"
@@ -391,6 +489,16 @@ function VerificationQueue({ items, onChanged }) {
             <li key={reg.id} className="px-1 py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
+                  {canBulk && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(reg.id)}
+                      onChange={() => toggle(reg.id)}
+                      disabled={bulkBusy}
+                      aria-label={`Select ${reg.full_name} for bulk verification`}
+                      className="h-4 w-4 flex-none cursor-pointer accent-red"
+                    />
+                  )}
                   {/* Initials avatar: gives each row an anchor point so a long
                       queue scans as people rather than as repeated text rows. */}
                   <span

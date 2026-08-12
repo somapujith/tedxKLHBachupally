@@ -332,6 +332,99 @@ export async function approvePayment({ registrationId }, actor = {}, context = {
   return { ok: true, status: 200, registration: rows[0] }
 }
 
+// Upper bound on one bulk approval. Each approval issues a pass and sends an
+// email, so a batch is only as fast as the slowest provider round trip — and a
+// serverless invocation has a wall-clock ceiling it cannot negotiate. Twenty
+// five keeps a full batch comfortably inside it; a bigger queue is two clicks
+// instead of one, which is a far better failure mode than a request that dies
+// halfway with no answer.
+export const BULK_APPROVE_LIMIT = 25
+
+/**
+ * Approve several submissions in one action. Superadmin-only at the route.
+ *
+ * Deliberately a sequential loop over approvePayment rather than one bulk
+ * UPDATE: every guard that makes a single approval safe — the capacity gate
+ * inside the statement, the already-paid check, the audit row, the pass issue —
+ * is per registration, and a hand-written bulk statement would have to
+ * reimplement all of it. Sequential also keeps the ticket emails inside the
+ * provider's rate limit, which firing 25 sends at once would not.
+ *
+ * Partial success is the expected case, not an error: one row can lose the
+ * capacity gate or fail its email while the rest go through. Every outcome is
+ * reported per registration so the caller can say exactly which ones need a
+ * second look, and an approval that already committed is never rolled back
+ * because a later one failed.
+ */
+export async function approvePaymentsBulk({ registrationIds }, actor = {}, context = {}) {
+  if (!Array.isArray(registrationIds) || registrationIds.length === 0) {
+    return { ok: false, status: 400, error: 'Select at least one registration to verify.' }
+  }
+  // De-duplicate before the count check: the same id twice is one approval, and
+  // the second pass would otherwise report a confusing "already confirmed".
+  const ids = [...new Set(registrationIds.map((id) => String(id)))]
+  if (ids.length > BULK_APPROVE_LIMIT) {
+    return {
+      ok: false,
+      status: 400,
+      error: `Verify at most ${BULK_APPROVE_LIMIT} at a time. Select fewer and repeat.`,
+    }
+  }
+  if (ids.some((id) => !isUuid(id))) {
+    return { ok: false, status: 400, error: 'One of the selected registrations is invalid.' }
+  }
+
+  const results = []
+  for (const registrationId of ids) {
+    // approvePayment never throws for a business reason, but a database blip
+    // must not abandon the rest of the batch — the rows already approved are
+    // committed and the remaining ones deserve their attempt.
+    try {
+      const res = await approvePayment({ registrationId }, actor, context)
+      results.push({
+        registrationId,
+        ok: res.ok === true,
+        name: res.registration?.full_name || null,
+        email: res.registration?.email || null,
+        error: res.ok ? null : res.error,
+      })
+    } catch (err) {
+      console.error('Bulk approve failed for', registrationId, err)
+      results.push({
+        registrationId,
+        ok: false,
+        name: null,
+        email: null,
+        error: 'Could not verify this registration.',
+      })
+    }
+  }
+
+  const approved = results.filter((r) => r.ok).length
+  const failed = results.length - approved
+
+  await recordAudit({
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    action: AUDIT_ACTIONS.PAYMENT_APPROVED,
+    targetType: 'registration',
+    // No single target: the per-registration approvals each wrote their own
+    // audit row already. This one records that a human chose to act in bulk,
+    // which the individual rows cannot show.
+    targetId: null,
+    targetName: `${approved} registration(s)`,
+    detail: `Bulk verification: ${approved} approved, ${failed} failed, of ${ids.length} selected.`,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  })
+
+  // 200 even when some failed: the request itself succeeded and the body is the
+  // report. A 4xx/5xx here would make the client discard results describing
+  // approvals that really did happen.
+  return { ok: true, status: 200, approved, failed, attempted: ids.length, results }
+}
+
 /**
  * Every verified payment, newest first — the money ledger.
  *

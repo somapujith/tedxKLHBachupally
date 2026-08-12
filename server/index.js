@@ -10,6 +10,7 @@ import {
   listVerifiedPayments,
   getPaymentProof,
   approvePayment,
+  approvePaymentsBulk,
   rejectPayment,
   seatAvailability,
 } from './payments.js'
@@ -514,6 +515,27 @@ app.get('/api/admin/payments', adminReadLimiter, async (req, res) => {
 // Everything below is gated by requireSuperAdmin, which returns 403 (not 401)
 // for an authenticated plain admin so the client shows "not allowed" instead of
 // bouncing to a login screen that would mint the same insufficient token again.
+
+// Bulk approval. Mirrors the 'bulk-verify' resource in api/admin/[resource].js
+// — same service call, same superadmin gate — so the two deploy targets cannot
+// drift. Partial failure comes back as a 200 with a per-registration report,
+// because approvals that already committed must not be discarded by the client
+// just because a later one in the batch failed.
+app.post('/api/admin/bulk-verify', adminWriteLimiter, async (req, res) => {
+  const auth = await requireSuperAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await approvePaymentsBulk(
+      { registrationIds: req.body?.registrationIds },
+      actorFrom(auth),
+      requestContext(req),
+    )
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Bulk verify error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not verify the selected payments.' })
+  }
+})
 
 app.get('/api/admin/audit-log', adminReadLimiter, async (req, res) => {
   const auth = await requireSuperAdmin(req)

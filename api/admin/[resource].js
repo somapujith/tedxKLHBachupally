@@ -17,6 +17,7 @@ import {
   listVerifiedPayments,
   getPaymentProof,
   approvePayment,
+  approvePaymentsBulk,
   rejectPayment,
 } from '../../server/payments.js'
 import { listSupportTickets, resolveSupportTicket } from '../../server/support.js'
@@ -109,6 +110,19 @@ const RESOURCES = {
           resolved: req.body?.resolved !== false,
           note: req.body?.note,
         },
+        actorFrom(auth),
+        requestContext(req),
+      ),
+  },
+  // Approve many submissions in one action. Superadmin-only, unlike the
+  // single-row approval every admin can do: one click here commits a batch of
+  // seats and sends a batch of passes, and that is a scale of mistake worth
+  // restricting to the account that can also revoke.
+  'bulk-verify': {
+    auth: SUPER,
+    POST: async (req, { auth }) =>
+      approvePaymentsBulk(
+        { registrationIds: req.body?.registrationIds },
         actorFrom(auth),
         requestContext(req),
       ),
