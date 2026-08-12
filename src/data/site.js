@@ -44,6 +44,7 @@ import photoTezan from '../assets/images/speakers/tezan.jpg'
 import photoVinuthna from '../assets/images/speakers/vinuthna.jpg'
 import photoSampath from '../assets/images/speakers/sampath.jpg'
 import photoSaiKiran from '../assets/images/speakers/saikiran.jpg'
+import photoNawab from '../assets/images/speakers/nawab-mir-nasir-ali-khan.jpg'
 import { speakers as speakerData } from './event'
 
 export const nav = [
@@ -69,6 +70,7 @@ const speakerPhotos = {
   'vinuthna-jagarlapudi': photoVinuthna,
   'sampath-akondi': photoSampath,
   'katapally-sai-kiran': photoSaiKiran,
+  'nawab-mir-nasir-ali-khan': photoNawab,
 }
 
 export const speakers = speakerData.map((s) => ({
@@ -103,8 +105,8 @@ export const theme = {
     },
     {
       n: '003/003',
-      title: 'Six speakers. One question.',
-      body: 'We invited six people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage, on a screen. They will not tell you what to think. They will tell you what it cost them to think it.',
+      title: 'Seven speakers. One question.',
+      body: 'We invited seven people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage, on a screen, at a negotiating table. They will not tell you what to think. They will tell you what it cost them to think it.',
     },
   ],
 }

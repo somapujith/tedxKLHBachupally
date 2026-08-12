@@ -112,6 +112,18 @@ export const speakers = [
     bio: 'Katapally Sai Kiran is a space-tech entrepreneur and ecosystem builder from Hyderabad, and the founder of SUMVN and Space App India. He leads the NASA International Space Apps Challenge in India, convening students, researchers, startups, and domain experts around space technology — and works to put space education and entrepreneurship within reach of the next generation of innovators.',
     photo: null,
   },
+  {
+    n: 7,
+    slug: 'nawab-mir-nasir-ali-khan',
+    name: 'Dr. Nawab Mir Nasir Ali Khan',
+    category: 'Business',
+    role: 'Honorary Consul of the Republic of Kazakhstan, Hyderabad',
+    credentials: 'Managing Director, MAK Projects Pvt. Ltd.',
+    highlight: 'Diplomat of the Year 2025, conferred at Capitol Hill, Washington D.C.',
+    revealDate: '2026-08-12T00:00:00+05:30',
+    bio: 'Dr. Nawab Mir Nasir Ali Khan is the Honorary Consul of the Republic of Kazakhstan in Hyderabad for Telangana and Andhra Pradesh, appointed by Kazakhstan’s Ministry of Foreign Affairs and formally recognized by the President of India. He also serves as Promoter and Managing Director of MAK Projects Pvt. Ltd., Hyderabad, where he led the Canadian Wood Villas — a sustainable luxury residential project developed with Canadian Woods, Government of British Columbia. His honors include the Jubilee Medal from the Republic of Kazakhstan, the Congressional Medallion and Proclamation at Capitol Hill, and the Diplomat of the Year Award 2025.',
+    photo: null,
+  },
 ]
 
 // True once a speaker's reveal moment has passed. `now` is injectable for
