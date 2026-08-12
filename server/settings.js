@@ -11,10 +11,34 @@ import { recordAudit, AUDIT_ACTIONS } from './audit.js'
 
 const DEFAULT_SEAT_CAPACITY = 250
 const SEAT_CAPACITY_KEY = 'seat_capacity'
-// Pass price in whole rupees, shown on the bank-QR screen. ₹449 is the Early
-// Bird rate; it is expected to rise, and a superadmin raises it from the admin
-// panel at runtime rather than through a redeploy.
-const DEFAULT_PASS_PRICE = 449
+// Pass price in whole rupees, shown on the bank-QR screen.
+//
+// The rate rises to ₹599 at midnight on 13 Aug 2026. This is a SCHEDULE, not a
+// cron job or a one-off write, because the cutover has to survive things a job
+// cannot: a redeploy at 23:59, a cold serverless instance booting at 00:01, a
+// missed run. Every process that asks for the price derives the same answer
+// from the same clock, so there is no moment where two instances disagree about
+// what a seat costs.
+//
+// Entries are ordered oldest first; the last one whose `from` has passed wins.
+// A superadmin's app_settings override still beats this outright — the schedule
+// is the default, not a ceiling.
+const PASS_PRICE_SCHEDULE = [
+  { from: '2026-01-01T00:00:00+05:30', price: 449 },
+  { from: '2026-08-13T00:00:00+05:30', price: 599 },
+]
+
+// `now` is injectable so tests can stand either side of the cutover without
+// touching the system clock.
+export function scheduledPassPrice(now = new Date()) {
+  const t = now.getTime()
+  let price = PASS_PRICE_SCHEDULE[0].price
+  for (const entry of PASS_PRICE_SCHEDULE) {
+    if (new Date(entry.from).getTime() <= t) price = entry.price
+  }
+  return price
+}
+
 const PASS_PRICE_KEY = 'pass_price'
 const MAX_PASS_PRICE = 1000000
 const REGISTRATION_OPEN_OVERRIDE_KEY = 'registration_open_override'
@@ -134,10 +158,11 @@ export async function getPassPrice(sql = getSql()) {
     )
     const stored = parseStoredPrice(rows[0]?.value)
     lastKnownPrice = stored
-    return stored ?? DEFAULT_PASS_PRICE
+    // A superadmin's explicit override wins; otherwise the schedule decides.
+    return stored ?? scheduledPassPrice()
   } catch (err) {
     console.error('Pass price read failed; using last known value:', err?.message || err)
-    return lastKnownPrice ?? DEFAULT_PASS_PRICE
+    return lastKnownPrice ?? scheduledPassPrice()
   }
 }
 

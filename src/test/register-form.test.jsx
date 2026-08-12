@@ -185,8 +185,11 @@ describe('Register form — submit wiring', () => {
     // the price and the UTR field are what the buyer sees next. Nothing is
     // charged or emailed here.
     expect(await screen.findByText(/scan and pay/i)).toBeInTheDocument()
-    // Appears twice: the price badge and the "rate goes up soon" caption.
-    expect(screen.getAllByText(/early bird/i).length).toBeGreaterThan(0)
+    // The exact figure has to be on screen — a buyer who transfers the wrong
+    // amount cannot be matched against the bank statement. "Early Bird" framing
+    // is gone; the rate is simply the rate.
+    expect(screen.getAllByText(/₹\d+/).length).toBeGreaterThan(0)
+    expect(screen.queryByText(/early bird/i)).not.toBeInTheDocument()
   })
 
   it('surfaces a server error message when registration fails', async () => {

@@ -21,12 +21,12 @@ export const PAGE_SEO = {
   '/': {
     title: 'TEDxKLH Bachupally 2026 | Technology Evolves, Humanity Leads',
     description:
-      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 6 speakers, one stage, ₹449. Reserve your seat.',
+      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 6 speakers, one stage, ₹599. Reserve your seat.',
   },
   '/register': {
-    title: 'Register for TEDxKLH Bachupally 2026 | ₹449',
+    title: 'Register for TEDxKLH Bachupally 2026 | ₹599',
     description:
-      'Claim your seat at TEDxKLH Bachupally, Sat Aug 22, 2026. ₹449 per pass, 250 seats, KL University Bachupally Campus, Hyderabad. Register now.',
+      'Claim your seat at TEDxKLH Bachupally, Sat Aug 22, 2026. ₹599 per pass, 250 seats, KL University Bachupally Campus, Hyderabad. Register now.',
   },
   // The page renders all names, roles and bios from src/data/event.js, so
   // this description matches what a crawler actually finds — and so do the

@@ -25,6 +25,9 @@ const REGISTRATION_EXPORT_FIELDS = [
   { key: 'designation', label: 'Designation' },
   { key: 'college', label: 'College' },
   { key: 'utr_id', label: 'UTR' },
+  // The rate the attendee was charged. It varies over the sale, so an export
+  // without it cannot be reconciled against a bank statement.
+  { key: 'amount', label: 'Amount paid' },
   { key: 'payment_status', label: 'Payment status' },
   { key: 'created_at', label: 'Registered at' },
   // "Paid at" is submitted_at, NOT paid_at. paid_at is only stamped when an

@@ -13,7 +13,10 @@ import { useBackendQueue } from '../hooks/useBackendQueue'
 import paymentQr from '../assets/images/payment-qr.png'
 
 const UTR_EXAMPLE = '123456789012'
-const FALLBACK_PRICE = 449
+// Only ever shown if the availability probe fails. Kept in step with the tail of
+// the schedule in server/settings.js — quoting a price the server would not
+// charge is worse than quoting the current one late.
+const FALLBACK_PRICE = 599
 const REGISTRATION_OPEN_MESSAGE = 'Registrations will be opened on 5th August, 7:00AM'
 
 // Screenshots come off phones at 3-8MB, well past what a JSON body should
@@ -134,8 +137,10 @@ export default function Register() {
   // instance is a dead button. `queue` drives the holding screen while it boots.
   const { queue, waitForTurn } = useBackendQueue()
 
-  // Live price from the availability probe, falling back to the Early Bird rate
-  // if that call failed — the QR screen must always name a number.
+  // Live price from the availability probe, falling back to the constant below
+  // if that call failed — the QR screen must always name a number. The server is
+  // the authority: it prices the row from its own schedule at submission time,
+  // so a stale fallback here can never become the amount actually recorded.
   const price = availability?.passPrice ?? FALLBACK_PRICE
 
   const needsCollege = form.designation === 'student' || form.designation === 'staff'
@@ -327,11 +332,12 @@ export default function Register() {
           <div className="mb-8 inline-flex items-baseline gap-3 border border-red/40 bg-red/[0.07] px-5 py-3">
             <span className="font-display text-3xl tracking-tight">₹{price}</span>
             <span className="font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-red">
-              Early Bird
+              Per pass
             </span>
           </div>
           <p className="mb-10 text-sm leading-relaxed text-paper/60">
-            Early Bird pricing — this rate goes up soon.
+            Transfer exactly ₹{price}. Paying a different amount delays verification —
+            we match your transfer against the bank statement by hand.
           </p>
 
           <div className="mb-10 border border-paper/15 bg-paper/[0.02] p-6">

@@ -282,6 +282,19 @@ function VerificationQueue({ items, onChanged }) {
   const canBulk = isSuperAdmin()
   const [selected, setSelected] = useState(() => new Set())
   const [bulkBusy, setBulkBusy] = useState(false)
+  // Price filter. The pass rate changes over the sale, so the queue mixes
+  // amounts — and an admin reconciling a bank statement works one rate at a
+  // time. 'all' until they pick one.
+  const [amountFilter, setAmountFilter] = useState('all')
+
+  // Distinct amounts actually present, cheapest first. Derived from the rows
+  // rather than hard-coded, so a future price appears as a chip on its own
+  // without anyone editing this file.
+  const amounts = [...new Set(items.map((i) => i.amount).filter((a) => a != null))].sort(
+    (a, b) => a - b,
+  )
+  const visible =
+    amountFilter === 'all' ? items : items.filter((i) => String(i.amount) === amountFilter)
 
   // Drop selections for rows that have left the queue (approved elsewhere, or
   // rejected), so the count never claims more than is actually on screen.
@@ -302,10 +315,18 @@ function VerificationQueue({ items, onChanged }) {
     })
   }
 
-  const allSelected = items.length > 0 && selected.size === items.length
+  // Scoped to what is on screen: with a price filter active, "select all" must
+  // mean the rows the admin can actually see, never the hidden ones at another
+  // rate — that would approve payments they never looked at.
+  const allSelected = visible.length > 0 && visible.every((i) => selected.has(i.id))
 
   function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allSelected) visible.forEach((i) => next.delete(i.id))
+      else visible.forEach((i) => next.add(i.id))
+      return next
+    })
   }
 
   async function verifySelected() {
@@ -451,7 +472,33 @@ function VerificationQueue({ items, onChanged }) {
       {/* Batch bar. Only rendered for a superadmin, and only once the queue has
           something in it — an always-present "select all" over an empty list is
           just noise. */}
-      {canBulk && items.length > 0 && (
+      {/* Price filter. Shown only once the queue actually holds more than one
+          rate — a single chip labelled "All" next to one price is noise. */}
+      {amounts.length > 1 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="text-[11px] uppercase tracking-wide text-paper/40">Rate</span>
+          {['all', ...amounts.map(String)].map((value) => {
+            const count =
+              value === 'all' ? items.length : items.filter((i) => String(i.amount) === value).length
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setAmountFilter(value)}
+                className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                  amountFilter === value
+                    ? 'border-red/50 bg-red/15 text-paper'
+                    : 'border-white/10 bg-white/[0.04] text-paper/60 hover:text-paper'
+                }`}
+              >
+                {value === 'all' ? 'All' : fmtRupees(Number(value))} ({count})
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {canBulk && visible.length > 0 && (
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2">
           <label className="flex cursor-pointer items-center gap-2 text-xs text-paper/70">
             <input
@@ -475,17 +522,21 @@ function VerificationQueue({ items, onChanged }) {
         </div>
       )}
 
-      {items.length === 0 ? (
+      {visible.length === 0 ? (
         <EmptyState
           tone="good"
           icon={<CheckCircleIcon />}
-          hint="Bank transfers appear here the moment an attendee submits one."
+          hint={
+            items.length === 0
+              ? 'Bank transfers appear here the moment an attendee submits one.'
+              : 'No submissions at this rate. Clear the filter to see the rest.'
+          }
         >
-          Everything is verified
+          {items.length === 0 ? 'Everything is verified' : 'Nothing at this rate'}
         </EmptyState>
       ) : (
         <ul className="-mx-1 divide-y divide-white/[0.07]">
-          {items.map((reg) => (
+          {visible.map((reg) => (
             <li key={reg.id} className="px-1 py-3 first:pt-0 last:pb-0">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -508,7 +559,18 @@ function VerificationQueue({ items, onChanged }) {
                     {initials(reg.full_name)}
                   </span>
                   <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-paper">{reg.full_name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium text-paper">{reg.full_name}</span>
+                      {/* The amount is what reconciliation turns on — the admin
+                          is matching this figure against a line on the bank
+                          statement — so it belongs on the collapsed row, not
+                          three clicks deep in the expanded panel. */}
+                      {reg.amount != null && (
+                        <span className="flex-none rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[11px] font-semibold tabular-nums text-paper/75">
+                          {fmtRupees(reg.amount)}
+                        </span>
+                      )}
+                    </div>
                     <div className="truncate text-xs text-paper/45">{reg.email}</div>
                     {reg.created_at && (
                       <div className="mt-0.5 truncate text-[11px] text-paper/35">
