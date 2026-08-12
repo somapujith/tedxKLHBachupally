@@ -33,6 +33,11 @@ import photoSubramanyam from '../assets/images/team/subramanyam.jpg'
 import photoVenkateshwarRao from '../assets/images/team/venkateshwar-rao.jpg'
 import photoKoteshwarRao from '../assets/images/team/koteshwar-rao.jpg'
 import photoAkash from '../assets/images/team/akash.jpg'
+import photoVarshita from '../assets/images/team/varshita.jpg'
+import photoPoojith from '../assets/images/team/poojith.jpg'
+import photoSanjay from '../assets/images/team/sanjay.jpg'
+import photoDheeran from '../assets/images/team/dheeran.jpg'
+import photoDeepak from '../assets/images/team/deepak.jpg'
 import photoAlekhya from '../assets/images/speakers/alekhya.jpg'
 import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
 import photoTezan from '../assets/images/speakers/tezan.jpg'
@@ -175,6 +180,14 @@ export const team = [
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   { name: 'Subramanyam', dept: 'Hospitality', photo: photoSubramanyam },
   { name: 'Naveena', dept: 'Hospitality', photo: photoNaveena, photoPos: '50% 30%' },
+  // photoPos on Varshita only: hers is a full-body shot cropped to head and
+  // torso, so cover still needs biasing upward. The other four arrived as
+  // head-and-shoulders portraits and sit correctly at the default centre.
+  { name: 'Varshita', dept: 'Hospitality', photo: photoVarshita, photoPos: '50% 12%' },
+  { name: 'Poojith', dept: 'Hospitality', photo: photoPoojith },
+  { name: 'Sanjay', dept: 'Hospitality', photo: photoSanjay },
+  { name: 'Dheeran', dept: 'Hospitality', photo: photoDheeran },
+  { name: 'Deepak', dept: 'Hospitality', photo: photoDeepak },
   // Sponsorship
   { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
   { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
