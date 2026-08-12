@@ -112,6 +112,18 @@ export const speakers = [
     bio: 'Sampath Akondi is a Telugu writer and content creator known for short-form videos that turn everyday overthinking, relationships, and modern life into comedic, relatable storytelling. His reels and clips have built an audience of over 100,000 followers across Instagram and YouTube.',
     photo: null,
   },
+  {
+    n: 7,
+    slug: 'katapally-sai-kiran',
+    name: 'Katapally Sai Kiran',
+    category: 'Technology',
+    role: 'Founder, SUMVN & Space App India',
+    credentials: 'Engineering alumnus, Osmania University',
+    highlight: 'Leads the NASA International Space Apps Challenge in India',
+    revealDate: '2026-08-12T09:00:00+05:30',
+    bio: 'Katapally Sai Kiran is a space-tech entrepreneur and ecosystem builder from Hyderabad, and the founder of SUMVN and Space App India. He leads the NASA International Space Apps Challenge in India, convening students, researchers, startups, and domain experts around space technology — and works to put space education and entrepreneurship within reach of the next generation of innovators.',
+    photo: null,
+  },
 ]
 
 // True once a speaker's reveal moment has passed. `now` is injectable for
