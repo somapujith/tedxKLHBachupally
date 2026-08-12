@@ -34,7 +34,6 @@ import photoVenkateshwarRao from '../assets/images/team/venkateshwar-rao.jpg'
 import photoKoteshwarRao from '../assets/images/team/koteshwar-rao.jpg'
 import photoAkash from '../assets/images/team/akash.jpg'
 import photoAlekhya from '../assets/images/speakers/alekhya.jpg'
-import photoGopalan from '../assets/images/speakers/gopalan.jpg'
 import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
 import photoTezan from '../assets/images/speakers/tezan.jpg'
 import photoVinuthna from '../assets/images/speakers/vinuthna.jpg'
@@ -60,7 +59,6 @@ export { event, contact, isRevealed } from './event'
 
 const speakerPhotos = {
   'alekhya-singapore': photoAlekhya,
-  'gopalan-uppiliappan': photoGopalan,
   'tejaswini-adada': photoTejaswini,
   'tezan-sahu': photoTezan,
   'vinuthna-jagarlapudi': photoVinuthna,
@@ -80,7 +78,7 @@ export const schedule = [
   { time: '11:40', label: 'Interval — Idea Lounge & Networking' },
   { time: '12:10', label: 'Session II · Roots', slugs: ['tejaswini-adada', 'sampath-akondi'] },
   { time: '13:30', label: 'Lunch & Speaker Salons' },
-  { time: '14:30', label: 'Session III · Futures', slugs: ['gopalan-uppiliappan', 'vinuthna-jagarlapudi'] },
+  { time: '14:30', label: 'Session III · Futures', slugs: ['katapally-sai-kiran', 'vinuthna-jagarlapudi'] },
   { time: '15:50', label: 'Closing Remarks' },
 ]
 

@@ -82,7 +82,9 @@ describe('speaker reveal gating', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-07T12:00:00+05:30'))
     renderAt('/speakers')
-    expect(await screen.findByText(/2 speakers reveal/i)).toBeInTheDocument()
+    // One speaker unlocks on Aug 8, not two — the roster is six now that
+    // Gopalan Uppiliappan has come off it.
+    expect(await screen.findByText(/1 speakers reveal/i)).toBeInTheDocument()
     expect(screen.queryByText(/Applied Scientist 2, Microsoft/i)).not.toBeInTheDocument()
   })
 
@@ -94,7 +96,7 @@ describe('speaker reveal gating', () => {
     detail.unmount()
 
     renderAt('/speakers')
-    expect(await screen.findByText(/4 speakers/i)).toBeInTheDocument()
+    expect(await screen.findByText(/3 of 6 talks revealed/i)).toBeInTheDocument()
     expect(screen.queryByText(/Vinuthna Jagarlapudi/i)).not.toBeInTheDocument()
   })
 
@@ -105,16 +107,30 @@ describe('speaker reveal gating', () => {
     expect(await screen.findByText(/There's no talk here\./i)).toBeInTheDocument()
   })
 
-  // Regression test: with exactly 2 speakers revealed, naive prev/next modulo
-  // arithmetic makes both links resolve to the same other speaker. That must
-  // collapse to ONE "Also revealed" card, not two links to the same person.
-  it('shows a single "also revealed" card, not duplicate prev/next, when only 2 speakers are revealed', async () => {
+  // On Aug 8 only one speaker has unlocked, so there is no sibling to link to
+  // at all — prev/next must both stay away rather than pointing back at the
+  // speaker already on screen.
+  //
+  // This used to assert the two-revealed case (one shared "Also revealed"
+  // card instead of a duplicated prev AND next). That state is no longer
+  // reachable from the real roster: the count goes 1 on Aug 8 straight to 3 on
+  // Aug 9, so the case below and the three-revealed one either side of it are
+  // what the data can actually produce.
+  it('shows no prev/next when only one speaker is revealed', async () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-08T12:00:00+05:30'))
     renderAt('/speakers/alekhya-singapore')
-    expect(await screen.findByText(/Also revealed/i)).toBeInTheDocument()
+    expect(await screen.findByText('Dr. Alekhya Singapore')).toBeInTheDocument()
     expect(screen.queryByText(/^Previous$/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/^Next$/i)).not.toBeInTheDocument()
-    expect(screen.getAllByText('Gopalan Uppiliappan')).toHaveLength(1)
+  })
+
+  it('links to siblings once more than two speakers are revealed', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-08-09T12:00:00+05:30'))
+    renderAt('/speakers/tejaswini-adada')
+    expect(await screen.findByText('Dr. Tejaswini Adada')).toBeInTheDocument()
+    // Three are live by now, so the page must offer a way on to another one.
+    expect(screen.getByText('Tezan Sahu')).toBeInTheDocument()
   })
 })

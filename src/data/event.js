@@ -54,18 +54,6 @@ export const speakers = [
   },
   {
     n: 2,
-    slug: 'gopalan-uppiliappan',
-    name: 'Gopalan Uppiliappan',
-    category: 'Business',
-    role: 'Group CEO, RC Manubhai Group',
-    credentials: 'B.Tech Chemical Engineering · MBA, IIM Bangalore · Executive Diploma, London Business School',
-    highlight: 'Over 25 years of multinational executive experience',
-    revealDate: '2026-08-08T09:00:00+05:30',
-    bio: 'Gopalan Uppiliappan is a business transformation leader with over 25 years of multinational executive experience. His expertise spans turnarounds, operational scaling, and fiscal restructuring of major conglomerates. He holds a B.Tech in Chemical Engineering, an MBA from IIM Bangalore, and an Executive Diploma from London Business School.',
-    photo: null,
-  },
-  {
-    n: 3,
     slug: 'tejaswini-adada',
     name: 'Dr. Tejaswini Adada',
     category: 'Health',
@@ -77,7 +65,7 @@ export const speakers = [
     photo: null,
   },
   {
-    n: 4,
+    n: 3,
     slug: 'tezan-sahu',
     name: 'Tezan Sahu',
     category: 'Technology',
@@ -89,7 +77,7 @@ export const speakers = [
     photo: null,
   },
   {
-    n: 5,
+    n: 4,
     slug: 'vinuthna-jagarlapudi',
     name: 'Vinuthna Jagarlapudi',
     category: 'Arts',
@@ -101,7 +89,7 @@ export const speakers = [
     photo: null,
   },
   {
-    n: 6,
+    n: 5,
     slug: 'sampath-akondi',
     name: 'Sampath Akondi',
     category: 'Arts',
@@ -113,7 +101,7 @@ export const speakers = [
     photo: null,
   },
   {
-    n: 7,
+    n: 6,
     slug: 'katapally-sai-kiran',
     name: 'Katapally Sai Kiran',
     category: 'Technology',
