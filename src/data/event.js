@@ -120,7 +120,7 @@ export const speakers = [
     role: 'Founder, SUMVN & Space App India',
     credentials: 'Engineering alumnus, Osmania University',
     highlight: 'Leads the NASA International Space Apps Challenge in India',
-    revealDate: '2026-08-12T09:00:00+05:30',
+    revealDate: '2026-08-12T00:00:00+05:30',
     bio: 'Katapally Sai Kiran is a space-tech entrepreneur and ecosystem builder from Hyderabad, and the founder of SUMVN and Space App India. He leads the NASA International Space Apps Challenge in India, convening students, researchers, startups, and domain experts around space technology — and works to put space education and entrepreneurship within reach of the next generation of innovators.',
     photo: null,
   },
