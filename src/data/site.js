@@ -161,7 +161,12 @@ export const teamDepartments = [
 // co-lead row.
 export const teamLeadership = [
   { name: 'Dr Koteshwar Rao', role: 'Principal', photo: photoKoteshwarRao },
-  { name: 'Sreya Tulasi', role: 'Organiser', photo: photoSreya },
+  {
+    name: 'Sreya Tulasi',
+    role: 'Organiser',
+    photo: photoSreya,
+    socials: { linkedin: 'https://www.linkedin.com/in/sreyatulasikolasani/' },
+  },
   { name: 'Krishnanjaneyulu', role: 'Co-organiser', photo: photoKrishnanjaneyulu },
   { name: 'Akash', role: 'Curator', photo: photoAkash },
   { name: 'Shareef', role: 'Head of Department — CS&IT', photo: photoShareef },

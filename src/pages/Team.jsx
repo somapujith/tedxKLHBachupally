@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { team, teamDepartments, teamLeadership } from '../data/site'
-import { Eyebrow, TeamCard } from '../components/ui'
+import { Eyebrow, SocialLinks, TeamCard } from '../components/ui'
 import { BinaryDrift, RedGlow } from '../components/texture'
 
 // Turn a department name into a stable tab key.
@@ -110,6 +110,14 @@ function LeadCard({ member, index = 0 }) {
         <div className="mt-2 break-words font-display text-2xl leading-tight tracking-tight md:text-3xl">
           {member.name}
         </div>
+        {/* Sits below the name rather than pinned to the card's right edge:
+            this card is photo-left / text-right, so a justify-between row
+            would strand the icons far from the name they belong to. */}
+        {member.socials && (
+          <div className="mt-3">
+            <SocialLinks socials={member.socials} name={member.name} />
+          </div>
+        )}
       </div>
     </motion.article>
   )

@@ -178,13 +178,13 @@ const SOCIAL_ICONS = {
   },
 }
 
-// Small icon row under the name. Renders only the platforms present on the
-// member, so a member with no socials adds no markup and no empty gap.
-function SocialLinks({ socials, name }) {
+// Small icon row sitting to the right of the name. Renders only the platforms
+// present on the member, so a member with no socials adds no markup and no gap.
+export function SocialLinks({ socials, name }) {
   const entries = Object.entries(socials).filter(([platform, url]) => url && SOCIAL_ICONS[platform])
   if (entries.length === 0) return null
   return (
-    <div className="mt-3 flex items-center gap-3">
+    <div className="flex shrink-0 items-center gap-3">
       {entries.map(([platform, url]) => {
         const icon = SOCIAL_ICONS[platform]
         return (
@@ -253,12 +253,19 @@ export function TeamCard({ member, index = 0, showIndex = false }) {
 
       {/* Body */}
       <div className="relative px-5 py-5">
-        <div className="font-display text-lg tracking-tight leading-tight md:text-xl">{member.name}</div>
-        {member.role && (
-          <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
-        )}
+        {/* Name and role on the left, social icons pinned right on the same
+            row. min-w-0 on the text column so a long name wraps instead of
+            squeezing the icons out of the card. */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="font-display text-lg tracking-tight leading-tight md:text-xl">{member.name}</div>
+            {member.role && (
+              <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
+            )}
+          </div>
+          {member.socials && <SocialLinks socials={member.socials} name={member.name} />}
+        </div>
         {member.bio && <p className="mt-3 text-sm leading-relaxed text-paper/60">{member.bio}</p>}
-        {member.socials && <SocialLinks socials={member.socials} name={member.name} />}
         {showIndex && (
           <div aria-hidden className="pointer-events-none absolute right-4 top-4 font-mono text-[10px] text-paper/15">
             {String(index + 1).padStart(2, '0')}
