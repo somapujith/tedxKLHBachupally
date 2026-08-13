@@ -16,6 +16,7 @@ import photoAshwika from '../assets/images/team/ashwika.jpg'
 import photoAnuradha from '../assets/images/team/anuradha.jpg'
 import photoParinitha from '../assets/images/team/parinitha.jpg'
 import photoYashaswini from '../assets/images/team/yashaswini.jpg'
+import photoAnitha from '../assets/images/team/anitha.jpg'
 import photoSuhasWeb from '../assets/images/team/suhas-web.jpg'
 import photoChervi from '../assets/images/team/chervi.jpg'
 import photoSreya from '../assets/images/team/sreya.jpg'
@@ -206,6 +207,10 @@ export const team = [
   // Full-length seated portrait, so bias the crop upward to keep the face in frame.
   { name: 'Prasanna', dept: 'Hospitality', photo: photoPrasanna, photoPos: '50% 20%' },
   // Sponsorship
+  // Ms Anitha coordinates two departments. Each entry carries a single dept,
+  // so she is listed once per department rather than given a combined role —
+  // the roster grids filter on dept, and a shared card would appear in neither.
+  { name: 'Ms Anitha', dept: 'Sponsorship', role: 'Faculty Co-ordinator', photo: photoAnitha },
   { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
   { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
   { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
@@ -240,6 +245,7 @@ export const team = [
   },
   { name: 'Srikar', dept: 'Productions', photo: photoSrikar },
   // Web Development
+  { name: 'Ms Anitha', dept: 'Web Development', role: 'Faculty Co-ordinator', photo: photoAnitha },
   {
     name: 'Pujith',
     dept: 'Web Development',
