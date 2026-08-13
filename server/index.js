@@ -29,6 +29,7 @@ import {
   revokeTicket,
 } from './admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from './admin-users.js'
+import { applyCoupon, listCoupons, createCoupon, updateCoupon, deleteCoupon } from './coupons.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from './audit.js'
 import { getSettings, updateRegistrationOpenOverride, updateSeatCapacity } from './settings.js'
 import { retryFailedTransactionalEmails } from './emailRetry.js'
@@ -140,6 +141,13 @@ const supportLimiter = makeLimiter(15)
 // Availability GET does real COUNT work per hit; unlimited it is a free DB
 // amplifier. Generous cap — a real visitor produces 1-2 per page view.
 const availabilityLimiter = makeLimiter(120)
+// Guards both routes that accept a coupon code. Coupon validation is an oracle:
+// it answers "is this code real?" for any string. Codes are short and
+// human-memorable, so an unthrottled endpoint is a dictionary attack that
+// eventually finds every live discount. A real buyer types one or two codes and
+// submits one proof; 20 per 15 minutes is generous for them and useless for
+// enumeration.
+const couponPathLimiter = makeLimiter(20)
 
 // 4mb, not the 100kb default: a payment submission carries a base64 screenshot
 // inline. The server-side ceiling that actually protects the DB is
@@ -242,17 +250,45 @@ app.post('/api/register', async (req, res) => {
 
 // Buyer submits their bank-transfer proof. No ticket is issued here — an admin
 // has to approve it first.
-app.post('/api/payment/submit', async (req, res) => {
+// Rate-limited like every other public POST here. This route was previously
+// unthrottled on the Express target (the Vercel function has always carried
+// LIMITS.register), which mattered less when the only inputs were a UTR and an
+// image. It now accepts a coupon code and re-resolves it server-side, so an
+// unthrottled path here is a second coupon-enumeration oracle alongside
+// /api/payment/coupon. Uses the same cap as the coupon endpoint.
+app.post('/api/payment/submit', couponPathLimiter, async (req, res) => {
   try {
     const result = await submitPaymentProof({
       registrationId: req.body?.registrationId,
       utrId: req.body?.utrId,
       proof: req.body?.proof,
+      // Only the CODE crosses the wire — never an amount. The server re-resolves
+      // the discount and computes what was owed.
+      couponCode: req.body?.couponCode,
     })
     return res.status(result.status).json(result)
   } catch (err) {
     console.error('Payment submit error:', err)
     return res.status(500).json({ ok: false, error: 'Could not submit payment.' })
+  }
+})
+
+// Checkout coupon preview. Public by necessity — the buyer has to see the
+// discounted amount before they open their banking app. Returns only the code,
+// the discount and the resulting amount; the coupon's id and internals stay
+// server-side, and the amount written at submit time is recomputed there
+// regardless of what this returned.
+app.post('/api/payment/coupon', couponPathLimiter, async (req, res) => {
+  try {
+    const result = await applyCoupon(req.body?.code)
+    if (!result.ok) {
+      return res.status(result.status).json({ ok: false, error: result.error })
+    }
+    const { code, discount, passPrice, amount } = result.coupon
+    return res.status(result.status).json({ ok: true, coupon: { code, discount, passPrice, amount } })
+  } catch (err) {
+    console.error('Coupon check error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not check that coupon.' })
   }
 })
 
@@ -640,6 +676,68 @@ app.post('/api/admin/revoke-ticket', adminWriteLimiter, async (req, res) => {
     return res.status(500).json({ ok: false, error: 'Could not revoke the QR pass.' })
   }
 })
+
+// Coupon management. Superadmin-only on every method, including the GET: the
+// listing carries redemption counts, which is revenue data, and the codes
+// themselves are the thing an attacker wants.
+//
+// Method-dispatched on one path for the same reason as /admin/admins below —
+// a path-parameter route would need its own function file on Vercel.
+app
+  .route('/api/admin/coupons')
+  .get(adminReadLimiter, async (req, res) => {
+    const auth = await requireSuperAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await listCoupons()
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('List coupons error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not load coupons.' })
+    }
+  })
+  .post(adminWriteLimiter, async (req, res) => {
+    const auth = await requireSuperAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await createCoupon({
+        code: req.body?.code,
+        discountAmount: req.body?.discountAmount,
+        actor: actorFrom(auth),
+      })
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Create coupon error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not create the coupon.' })
+    }
+  })
+  .patch(adminWriteLimiter, async (req, res) => {
+    const auth = await requireSuperAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await updateCoupon({
+        id: req.body?.id,
+        discountAmount: req.body?.discountAmount,
+        isActive: req.body?.isActive,
+        actor: actorFrom(auth),
+      })
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Update coupon error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not update the coupon.' })
+    }
+  })
+  .delete(adminWriteLimiter, async (req, res) => {
+    const auth = await requireSuperAdmin(req)
+    if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+    try {
+      const result = await deleteCoupon({ id: req.body?.id, actor: actorFrom(auth) })
+      return res.status(result.status).json(result)
+    } catch (err) {
+      console.error('Delete coupon error:', err)
+      return res.status(500).json({ ok: false, error: 'Could not delete the coupon.' })
+    }
+  })
 
 // One path, method-dispatched, so the same shape works on Vercel where a
 // path-parameter route (/admins/:id) would need its own function file.

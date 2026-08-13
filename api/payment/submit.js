@@ -9,6 +9,9 @@ async function handler(req, res) {
     registrationId: req.body?.registrationId,
     utrId: req.body?.utrId,
     proof: req.body?.proof,
+    // Only the CODE crosses the wire — never an amount. The server re-resolves
+    // the discount and computes what was owed.
+    couponCode: req.body?.couponCode,
   })
   if (!result.ok) {
     return res.status(result.status).json({
@@ -31,6 +34,11 @@ async function handler(req, res) {
 // mirrors this with its own 4 MB express.json limit.
 export default withApi(handler, {
   methods: ['POST'],
-  limit: LIMITS.register,
+  // LIMITS.coupon rather than LIMITS.register: this route now accepts a coupon
+  // code and re-resolves it server-side, which makes it a second
+  // coupon-existence oracle alongside /api/payment/coupon. Both are throttled
+  // on the same budget so the tighter one cannot be sidestepped through here.
+  // 20 per 15 minutes is still well clear of a real buyer, who submits once.
+  limit: LIMITS.coupon,
   guardBody: false,
 })

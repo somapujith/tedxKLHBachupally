@@ -183,6 +183,16 @@ const DEFAULTS = {
   login: Number(process.env.RATE_LIMIT_LOGIN) || 10,
   adminAction: Number(process.env.RATE_LIMIT_ADMIN) || 120,
   webhook: Number(process.env.RATE_LIMIT_WEBHOOK) || 300,
+  // Coupon checks get their own budget AND their own window. Every other class
+  // here is throttling volume against a resource; this one is throttling
+  // *guesses* against a secret, and a secret does not care how many requests
+  // arrive per minute — only how many arrive before it is found. On the shared
+  // 60-second window, 20/min sustains ~1200 attempts an hour, which walks a
+  // short code space in a day. A 15-minute window caps the same 20 attempts at
+  // 80 an hour and matches the Express deploy, so the two targets defend the
+  // codes equally.
+  coupon: Number(process.env.RATE_LIMIT_COUPON) || 20,
+  couponWindowSeconds: Number(process.env.RATE_LIMIT_COUPON_WINDOW_SECONDS) || 15 * 60,
 }
 
 // Named presets so each handler declares its class instead of raw numbers.
@@ -195,6 +205,7 @@ export const LIMITS = {
   login: { name: 'login', max: DEFAULTS.login, windowSeconds: DEFAULTS.windowSeconds },
   adminAction: { name: 'admin', max: DEFAULTS.adminAction, windowSeconds: DEFAULTS.windowSeconds },
   webhook: { name: 'webhook', max: DEFAULTS.webhook, windowSeconds: DEFAULTS.windowSeconds },
+  coupon: { name: 'coupon', max: DEFAULTS.coupon, windowSeconds: DEFAULTS.couponWindowSeconds },
 }
 
 const MAX_BODY_BYTES = Number(process.env.MAX_BODY_BYTES) || 16 * 1024 // 16 KB

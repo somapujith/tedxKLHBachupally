@@ -10,6 +10,7 @@ import {
   revokeTicket,
 } from '../../server/admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from '../../server/admin-users.js'
+import { listCoupons, createCoupon, updateCoupon, deleteCoupon } from '../../server/coupons.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from '../../server/audit.js'
 import { getSettings, updateSeatCapacity, updatePassPrice } from '../../server/settings.js'
 import {
@@ -172,6 +173,33 @@ const RESOURCES = {
         actor: actorFrom(auth),
         context: requestContext(req),
       }),
+  },
+  // Discount coupons. Superadmin on every method — the listing carries
+  // redemption counts (revenue data) and the codes themselves.
+  //
+  // Deletion rides on PATCH with an explicit `delete: true` rather than a DELETE
+  // verb: withApi's method allowlist is shared by every resource in this file,
+  // and widening it to DELETE would hand a delete verb to all of them for the
+  // sake of one. The Express route keeps a real .delete() — both call the same
+  // deleteCoupon(), so behaviour cannot drift.
+  coupons: {
+    auth: SUPER,
+    GET: async () => listCoupons(),
+    POST: async (req, { auth }) =>
+      createCoupon({
+        code: req.body?.code,
+        discountAmount: req.body?.discountAmount,
+        actor: actorFrom(auth),
+      }),
+    PATCH: async (req, { auth }) =>
+      req.body?.delete === true
+        ? deleteCoupon({ id: req.body?.id, actor: actorFrom(auth) })
+        : updateCoupon({
+            id: req.body?.id,
+            discountAmount: req.body?.discountAmount,
+            isActive: req.body?.isActive,
+            actor: actorFrom(auth),
+          }),
   },
   admins: {
     auth: SUPER,

@@ -129,6 +129,14 @@ export async function ensureRegistrationsTable(sql = getSql()) {
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS verified_by TEXT`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS rejected_reason TEXT`
+  // Coupon applied at submit time. The code is denormalized alongside the id so
+  // the admin verification queue can show "₹449 − ₹100 = ₹349, coupon SAVE100"
+  // without a join, and so the record survives the coupon being deleted — an
+  // admin checking a bank statement months later still needs to know why the
+  // transfer was short.
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS coupon_id UUID`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS coupon_code TEXT`
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS discount_amount INTEGER`
   // Drives the admin verification queue (oldest submission first).
   await sql`
     CREATE INDEX IF NOT EXISTS registrations_submitted_idx
@@ -315,6 +323,59 @@ export async function ensureAuditLogTable(sql = getSql()) {
 // Every outbound ticket email — sent, failed or skipped — with who triggered it.
 // registrations.ticket_email_sent_at only holds the LAST successful send; this
 // keeps the full history, including the failures that column rolls back to NULL.
+// Discount coupons and their redemptions.
+//
+// Two tables rather than a `times_used` counter on the coupon: a counter is a
+// derived number that drifts the moment a registration is deleted, refunded, or
+// rolled back, and it invites a lost-update race between two concurrent
+// redemptions. The count the admin screen shows is a COUNT(*) over facts.
+//
+// A redemption is recorded at payment-submit time and keyed uniquely on
+// registration_id, so a buyer who resubmits their proof (allowed from
+// pending/rejected) updates their existing row instead of inflating the count.
+export async function ensureCouponsTable(sql = getSql()) {
+  await sql`
+    CREATE TABLE IF NOT EXISTS coupons (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      code TEXT NOT NULL,
+      discount_amount INTEGER NOT NULL,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      created_by TEXT,
+      updated_at TIMESTAMPTZ
+    )
+  `
+  // Codes are matched case-insensitively (buyers type them by hand, often in
+  // lowercase), so uniqueness has to be enforced on the same expression the
+  // lookup uses — a plain UNIQUE(code) would happily accept both SAVE100 and
+  // save100 and then resolve the buyer's input to whichever row Postgres found
+  // first.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS coupons_code_unique
+    ON coupons (UPPER(code))
+  `
+  await sql`
+    CREATE TABLE IF NOT EXISTS coupon_redemptions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      coupon_id UUID NOT NULL REFERENCES coupons(id) ON DELETE CASCADE,
+      registration_id UUID NOT NULL,
+      discount_amount INTEGER NOT NULL,
+      amount_paid INTEGER NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `
+  // One redemption row per registration, so a resubmitted proof cannot be
+  // counted twice. ON CONFLICT in recordRedemption targets this index.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS coupon_redemptions_registration_unique
+    ON coupon_redemptions (registration_id)
+  `
+  await sql`
+    CREATE INDEX IF NOT EXISTS coupon_redemptions_coupon_idx
+    ON coupon_redemptions (coupon_id)
+  `
+}
+
 export async function ensureEmailLogTable(sql = getSql()) {
   await sql`
     CREATE TABLE IF NOT EXISTS email_log (

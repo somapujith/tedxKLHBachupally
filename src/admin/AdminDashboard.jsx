@@ -570,6 +570,17 @@ function VerificationQueue({ items, onChanged }) {
                           {fmtRupees(reg.amount)}
                         </span>
                       )}
+                      {/* Sits beside the amount for the same reason the amount
+                          is here at all: a transfer that is short against the
+                          list price is a red flag, and the coupon is the
+                          explanation. Without it an admin has to guess whether
+                          the buyer underpaid. */}
+                      {reg.coupon_code && (
+                        <span className="flex-none rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-300/90">
+                          {reg.coupon_code}
+                          {reg.discount_amount != null ? ` −₹${reg.discount_amount}` : ''}
+                        </span>
+                      )}
                     </div>
                     <div className="truncate text-xs text-paper/45">{reg.email}</div>
                     {reg.created_at && (

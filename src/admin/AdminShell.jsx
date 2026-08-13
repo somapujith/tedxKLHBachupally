@@ -15,6 +15,7 @@ const PAGES = {
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
   '/admin/payments': { title: 'Payments', description: 'Every verified bank transfer, by UTR reference.' },
+  '/admin/coupons': { title: 'Coupons', description: 'Discount codes, the amount each takes off, and how many buyers used them.' },
   '/admin/emails': { title: 'Emails', description: 'Confirmation and pass emails, by delivery status.' },
 }
 
@@ -30,6 +31,7 @@ const BASE_TABS = [
 // gains two more.
 const SUPER_TABS = [
   { to: '/admin/payments', label: 'Payments' },
+  { to: '/admin/coupons', label: 'Coupons' },
   { to: '/admin/emails', label: 'Emails' },
   { to: '/admin/activity', label: 'Activity' },
   { to: '/admin/admins', label: 'Admins' },

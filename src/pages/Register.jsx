@@ -143,6 +143,22 @@ export default function Register() {
   // so a stale fallback here can never become the amount actually recorded.
   const price = availability?.passPrice ?? FALLBACK_PRICE
 
+  // Applied coupon, as returned by the server's preview endpoint. Null until a
+  // buyer enters a code that checks out.
+  const [coupon, setCoupon] = useState(null)
+  const [couponInput, setCouponInput] = useState('')
+  const [couponError, setCouponError] = useState('')
+  const [couponBusy, setCouponBusy] = useState(false)
+
+  // Every price on this screen reads from `payable`, never from `price`
+  // directly. The QR, the "transfer exactly" line and the image alt text all
+  // have to move together — a single stale ₹449 next to a ₹349 QR is the one
+  // mistake here that costs a buyer real money and an admin a reconciliation.
+  //
+  // Still only a display. The server recomputes the amount from the code at
+  // submit time and writes that, so nothing here can set what is owed.
+  const payable = coupon ? coupon.amount : price
+
   const needsCollege = form.designation === 'student' || form.designation === 'staff'
   const needsOtherCollege = needsCollege && form.college === 'Others'
 
@@ -222,6 +238,47 @@ export default function Register() {
   }
 
   // Buyer has paid into the bank QR and is submitting their reference + proof.
+  async function onApplyCoupon(e) {
+    // Nested inside the payment <form>, so this must not submit the outer form.
+    e.preventDefault()
+    const code = couponInput.trim()
+    if (!code) {
+      setCouponError('Enter a coupon code.')
+      return
+    }
+    setCouponBusy(true)
+    setCouponError('')
+    try {
+      const { ok, status, data } = await apiFetch('/api/payment/coupon', {
+        method: 'POST',
+        body: { code },
+        retries: 0,
+      })
+      if (status === 429) {
+        throw new Error('Too many attempts. Wait a moment and try again.')
+      }
+      if (!ok || !data.coupon) {
+        throw new Error(data.error || 'That coupon code is not valid.')
+      }
+      setCoupon(data.coupon)
+      setCouponInput(data.coupon.code)
+    } catch (err) {
+      // Clear any previously applied coupon: leaving the old discount on screen
+      // after a failed second attempt would show a price the new code does not
+      // actually give.
+      setCoupon(null)
+      setCouponError(err.message || 'That coupon code is not valid.')
+    } finally {
+      setCouponBusy(false)
+    }
+  }
+
+  function onRemoveCoupon() {
+    setCoupon(null)
+    setCouponInput('')
+    setCouponError('')
+  }
+
   async function onSubmitProof(e) {
     e.preventDefault()
     if (inFlight.current) return
@@ -239,7 +296,10 @@ export default function Register() {
       // reject the second one anyway, but as a confusing "already submitted").
       const { ok, status, data } = await apiFetch('/api/payment/submit', {
         method: 'POST',
-        body: { registrationId: pending.id, utrId: utr, proof },
+        // The CODE goes up, never the discounted amount — the server re-resolves
+        // it and computes what was owed. Sending an amount would make the price
+        // a client input.
+        body: { registrationId: pending.id, utrId: utr, proof, couponCode: coupon?.code },
         retries: 0,
         timeoutMs: 30000,
       })
@@ -262,6 +322,11 @@ export default function Register() {
       setForm(initial)
       setUtr('')
       setProofFile(null)
+      // Cleared with the rest of the checkout state: a coupon left applied would
+      // silently discount the next person registering on this device.
+      setCoupon(null)
+      setCouponInput('')
+      setCouponError('')
     } catch (err) {
       setError(err.message || 'Something went wrong.')
     } finally {
@@ -330,15 +395,78 @@ export default function Register() {
           </h1>
 
           <div className="mb-8 inline-flex items-baseline gap-3 border border-red/40 bg-red/[0.07] px-5 py-3">
-            <span className="font-display text-3xl tracking-tight">₹{price}</span>
+            <span className="font-display text-3xl tracking-tight">₹{payable}</span>
             <span className="font-montserrat text-[11px] font-medium uppercase tracking-[0.2em] text-red">
               Per pass
             </span>
           </div>
-          <p className="mb-10 text-sm leading-relaxed text-paper/60">
-            Transfer exactly ₹{price}. Paying a different amount delays verification —
+          <p className="mb-6 text-sm leading-relaxed text-paper/60">
+            Transfer exactly ₹{payable}. Paying a different amount delays verification —
             we match your transfer against the bank statement by hand.
           </p>
+
+          {/* Coupon entry sits ABOVE the QR deliberately: the amount on screen
+              has to be final before anyone scans and pays. Applying a discount
+              after the transfer is the failure this ordering prevents. */}
+          <div className="mb-10 border border-paper/15 bg-paper/[0.02] p-5">
+            {coupon ? (
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0 text-sm leading-relaxed">
+                  <span className="font-mono tracking-wider text-paper">{coupon.code}</span>
+                  <span className="text-paper/60"> applied — you save ₹{coupon.discount}.</span>
+                  <div className="mt-1 font-mono text-[11px] text-paper/40">
+                    <span className="line-through">₹{coupon.passPrice}</span>
+                    <span className="text-paper/70"> → ₹{coupon.amount}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={onRemoveCoupon}
+                  className="shrink-0 font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50 underline underline-offset-4 transition-colors hover:text-red"
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <>
+                <label
+                  htmlFor="coupon-code"
+                  className="mb-2 block font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50"
+                >
+                  Have a coupon?
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    id="coupon-code"
+                    value={couponInput}
+                    onChange={(e) => {
+                      setCouponInput(e.target.value.toUpperCase())
+                      setCouponError('')
+                    }}
+                    // Enter inside this field would otherwise submit the payment
+                    // form that wraps it.
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') onApplyCoupon(e)
+                    }}
+                    placeholder="ENTER CODE"
+                    autoComplete="off"
+                    autoCapitalize="characters"
+                    spellCheck="false"
+                    className="min-w-0 flex-1 border border-paper/20 bg-transparent px-4 py-3 font-mono text-sm tracking-wider text-paper placeholder:text-paper/25 focus:border-red focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={onApplyCoupon}
+                    disabled={couponBusy}
+                    className="shrink-0 border border-paper/25 px-5 py-3 font-mono text-[11px] uppercase tracking-[0.2em] text-paper transition-colors hover:border-red hover:text-red disabled:opacity-50"
+                  >
+                    {couponBusy ? 'Checking…' : 'Apply'}
+                  </button>
+                </div>
+                {couponError && <p className="mt-2 text-sm text-red">{couponError}</p>}
+              </>
+            )}
+          </div>
 
           <div className="mb-10 border border-paper/15 bg-paper/[0.02] p-6">
             {/* The asset is a portrait BHIM/UPI card, not a bare square — height
@@ -346,12 +474,12 @@ export default function Register() {
                 scannable. */}
             <img
               src={paymentQr}
-              alt={`HDFC bank QR code to pay ₹${price} by UPI`}
+              alt={`HDFC bank QR code to pay ₹${payable} by UPI`}
               className="mx-auto mb-4 max-h-80 w-auto rounded bg-paper object-contain p-2"
             />
             <p className="text-center text-sm leading-relaxed text-paper/60">
               Scan with any UPI app and pay exactly{' '}
-              <span className="text-paper">₹{price}</span>. Keep the transaction screenshot — you
+              <span className="text-paper">₹{payable}</span>. Keep the transaction screenshot — you
               need it on the next step.
             </p>
           </div>

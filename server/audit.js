@@ -34,6 +34,9 @@ export const AUDIT_ACTIONS = {
   PAYMENT_REJECTED: 'payment_rejected',
   SUPPORT_RESOLVED: 'support_resolved',
   SUPPORT_REOPENED: 'support_reopened',
+  COUPON_CREATED: 'coupon_created',
+  COUPON_UPDATED: 'coupon_updated',
+  COUPON_DELETED: 'coupon_deleted',
 }
 
 const MAX_PAGE = 500

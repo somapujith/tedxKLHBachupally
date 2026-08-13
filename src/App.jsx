@@ -36,6 +36,7 @@ const AdminSupport = lazy(() => import('./admin/AdminSupport'))
 const AdminActivity = lazy(() => import('./admin/AdminActivity'))
 const AdminAdmins = lazy(() => import('./admin/AdminAdmins'))
 const AdminPayments = lazy(() => import('./admin/AdminPayments'))
+const AdminCoupons = lazy(() => import('./admin/AdminCoupons'))
 const AdminEmails = lazy(() => import('./admin/AdminEmails'))
 
 // Rewrites the document head on every navigation. A client-side route change
@@ -89,6 +90,7 @@ export default function App() {
         <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
         <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
         <Route path="payments" element={<AdminRoute page={AdminPayments} />} />
+        <Route path="coupons" element={<AdminRoute page={AdminCoupons} />} />
         <Route path="emails" element={<AdminRoute page={AdminEmails} />} />
       </Route>
 

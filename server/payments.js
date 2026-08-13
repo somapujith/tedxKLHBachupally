@@ -14,6 +14,7 @@ import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
 import { sendBookingEmail } from './email.js'
 import { getSeatCapacity, getPassPrice, getRegistrationStatus } from './settings.js'
+import { applyCoupon, recordRedemption } from './coupons.js'
 import { recordAudit, AUDIT_ACTIONS, recordEmail } from './audit.js'
 
 export const CURRENCY = 'INR'
@@ -107,7 +108,7 @@ async function sendBookingConfirmation({ registrationId, email, fullName, utr, a
  * pass and the seat itself both wait for admin approval, so the mail sent here
  * carries no QR and says so.
  */
-export async function submitPaymentProof({ registrationId, utrId, proof }) {
+export async function submitPaymentProof({ registrationId, utrId, proof, couponCode }) {
   if (!registrationId) {
     return { ok: false, status: 400, error: 'Missing registration id.' }
   }
@@ -169,7 +170,32 @@ export async function submitPaymentProof({ registrationId, utrId, proof }) {
     return { ok: false, status: 409, error: 'Sold out. All seats have been claimed.', soldOut: true }
   }
 
-  const price = await getPassPrice(sql)
+  const listPrice = await getPassPrice(sql)
+
+  // Re-resolve the coupon server-side. The checkout screen already previewed a
+  // discount, but that preview is a display, not an input: trusting a
+  // client-sent amount would let a crafted request buy a ₹599 pass for ₹1. If
+  // the code has been deactivated between preview and submit, the submission is
+  // refused rather than silently charged at full price — the buyer has by now
+  // already transferred the discounted amount, and quietly recording a larger
+  // figure would put their proof permanently at odds with their bank statement.
+  let price = listPrice
+  let appliedCoupon = null
+  if (couponCode && String(couponCode).trim()) {
+    const applied = await applyCoupon(couponCode, { sql })
+    if (!applied.ok) {
+      return {
+        ok: false,
+        status: applied.status,
+        error:
+          applied.status === 404
+            ? 'That coupon is no longer valid. Refresh the page and check the amount before paying.'
+            : applied.error,
+      }
+    }
+    appliedCoupon = applied.coupon
+    price = applied.coupon.amount
+  }
 
   try {
     const updated = await withDbRetry(() => sql`
@@ -179,6 +205,9 @@ export async function submitPaymentProof({ registrationId, utrId, proof }) {
           payment_proof = ${parsed.data},
           proof_mime = ${parsed.mime},
           amount = ${price},
+          coupon_id = ${appliedCoupon?.id ?? null},
+          coupon_code = ${appliedCoupon?.code ?? null},
+          discount_amount = ${appliedCoupon?.discount ?? null},
           submitted_at = NOW(),
           rejected_reason = NULL
       WHERE id = ${reg.id}
@@ -189,6 +218,18 @@ export async function submitPaymentProof({ registrationId, utrId, proof }) {
     if (!updated.length) {
       // Lost a race with a concurrent submit for this same row.
       return { ok: false, status: 409, error: 'Your payment is already awaiting verification.' }
+    }
+
+    // Recorded only by the winner of the conditional UPDATE, so a lost race
+    // cannot double-count a redemption. Upserts on registration_id, so a buyer
+    // resubmitting after a rejection still counts once. Never throws.
+    if (appliedCoupon) {
+      await recordRedemption({
+        couponId: appliedCoupon.id,
+        registrationId: reg.id,
+        discountAmount: appliedCoupon.discount,
+        amountPaid: price,
+      })
     }
 
     // Only the winner of that conditional UPDATE gets here, so the buyer cannot
@@ -230,7 +271,8 @@ export async function listPendingVerifications({ limit = 100 } = {}) {
   const capped = Math.min(Math.max(Number(limit) || 100, 1), 500)
   const rows = await withDbRetry(() => sql`
     SELECT id, full_name, email, phone, designation, college, college_other,
-           utr_id, amount, created_at, submitted_at, proof_mime
+           utr_id, amount, created_at, submitted_at, proof_mime,
+           coupon_code, discount_amount
     FROM registrations
     WHERE payment_status = 'submitted'
     ORDER BY submitted_at ASC
@@ -453,7 +495,7 @@ export async function listVerifiedPayments({ search, limit = 200 } = {}) {
   const rows = await withDbRetry(() => sql`
     SELECT id, full_name, email, phone, designation, college, college_other,
            utr_id, amount, payment_status, submitted_at, verified_at, verified_by,
-           paid_at, checked_in_at,
+           paid_at, checked_in_at, coupon_code, discount_amount,
            (ticket_jti IS NOT NULL) AS ticket_issued,
            (ticket_revoked_at IS NOT NULL) AS ticket_revoked
     FROM registrations
