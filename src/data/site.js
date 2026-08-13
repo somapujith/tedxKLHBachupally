@@ -212,7 +212,15 @@ export const team = [
   { name: 'Suhas', dept: 'Productions', photo: photoSuhasWeb },
   { name: 'Srikar', dept: 'Productions', photo: photoSrikar },
   // Web Development
-  { name: 'Pujith', dept: 'Web Development', photo: photoPujith },
+  {
+    name: 'Pujith',
+    dept: 'Web Development',
+    photo: photoPujith,
+    socials: {
+      linkedin: 'https://www.linkedin.com/in/somapujith10/',
+      github: 'https://github.com/somapujith',
+    },
+  },
 ]
 
 export const blogPosts = [

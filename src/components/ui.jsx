@@ -164,6 +164,48 @@ export function initials(name) {
 
 // Textured team member card — portrait (photo or generated monogram) + name + dept.
 // tedxkc treatment: grayscale->color on hover, binary corner, torn edge, red lift.
+// Brand marks for the per-member social links. Both are single-path glyphs
+// drawn on a 24-box and filled with currentColor, so they pick up the card's
+// text colour and its hover transition instead of needing their own assets.
+const SOCIAL_ICONS = {
+  linkedin: {
+    label: 'LinkedIn',
+    path: 'M20.45 20.45h-3.55v-5.57c0-1.33-.02-3.03-1.85-3.03-1.85 0-2.14 1.45-2.14 2.94v5.66H9.36V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.36-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29zM5.34 7.43a2.06 2.06 0 1 1 0-4.12 2.06 2.06 0 0 1 0 4.12zM7.12 20.45H3.56V9h3.56v11.45z',
+  },
+  github: {
+    label: 'GitHub',
+    path: 'M12 .3a12 12 0 0 0-3.79 23.4c.6.1.82-.26.82-.58l-.01-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.24 1.84 1.24 1.07 1.83 2.81 1.3 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.003 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.8 5.62-5.48 5.92.43.37.82 1.1.82 2.22l-.01 3.29c0 .32.21.69.82.57A12 12 0 0 0 12 .3z',
+  },
+}
+
+// Small icon row under the name. Renders only the platforms present on the
+// member, so a member with no socials adds no markup and no empty gap.
+function SocialLinks({ socials, name }) {
+  const entries = Object.entries(socials).filter(([platform, url]) => url && SOCIAL_ICONS[platform])
+  if (entries.length === 0) return null
+  return (
+    <div className="mt-3 flex items-center gap-3">
+      {entries.map(([platform, url]) => {
+        const icon = SOCIAL_ICONS[platform]
+        return (
+          <a
+            key={platform}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`${name} on ${icon.label}`}
+            className="text-paper/50 transition-colors duration-200 hover:text-red focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-[18px] w-[18px]" fill="currentColor">
+              <path d={icon.path} />
+            </svg>
+          </a>
+        )
+      })}
+    </div>
+  )
+}
+
 export function TeamCard({ member, index = 0, showIndex = false }) {
   const reduceMotion = useReducedMotion()
   return (
@@ -216,6 +258,7 @@ export function TeamCard({ member, index = 0, showIndex = false }) {
           <div className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.2em] text-red">{member.role}</div>
         )}
         {member.bio && <p className="mt-3 text-sm leading-relaxed text-paper/60">{member.bio}</p>}
+        {member.socials && <SocialLinks socials={member.socials} name={member.name} />}
         {showIndex && (
           <div aria-hidden className="pointer-events-none absolute right-4 top-4 font-mono text-[10px] text-paper/15">
             {String(index + 1).padStart(2, '0')}
