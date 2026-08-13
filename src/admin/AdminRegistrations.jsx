@@ -28,6 +28,11 @@ const REGISTRATION_EXPORT_FIELDS = [
   // The rate the attendee was charged. It varies over the sale, so an export
   // without it cannot be reconciled against a bank statement.
   { key: 'amount', label: 'Amount paid' },
+  // Coupon columns sit next to the amount so a reader can see, in one row, what
+  // was charged and why it differs from the list price. Blank for the majority
+  // of rows that paid full price.
+  { key: 'coupon_code', label: 'Coupon code' },
+  { key: 'discount_amount', label: 'Discount' },
   { key: 'payment_status', label: 'Payment status' },
   { key: 'created_at', label: 'Registered at' },
   // "Paid at" is submitted_at, NOT paid_at. paid_at is only stamped when an
@@ -60,7 +65,10 @@ const FILTERS = [
 // Case-insensitive match across the fields an organiser would search by.
 function matches(row, q) {
   if (!q) return true
-  const hay = `${row.full_name ?? ''} ${row.email ?? ''} ${row.phone ?? ''} ${row.college ?? ''}`.toLowerCase()
+  // coupon_code is in the haystack so an organiser evaluating a promo can type
+  // the code and get exactly the rows that redeemed it.
+  const hay =
+    `${row.full_name ?? ''} ${row.email ?? ''} ${row.phone ?? ''} ${row.college ?? ''} ${row.coupon_code ?? ''}`.toLowerCase()
   return hay.includes(q)
 }
 
@@ -125,7 +133,7 @@ export default function AdminRegistrations() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search name, email, phone or college"
+            placeholder="Search name, email, phone, college or coupon"
             aria-label="Search registrations"
             className="pl-9"
           />
@@ -156,7 +164,7 @@ export default function AdminRegistrations() {
             <EmptyState
               hint={
                 q
-                  ? 'Try a different name, email, phone or college.'
+                  ? 'Try a different name, email, phone, college or coupon code.'
                   : 'Registrations appear here as attendees sign up.'
               }
             >
@@ -172,13 +180,14 @@ export default function AdminRegistrations() {
       {/* Desktop: dense table. */}
       <Card pad="none" className="hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.02] text-[11px] font-medium uppercase tracking-[0.08em] text-paper/45">
                 <th className="px-4 py-3 font-medium">Attendee</th>
                 <th className="px-4 py-3 font-medium">Contact</th>
                 <th className="px-4 py-3 font-medium">Designation</th>
                 <th className="px-4 py-3 font-medium">Registered</th>
+                <th className="px-4 py-3 font-medium">Payment</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">Checked in</th>
                 <th className="px-4 py-3 text-right font-medium">Pass</th>
@@ -187,11 +196,11 @@ export default function AdminRegistrations() {
             <tbody>
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-0">
+                  <td colSpan={8} className="p-0">
                     <EmptyState
                       hint={
                         q
-                          ? 'Try a different name, email, phone or college.'
+                          ? 'Try a different name, email, phone, college or coupon code.'
                           : 'Registrations appear here as attendees sign up.'
                       }
                     >
@@ -302,6 +311,17 @@ function RegistrationCard({ row, onRevoked }) {
         <dl className="mt-3 space-y-1.5 border-t border-white/10 pt-3 text-xs text-paper/60">
           <Detail term="Designation" value={row.designation ?? '—'} capitalize />
           <Detail term="Registered" value={row.created_at ? fmtDateTime(row.created_at) : '—'} />
+          <Detail term="Amount" value={fmtAmount(row.amount)} />
+          {row.coupon_code && (
+            <Detail
+              term="Coupon"
+              value={
+                row.discount_amount === null || row.discount_amount === undefined
+                  ? row.coupon_code
+                  : `${row.coupon_code} · −₹${row.discount_amount}`
+              }
+            />
+          )}
           {/* Same distinction the export makes: "Paid" is when the attendee
               sent the money, "Verified" is when an admin confirmed it. Reading
               paid_at for "Paid" showed nothing at all on a submitted row. */}
@@ -331,6 +351,28 @@ function RegistrationCard({ row, onRevoked }) {
   )
 }
 
+// amount is rupees as an INTEGER, and 0 is a real value (a coupon can cover the
+// whole pass), so only null/undefined falls back to the dash.
+function fmtAmount(amount) {
+  return amount === null || amount === undefined ? '—' : `₹${amount}`
+}
+
+// Renders nothing at all for the full-price majority, so the coupon rows stand
+// out instead of being lost in a column of dashes.
+function CouponTag({ code, discount }) {
+  if (!code) return null
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+      <span className="rounded border border-red/40 bg-red/10 px-1.5 py-0.5 font-medium tracking-wide text-red">
+        {code}
+      </span>
+      {discount !== null && discount !== undefined && (
+        <span className="text-paper/40">−₹{discount}</span>
+      )}
+    </div>
+  )
+}
+
 function Detail({ term, value, capitalize = false }) {
   return (
     <div className="flex gap-2">
@@ -355,6 +397,10 @@ function RegistrationRow({ row, onRevoked }) {
       <td className="px-4 py-3 capitalize text-paper/75">{row.designation ?? '—'}</td>
       <td className="px-4 py-3 text-xs text-paper/60">
         {row.created_at ? fmtDateTime(row.created_at) : '—'}
+      </td>
+      <td className="px-4 py-3">
+        <div className="text-paper/75">{fmtAmount(row.amount)}</div>
+        <CouponTag code={row.coupon_code} discount={row.discount_amount} />
       </td>
       <td className="px-4 py-3">
         <StatusBadge status={status} />

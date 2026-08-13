@@ -14,6 +14,10 @@ const PAYMENT_EXPORT_FIELDS = [
   { key: 'college_other', label: 'College (other)', default: false },
   { key: 'utr_id', label: 'UTR' },
   { key: 'amount', label: 'Amount' },
+  // Reconciliation needs the reason a line differs from the list price, not
+  // just the net figure. Blank on full-price rows.
+  { key: 'coupon_code', label: 'Coupon code' },
+  { key: 'discount_amount', label: 'Discount' },
   { key: 'submitted_at', label: 'Submitted at', default: false },
   { key: 'verified_at', label: 'Verified at' },
   { key: 'verified_by', label: 'Verified by' },
@@ -170,8 +174,15 @@ export default function AdminPayments() {
                 <div className="truncate text-sm font-medium text-paper">{row.full_name}</div>
                 <div className="truncate text-xs text-paper/50">{row.email}</div>
               </div>
-              <div className="shrink-0 text-sm font-semibold tabular-nums text-paper">
-                {fmtRupees(row.amount)}
+              <div className="shrink-0 text-right">
+                <div className="text-sm font-semibold tabular-nums text-paper">
+                  {fmtRupees(row.amount)}
+                </div>
+                {row.coupon_code && (
+                  <div className="mt-0.5 text-[11px] font-medium tracking-wide text-red">
+                    {row.coupon_code}
+                  </div>
+                )}
               </div>
             </div>
             <div className="mt-3 rounded-lg border border-white/[0.07] bg-black/25 px-3 py-2">
@@ -240,8 +251,21 @@ export default function AdminPayments() {
                     <div className="text-paper">{row.full_name}</div>
                     <div className="text-xs text-paper/45">{row.email}</div>
                   </td>
+                  {/* Coupon sits under the figure rather than in its own
+                      column: it explains why this line differs from the list
+                      price, and it is blank on most rows. */}
                   <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-paper">
                     {fmtRupees(row.amount)}
+                    {row.coupon_code && (
+                      <div className="mt-1 text-xs font-medium tracking-wide text-red">
+                        {row.coupon_code}
+                        {row.discount_amount !== null && row.discount_amount !== undefined && (
+                          <span className="ml-1.5 font-normal text-paper/40">
+                            −{fmtRupees(row.discount_amount)}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-xs text-paper/60">
                     {fmtDateTime(row.verified_at)}

@@ -233,6 +233,7 @@ export async function listRegistrations({ status } = {}) {
           SELECT id, full_name, email, phone, designation, college, utr_id,
                  payment_status, amount, created_at, submitted_at, verified_at, paid_at,
                  checked_in_at, checked_in_by,
+                 coupon_code, discount_amount,
                  (ticket_jti IS NOT NULL) AS ticket_issued
           FROM registrations
           WHERE checked_in_at IS NOT NULL ORDER BY created_at DESC
@@ -241,7 +242,8 @@ export async function listRegistrations({ status } = {}) {
         ? await sql`
             SELECT id, full_name, email, phone, designation, college, utr_id,
                    payment_status, amount, created_at, submitted_at, verified_at, paid_at,
-                 checked_in_at, checked_in_by,
+                   checked_in_at, checked_in_by,
+                   coupon_code, discount_amount,
                    (ticket_jti IS NOT NULL) AS ticket_issued
             FROM registrations
             WHERE payment_status = ${status} ORDER BY created_at DESC
@@ -249,7 +251,8 @@ export async function listRegistrations({ status } = {}) {
         : await sql`
             SELECT id, full_name, email, phone, designation, college, utr_id,
                    payment_status, amount, created_at, submitted_at, verified_at, paid_at,
-                 checked_in_at, checked_in_by,
+                   checked_in_at, checked_in_by,
+                   coupon_code, discount_amount,
                    (ticket_jti IS NOT NULL) AS ticket_issued
             FROM registrations ORDER BY created_at DESC
           `
