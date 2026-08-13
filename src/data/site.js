@@ -226,10 +226,11 @@ export const team = [
   { name: 'Ashwika', dept: 'Marketing', photo: photoAshwika },
   { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
   { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
-  // Full-length walkway shot: she stands low and small in the frame, so unlike
-  // the other full-body portraits this one crops DOWN, not up, to fill the
-  // square with head and torso instead of the tree above her.
-  { name: 'Yashaswini', dept: 'Marketing', photo: photoYashaswini, photoPos: '50% 55%' },
+  // Cropped to a square head-and-shoulders portrait at build time rather than
+  // steered with photoPos: the source was a full-length shot where she stood
+  // small in the frame, and object-position can only pan that window, not zoom
+  // into it. Needs no photoPos as a result.
+  { name: 'Yashaswini', dept: 'Marketing', photo: photoYashaswini },
   // Productions
   {
     name: 'Suhas',
