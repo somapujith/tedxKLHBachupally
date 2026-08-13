@@ -15,6 +15,7 @@ import photoAkshitha from '../assets/images/team/akshitha.jpg'
 import photoAshwika from '../assets/images/team/ashwika.jpg'
 import photoAnuradha from '../assets/images/team/anuradha.jpg'
 import photoParinitha from '../assets/images/team/parinitha.jpg'
+import photoYashaswini from '../assets/images/team/yashaswini.jpg'
 import photoSuhasWeb from '../assets/images/team/suhas-web.jpg'
 import photoChervi from '../assets/images/team/chervi.jpg'
 import photoSreya from '../assets/images/team/sreya.jpg'
@@ -225,6 +226,10 @@ export const team = [
   { name: 'Ashwika', dept: 'Marketing', photo: photoAshwika },
   { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
   { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
+  // Full-length walkway shot: she stands low and small in the frame, so unlike
+  // the other full-body portraits this one crops DOWN, not up, to fill the
+  // square with head and torso instead of the tree above her.
+  { name: 'Yashaswini', dept: 'Marketing', photo: photoYashaswini, photoPos: '50% 55%' },
   // Productions
   {
     name: 'Suhas',
