@@ -174,7 +174,13 @@ export const teamLeadership = [
 
 export const team = [
   // Hospitality
-  { name: 'Yashwant', dept: 'Hospitality', role: 'Leader', photo: photoYashwant },
+  {
+    name: 'Yashwant',
+    dept: 'Hospitality',
+    role: 'Leader',
+    photo: photoYashwant,
+    socials: { linkedin: 'https://www.linkedin.com/in/balivadasaiyashwant' },
+  },
   { name: 'Divya', dept: 'Hospitality', role: 'Co Leader', photo: photoDivya, photoPos: '50% 15%' },
   { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: photoLakshmiPrasanna, photoPos: '50% 20%' },
   { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
@@ -206,7 +212,13 @@ export const team = [
   { name: 'Suhas G', dept: 'Marketing', role: 'Leader', photo: photoSuhasG },
   { name: 'Pemesh', dept: 'Marketing', role: 'Co Leader', photo: photoPemesh },
   { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
-  { name: 'Sohith', dept: 'Marketing', photo: photoSohit, photoPos: '50% 70%' },
+  {
+    name: 'Sohith',
+    dept: 'Marketing',
+    photo: photoSohit,
+    photoPos: '50% 70%',
+    socials: { linkedin: 'https://www.linkedin.com/in/sohith-sai-veldi-694288377/' },
+  },
   { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
   { name: 'Rasagnya', dept: 'Marketing', photo: photoRasagnya },
   { name: 'Akshitha', dept: 'Marketing', photo: photoAkshitha },
@@ -214,7 +226,12 @@ export const team = [
   { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
   { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
   // Productions
-  { name: 'Suhas', dept: 'Productions', photo: photoSuhasWeb },
+  {
+    name: 'Suhas',
+    dept: 'Productions',
+    photo: photoSuhasWeb,
+    socials: { linkedin: 'https://www.linkedin.com/in/suhas-brammana-a51a05334' },
+  },
   { name: 'Srikar', dept: 'Productions', photo: photoSrikar },
   // Web Development
   {
