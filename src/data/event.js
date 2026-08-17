@@ -175,8 +175,11 @@ export const speakers = [
     slug: 'kamakshi-bhaskarla',
     name: 'Kamakshi Bhaskarla',
     category: 'Arts',
-    role: 'Actress',
+    role: 'Actor & Filmmaker',
+    credentials: 'MBBS · Maa Oori Polimera franchise · Agadha',
+    highlight: 'Best Actress, Maa Oori Polimera 2',
     revealDate: '2026-08-18T09:00:00+05:30',
+    bio: 'Kamakshi Bhaskarla is an actor and filmmaker known for her work in Telugu cinema, including the acclaimed Maa Oori Polimera franchise and Agadha. A trained doctor with an MBBS degree, she chose to pursue acting after returning to India, building her career through auditions, independent projects, and performance-driven roles. Her work has earned recognition for both her screen presence and acting ability, including a Best Actress award for Maa Oori Polimera 2. Beyond cinema, Kamakshi is interested in identity, human behaviour, and the stories people tell themselves about who they are. Her journey explores what happens when we stop living according to inherited roles and begin choosing our own.',
     photo: null,
   },
 ]
