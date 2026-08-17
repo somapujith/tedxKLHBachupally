@@ -164,9 +164,10 @@ export const speakers = [
     n: 11,
     slug: 'akshay-pabba',
     name: 'Akshay Pabba',
-    category: 'Arts',
-    role: 'Podcaster',
+    category: 'Business',
+    role: 'Host, Akshay Pabba Telugu Podcast · Content Creator · Financial Educator · Personal Branding Expert',
     revealDate: '2026-08-17T09:00:00+05:30',
+    bio: 'Akshay Pabba is the host of the Akshay Pabba Telugu Podcast, a content creator, financial educator, and personal branding expert. Through his podcast, content, and live events, he simplifies complex ideas around money, business, and personal finance for Telugu-speaking audiences. His work focuses on helping young professionals and entrepreneurs make better financial decisions and build a stronger understanding of money beyond traditional education. Through relatable conversations, real-world examples, and practical insights, Akshay aims to make financial thinking accessible, relevant, and actionable for the next generation.',
     photo: null,
   },
   {
@@ -217,7 +218,7 @@ export const schedule = [
   { time: '2:10 PM – 2:30 PM', kind: 'talk', n: 9, slug: 'sampath-akondi', name: 'Sampath Akondi', role: 'Content Creator' },
   { time: '2:30 PM – 2:50 PM', kind: 'talk', n: 10, slug: 'katapally-sai-kiran', name: 'Katapally Sai Kiran', role: 'Founder & Director, Space App India' },
   { time: '2:50 PM – 3:10 PM', kind: 'talk', n: 11, slug: 'moiz-s-master', name: 'Moiz S. Master', role: 'Founder, Alister Equipments' },
-  { time: '3:10 PM – 3:30 PM', kind: 'talk', n: 12, slug: 'akshay-pabba', name: 'Akshay Pabba', role: 'Podcaster' },
+  { time: '3:10 PM – 3:30 PM', kind: 'talk', n: 12, slug: 'akshay-pabba', name: 'Akshay Pabba', role: 'Host, Akshay Pabba Telugu Podcast' },
   { time: '3:30 PM – 4:00 PM', kind: 'valedictory', title: 'Valedictory Ceremony' },
 ]
 
