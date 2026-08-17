@@ -42,19 +42,6 @@ export function Volunteer() {
   )
 }
 
-export function Schedule() {
-  return (
-    <div className="max-w-2xl mx-auto px-6 py-24 md:py-32">
-      <Eyebrow className="mb-5">Schedule</Eyebrow>
-      <h1 className="font-display text-4xl md:text-6xl tracking-tight leading-[1.05] mb-6">Coming soon.</h1>
-      <p className="text-lg text-paper/70 leading-relaxed">
-        We're finalising the day's line-up. Check back soon for the full schedule.
-      </p>
-      <StatusBanner title="Coming Soon" body="The schedule for this event has not been published yet." />
-    </div>
-  )
-}
-
 export function Nominate() {
   return (
     <div className="max-w-2xl mx-auto px-6 py-24 md:py-32">

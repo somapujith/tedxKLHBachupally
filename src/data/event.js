@@ -7,10 +7,10 @@ export const event = {
   edition: 'Edition 01',
   year: 2026,
   date: 'Saturday, August 22, 2026',
-  time: '9:30 AM – 3:00 PM',
+  time: '9:30 AM – 4:00 PM',
   timeNote: 'Timings may extend',
   isoDate: '2026-08-22T09:30:00+05:30',
-  isoEndDate: '2026-08-22T15:00:00+05:30',
+  isoEndDate: '2026-08-22T16:00:00+05:30',
   venue: 'KLH Bachupally Campus',
   city: 'Hyderabad, Telangana',
   address: 'KLH Bachupally Campus, Hyderabad, Telangana 500090',
@@ -168,6 +168,42 @@ export const speakers = [
 export function isRevealed(speaker, now = new Date()) {
   return new Date(speaker.revealDate).getTime() <= now.getTime()
 }
+
+// Official running order, 9:30 AM – 4:00 PM. `slug` links a talk row to its
+// entry in `speakers` above (and drives the /speakers/:slug link on Schedule.jsx);
+// two names on the printed program — Kamakshi Bhaskarla and Akshay Pabba —
+// have no roster entry yet, so their rows carry `role` only and render unlinked.
+// `kind` drives Schedule.jsx's visual treatment: 'talk' gets the numbered
+// TED-style card, everything else (ceremony/break/performance/interaction/
+// valedictory) gets the plain program-note treatment.
+export const schedule = [
+  {
+    time: '9:30 AM – 10:00 AM',
+    kind: 'ceremony',
+    title: 'Opening Ceremony',
+    people: [
+      { name: 'Dr. Koteshwar Rao', role: 'Principal, KLH Bachupally' },
+      { name: 'Sreya Tulasi', role: 'Organizer, TEDxKLH Bachupally' },
+      { name: 'Krishnanjaneyulu', role: 'Co-Organizer, TEDxKLH Bachupally' },
+    ],
+  },
+  { time: '10:00 AM – 10:20 AM', kind: 'talk', n: 1, slug: 'tezan-sahu', name: 'Tezan Sahu', role: 'Applied Scientist 2, Microsoft' },
+  { time: '10:20 AM – 10:40 AM', kind: 'talk', n: 2, slug: 'alekhya-singapore', name: 'Dr. Alekhya Singapore', role: 'Founder & Chief Dermatologist, The Skin Sensé Clinics' },
+  { time: '10:40 AM – 11:00 AM', kind: 'talk', n: 3, slug: 'vinuthna-jagarlapudi', name: 'Vinuthna Jagarlapudi', role: 'Singer, Content Creator & Creative Director, Hyderabad Feed' },
+  { time: '11:00 AM – 11:20 AM', kind: 'talk', n: 4, slug: 'anand-singh', name: 'Anand Singh', role: 'Founder, Hanswahini Group' },
+  { time: '11:20 AM – 11:40 AM', kind: 'talk', n: 5, slug: 'tejaswini-adada', name: 'Dr. Tejaswini Adada', role: 'Clinician & Research Scientist in Oncology, Cancer Conscious Clinic' },
+  { time: '11:40 AM – 12:00 PM', kind: 'talk', n: 6, slug: 'nawab-mir-nasir-ali-khan', name: 'Dr. Nawab Mir Nasir Ali Khan', role: 'Honorary Consul of the Republic of Kazakhstan, Hyderabad' },
+  { time: '12:00 PM – 12:20 PM', kind: 'talk', n: 7, slug: 'sathwika-sama', name: 'Sathwika Sama Surakanti', role: 'Deputy Superintendent of Police (DSP)' },
+  { time: '12:20 PM – 12:40 PM', kind: 'talk', n: 8, name: 'Kamakshi Bhaskarla', role: 'Actress' },
+  { time: '12:40 PM – 1:00 PM', kind: 'interaction', title: 'Speaker – Student Interaction' },
+  { time: '1:00 PM – 2:00 PM', kind: 'break', title: 'Lunch Break' },
+  { time: '2:00 PM – 2:10 PM', kind: 'performance', title: 'Band / Dance' },
+  { time: '2:10 PM – 2:30 PM', kind: 'talk', n: 9, slug: 'sampath-akondi', name: 'Sampath Akondi', role: 'Content Creator' },
+  { time: '2:30 PM – 2:50 PM', kind: 'talk', n: 10, slug: 'katapally-sai-kiran', name: 'Katapally Sai Kiran', role: 'Founder & Director, Space App India' },
+  { time: '2:50 PM – 3:10 PM', kind: 'talk', n: 11, slug: 'moiz-s-master', name: 'Moiz S. Master', role: 'Founder, Alister Equipments' },
+  { time: '3:10 PM – 3:30 PM', kind: 'talk', n: 12, name: 'Akshay Pabba', role: 'Podcaster' },
+  { time: '3:30 PM – 4:00 PM', kind: 'valedictory', title: 'Valedictory Ceremony' },
+]
 
 // Public contact + social identity. Used by the footer, the Contact page, and
 // the Organization structured data, so all three can never drift apart.

@@ -16,13 +16,13 @@ const Blog = lazy(() => import('./pages/Blog'))
 const Partners = lazy(() => import('./pages/Partners'))
 const Sponsor = lazy(() => import('./pages/Sponsor'))
 const Register = lazy(() => import('./pages/Register'))
+const Schedule = lazy(() => import('./pages/Schedule'))
 const Contact = lazy(() => import('./pages/Contact'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 // ClosedPages exports three named components from one module — each lazy()
 // call needs a default export, so unwrap the named export into one.
 const Volunteer = lazy(() => import('./pages/ClosedPages').then((m) => ({ default: m.Volunteer })))
 const Nominate = lazy(() => import('./pages/ClosedPages').then((m) => ({ default: m.Nominate })))
-const Schedule = lazy(() => import('./pages/ClosedPages').then((m) => ({ default: m.Schedule })))
 
 // Admin pages are lazy so html5-qrcode & co. stay out of the public bundle.
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))

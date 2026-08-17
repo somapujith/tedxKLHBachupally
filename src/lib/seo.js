@@ -41,15 +41,10 @@ export const PAGE_SEO = {
     description:
       "TEDxKLH Bachupally 2026's theme: Technology Evolves, Humanity Leads. What stays uniquely human as AI, automation and culture change fast.",
   },
-  // Placeholder today ("Coming soon"), so it is kept out of the index rather
-  // than shipped to Google as a thin page — an empty result under the event's
-  // own brand is worse than no result. Drop `noindex` when the running order is
-  // published, and add the URL back to public/sitemap.xml.
   '/schedule': {
     title: 'Schedule — TEDxKLH Bachupally, 22 August 2026',
     description:
-      'The full running order for TEDxKLH Bachupally 2026: sessions, breaks and talks, 9:30 AM to 3:00 PM at KLH Bachupally Campus, Hyderabad.',
-    noindex: true,
+      'The full running order for TEDxKLH Bachupally 2026: 12 talks, ceremonies and breaks, 9:30 AM to 4:00 PM at KLH Bachupally Campus, Hyderabad.',
   },
   // Canonical of the three About URLs. /about-ted and /about-tedx render the
   // same component and point their canonical here, so Google consolidates the

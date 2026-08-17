@@ -50,7 +50,7 @@ describe('ticketHtml', () => {
 
   it('renders the venue and timing block', () => {
     expect(html).toContain('Saturday, August 22, 2026')
-    expect(html).toContain('9:30 AM – 3:00 PM')
+    expect(html).toContain('9:30 AM – 4:00 PM')
     expect(html).toContain('KLH Bachupally Campus')
   })
 

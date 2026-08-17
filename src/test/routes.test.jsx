@@ -29,7 +29,7 @@ const ROUTES = [
   ['/register', /Claim your seat\./i],
   ['/speakers', /The line-up ·/i],
   ['/volunteer', /Build it with us\./i],
-  ['/schedule', /Coming soon\./i],
+  ['/schedule', /Twelve/i],
   ['/sponsor', /Put your name in the room\./i],
   ['/nominate', /Know someone who should speak\?/i],
 ]

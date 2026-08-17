@@ -47,8 +47,11 @@ describe('seoFor', () => {
   })
 
   it('noindexes the placeholder pages while they carry no content', () => {
-    expect(seoFor('/schedule').noindex).toBe(true)
     expect(seoFor('/nominate').noindex).toBe(true)
+  })
+
+  it('indexes /schedule now that it carries the real running order', () => {
+    expect(seoFor('/schedule').noindex).toBeUndefined()
   })
 })
 
@@ -88,7 +91,7 @@ describe('applySeo', () => {
   })
 
   it('emits noindex for a route flagged as such', () => {
-    applySeo('/schedule')
+    applySeo('/nominate')
     expect(head('meta[name="robots"]')).toBe('noindex, follow')
   })
 

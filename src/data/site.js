@@ -67,7 +67,7 @@ export const nav = [
 // headshots are asset imports, which only this (browser-bundled) module can do,
 // so they're merged in here by slug and re-exported under the same name every
 // existing `from '../data/site'` import already expects.
-export { event, contact, isRevealed } from './event'
+export { event, contact, isRevealed, schedule } from './event'
 
 const speakerPhotos = {
   'alekhya-singapore': photoAlekhya,
@@ -86,17 +86,6 @@ export const speakers = speakerData.map((s) => ({
   ...s,
   photo: speakerPhotos[s.slug] || s.photo,
 }))
-
-export const schedule = [
-  { time: '09:30', label: 'Doors Open & Registration' },
-  { time: '10:00', label: 'Opening — Theme Reveal' },
-  { time: '10:20', label: 'Session I · Signals', slugs: ['alekhya-singapore', 'tezan-sahu'] },
-  { time: '11:40', label: 'Interval — Idea Lounge & Networking' },
-  { time: '12:10', label: 'Session II · Roots', slugs: ['tejaswini-adada', 'sampath-akondi'] },
-  { time: '13:30', label: 'Lunch & Speaker Salons' },
-  { time: '14:30', label: 'Session III · Futures', slugs: ['katapally-sai-kiran', 'vinuthna-jagarlapudi'] },
-  { time: '15:50', label: 'Closing Remarks' },
-]
 
 export const theme = {
   eyebrow: 'Theme · 2026',
