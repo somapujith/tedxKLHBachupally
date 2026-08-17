@@ -132,7 +132,7 @@ export const aboutPage = {
       'We are staging our first edition and building toward becoming one of South India’s most ambitious independent TEDx programs.',
     ],
     stats: [
-      { value: '6', label: 'Speakers' },
+      { value: '12', label: 'Speakers' },
       { value: '1', label: 'Stage, one day' },
       { value: '100%', label: 'Student-run' },
       { value: '01', label: 'First edition' },
@@ -273,7 +273,7 @@ export const partners = {
 }
 
 export const sponsorTiers = [
-  { tier: 'Tier 1 — Presenting', subtitle: 'Single partner. Whole event.', price: '₹6,00,000', benefits: ['Logo lockup with TEDxKLH on every surface', 'On-stage thank-you', '20 reserved seats', 'Custom activation in Idea Lounge', 'Six talk videos co-branded on release'] },
+  { tier: 'Tier 1 — Presenting', subtitle: 'Single partner. Whole event.', price: '₹6,00,000', benefits: ['Logo lockup with TEDxKLH on every surface', 'On-stage thank-you', '20 reserved seats', 'Custom activation in Idea Lounge', 'Twelve talk videos co-branded on release'] },
   { tier: 'Tier 2 — Idea', subtitle: 'Up to four partners.', price: '₹2,50,000', benefits: ['Logo on website, badges, signage', '10 reserved seats', 'Activation booth in lobby', 'Acknowledgement on social'] },
   { tier: 'Tier 3 — Friend', subtitle: 'Up to eight partners.', price: '₹75,000', benefits: ['Logo on website + program', '4 reserved seats', 'Mention in opening reel'] },
 ]

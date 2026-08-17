@@ -679,11 +679,23 @@ export default function Register() {
           {/* Summary aside */}
           <aside className="lg:sticky lg:top-28 lg:self-start">
             <div className="border border-paper/15 bg-paper/[0.02] p-6">
-              <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-red">Your pass</div>
-              <div className="mt-3 font-display text-2xl leading-tight tracking-tight">
-                TEDxKLH Bachupally
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-red">Your pass</div>
+                  <div className="mt-3 font-display text-2xl leading-tight tracking-tight">
+                    TEDxKLH Bachupally
+                  </div>
+                  <div className="mt-1 text-sm text-paper/55">Edition 01 · {event.year}</div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <div className="font-display text-xl tracking-tight">₹{price}</div>
+                  <div className="mt-1 font-mono text-[9px] uppercase leading-relaxed tracking-[0.14em] text-paper/40">
+                    KLH students
+                    <br />
+                    ₹{KLH_STUDENT_PRICE}
+                  </div>
+                </div>
               </div>
-              <div className="mt-1 text-sm text-paper/55">Edition 01 · {event.year}</div>
 
               <dl className="mt-6 space-y-3 border-t border-paper/10 pt-6 text-sm">
                 <SummaryRow label="Date" value={event.date} />
@@ -698,7 +710,14 @@ export default function Register() {
               <div className="mt-6 border-t border-paper/10 pt-6">
                 <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-paper/40">Includes</div>
                 <ul className="mt-3 space-y-2 text-sm text-paper/70">
-                  {['All 6 talks, live', 'Idea Lounge & installations', 'Speaker salons', 'Lunch & networking'].map((x) => (
+                  {[
+                    'All 12 talks, live',
+                    'Exclusive TEDx goodies',
+                    'One-on-one time with speakers',
+                    'Fresh ideas, new perspectives',
+                    'Complimentary lunch',
+                    'Meaningful networking',
+                  ].map((x) => (
                     <li key={x} className="flex items-start gap-2">
                       <span aria-hidden className="mt-1.5 h-1 w-1 shrink-0 bg-red" />
                       {x}

@@ -30,7 +30,7 @@ function ReadMore({ to, href, children }) {
 }
 
 const stats = [
-  ['6', 'Speakers'],
+  ['12', 'Speakers'],
   ['01', 'Stage, one day'],
   ['18', 'Minutes per idea'],
   ['100%', 'Student-run'],
@@ -68,7 +68,7 @@ export default function Home() {
               Humanity <span className="text-red">Leads.</span>
             </h1>
             <p className="mt-6 max-w-md text-paper/70">
-              Six ideas. One stage. A single day, staged and recorded for the world — built
+              Twelve ideas. One stage. A single day, staged and recorded for the world — built
               by students, attended by a city.
             </p>
             <div className="mt-6 space-y-1 font-body text-xs uppercase tracking-widest text-paper/60">
@@ -92,7 +92,7 @@ export default function Home() {
         <Reveal>
           <Eyebrow>What we do</Eyebrow>
           <h2 className="mt-5 max-w-4xl font-display text-3xl leading-[1.1] tracking-tight md:text-5xl">
-            We find six people worth listening to, and give each of them eighteen minutes
+            We find twelve people worth listening to, and give each of them eighteen minutes
             to change how a room thinks.
           </h2>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-paper/60">
@@ -147,7 +147,7 @@ export default function Home() {
           </h2>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-paper/60">
             Every generation negotiates with its tools. Ours is the first negotiating with
-            intelligence itself — and this year&rsquo;s six talks are our attempt at an answer.
+            intelligence itself — and this year&rsquo;s twelve talks are our attempt at an answer.
           </p>
           <div className="mt-8">
             <ReadMore to="/theme">Read the full theme</ReadMore>
