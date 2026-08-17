@@ -56,6 +56,7 @@ import { speakers as speakerData } from './event'
 export const nav = [
   { label: 'Theme', to: '/theme' },
   { label: 'Speakers', to: '/speakers' },
+  { label: 'Schedule', to: '/schedule' },
   { label: 'Team', to: '/team' },
   { label: 'About', to: '/about-tedxklh' },
   { label: 'Contact', to: '/contact' },
