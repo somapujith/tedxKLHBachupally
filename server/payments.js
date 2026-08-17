@@ -13,7 +13,7 @@
 import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
 import { sendBookingEmail } from './email.js'
-import { getSeatCapacity, getPassPrice, getRegistrationStatus } from './settings.js'
+import { getSeatCapacity, getPassPrice, getRegistrationStatus, resolvePassPrice } from './settings.js'
 import { applyCoupon, recordRedemption } from './coupons.js'
 import { recordAudit, AUDIT_ACTIONS, recordEmail } from './audit.js'
 
@@ -142,7 +142,7 @@ export async function submitPaymentProof({ registrationId, utrId, proof, couponC
   await ensureSchemaOnce(sql)
 
   const rows = await withDbRetry(() => sql`
-    SELECT id, email, full_name, payment_status
+    SELECT id, email, full_name, payment_status, designation, college
     FROM registrations WHERE id = ${registrationId} LIMIT 1
   `)
   const reg = rows[0]
@@ -170,7 +170,13 @@ export async function submitPaymentProof({ registrationId, utrId, proof, couponC
     return { ok: false, status: 409, error: 'Sold out. All seats have been claimed.', soldOut: true }
   }
 
-  const listPrice = await getPassPrice(sql)
+  // KLH students (Bachupally / GBS / Aziz Nagar) pay a flat ₹449 regardless of
+  // the general schedule/override above — resolved from the designation and
+  // campus already on the row, not anything the client sends at submit time.
+  const listPrice = resolvePassPrice(await getPassPrice(sql), {
+    designation: reg.designation,
+    college: reg.college,
+  })
 
   // Re-resolve the coupon server-side. The checkout screen already previewed a
   // discount, but that preview is a display, not an input: trusting a

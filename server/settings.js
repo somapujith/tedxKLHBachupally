@@ -166,6 +166,20 @@ export async function getPassPrice(sql = getSql()) {
   }
 }
 
+// Flat ₹449 for students at TEDxKLH's own campuses, regardless of where the
+// schedule/override above has the general public price. Kept as an override
+// applied on top of getPassPrice rather than a schedule entry, since it turns
+// on a registrant attribute (designation + campus), not a date.
+export const KLH_STUDENT_CAMPUSES = ['KLH Bachupally Campus', 'KL GBS Campus', 'KL Aziz Nagar Campus']
+export const KLH_STUDENT_PRICE = 449
+
+export function resolvePassPrice(listPrice, { designation, college } = {}) {
+  if (designation === 'student' && KLH_STUDENT_CAMPUSES.includes(college)) {
+    return KLH_STUDENT_PRICE
+  }
+  return listPrice
+}
+
 export async function updatePassPrice({ price }, actor = {}, context = {}) {
   const n =
     typeof price === 'number'

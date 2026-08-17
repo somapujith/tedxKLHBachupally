@@ -69,6 +69,12 @@ const CAMPUSES = [
   'Others',
 ]
 
+// Students at KLH's own campuses pay a flat rate regardless of the general
+// schedule below — mirrors resolvePassPrice() in server/settings.js, which is
+// what actually decides the amount at submission.
+const KLH_STUDENT_CAMPUSES = ['KLH Bachupally Campus', 'KL GBS Campus', 'KL Aziz Nagar Campus']
+const KLH_STUDENT_PRICE = 449
+
 const DESIGNATIONS = [
   { value: 'student', label: 'Student' },
   { value: 'staff', label: 'Staff' },
@@ -141,7 +147,9 @@ export default function Register() {
   // if that call failed — the QR screen must always name a number. The server is
   // the authority: it prices the row from its own schedule at submission time,
   // so a stale fallback here can never become the amount actually recorded.
-  const price = availability?.passPrice ?? FALLBACK_PRICE
+  const isKlhStudent =
+    form.designation === 'student' && KLH_STUDENT_CAMPUSES.includes(form.college)
+  const price = isKlhStudent ? KLH_STUDENT_PRICE : (availability?.passPrice ?? FALLBACK_PRICE)
 
   // Applied coupon, as returned by the server's preview endpoint. Null until a
   // buyer enters a code that checks out.
