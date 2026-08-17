@@ -41,6 +41,7 @@ import photoSanjay from '../assets/images/team/sanjay.jpg'
 import photoDheeran from '../assets/images/team/dheeran.jpg'
 import photoDeepak from '../assets/images/team/deepak.jpg'
 import photoPrasanna from '../assets/images/team/prasanna.jpg'
+import photoSaiVihamsh from '../assets/images/team/sai-vihamsh.jpg'
 import photoAlekhya from '../assets/images/speakers/alekhya.jpg'
 import photoTejaswini from '../assets/images/speakers/tejaswini.jpg'
 import photoTezan from '../assets/images/speakers/tezan.jpg'
@@ -206,6 +207,7 @@ export const team = [
   { name: 'Deepak', dept: 'Hospitality', photo: photoDeepak },
   // Full-length seated portrait, so bias the crop upward to keep the face in frame.
   { name: 'Prasanna', dept: 'Hospitality', photo: photoPrasanna, photoPos: '50% 20%' },
+  { name: 'Sai Vihamsh', dept: 'Hospitality', photo: photoSaiVihamsh },
   // Sponsorship
   // Ms Anitha coordinates two departments. Each entry carries a single dept,
   // so she is listed once per department rather than given a combined role —
