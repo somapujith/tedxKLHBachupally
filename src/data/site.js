@@ -176,6 +176,7 @@ export const teamLeadership = [
 
 export const team = [
   // Hospitality
+  { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: photoLakshmiPrasanna, photoPos: '50% 20%' },
   {
     name: 'Yashwant',
     dept: 'Hospitality',
@@ -184,7 +185,6 @@ export const team = [
     socials: { linkedin: 'https://www.linkedin.com/in/balivadasaiyashwant' },
   },
   { name: 'Divya', dept: 'Hospitality', role: 'Co Leader', photo: photoDivya, photoPos: '50% 15%' },
-  { name: 'Lakshmi Prasanna', dept: 'Hospitality', role: 'Faculty Member of Hospitality', photo: photoLakshmiPrasanna, photoPos: '50% 20%' },
   { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
   { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
   { name: 'Chervi', dept: 'Hospitality', photo: photoChervi, photoPos: '50% 30%' },
@@ -215,9 +215,9 @@ export const team = [
   { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
   { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
+  { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
   { name: 'Suhas G', dept: 'Marketing', role: 'Leader', photo: photoSuhasG },
   { name: 'Pemesh', dept: 'Marketing', role: 'Co Leader', photo: photoPemesh },
-  { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
   {
     name: 'Sohith',
     dept: 'Marketing',
