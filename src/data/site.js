@@ -48,6 +48,9 @@ import photoVinuthna from '../assets/images/speakers/vinuthna.jpg'
 import photoSampath from '../assets/images/speakers/sampath.jpg'
 import photoSaiKiran from '../assets/images/speakers/saikiran.jpg'
 import photoNawab from '../assets/images/speakers/nawab-mir-nasir-ali-khan.jpg'
+import photoAnandSingh from '../assets/images/speakers/anand-singh.jpg'
+import photoSathwika from '../assets/images/speakers/sathwika-sama.jpg'
+import photoMoiz from '../assets/images/speakers/moiz-master.jpg'
 import { speakers as speakerData } from './event'
 
 export const nav = [
@@ -74,6 +77,9 @@ const speakerPhotos = {
   'sampath-akondi': photoSampath,
   'katapally-sai-kiran': photoSaiKiran,
   'nawab-mir-nasir-ali-khan': photoNawab,
+  'anand-singh': photoAnandSingh,
+  'sathwika-sama': photoSathwika,
+  'moiz-s-master': photoMoiz,
 }
 
 export const speakers = speakerData.map((s) => ({
