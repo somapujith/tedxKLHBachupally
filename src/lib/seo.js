@@ -21,7 +21,7 @@ export const PAGE_SEO = {
   '/': {
     title: 'TEDxKLH Bachupally 2026 | Technology Evolves, Humanity Leads',
     description:
-      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 7 speakers, one stage, ₹599. Reserve your seat.',
+      'An independently organized TEDx event at KL University, Hyderabad — Sat, Aug 22, 2026. 12 speakers, one stage, ₹599. Reserve your seat.',
   },
   '/register': {
     title: 'Register for TEDxKLH Bachupally 2026 | ₹599',
@@ -34,7 +34,7 @@ export const PAGE_SEO = {
   '/speakers': {
     title: 'Speakers | TEDxKLH Bachupally 2026',
     description:
-      '7 speakers across Health, Business, Technology & Arts take the TEDxKLH stage, Aug 22, 2026 in Hyderabad.',
+      '12 speakers across Health, Business, Technology & Arts take the TEDxKLH stage, Aug 22, 2026 in Hyderabad.',
   },
   '/theme': {
     title: 'Theme 2026: Technology Evolves, Humanity Leads | TEDxKLH',
@@ -112,7 +112,7 @@ export const SPEAKER_SEO = Object.fromEntries(
       `/speakers/${s.slug}`,
       {
         title: `${s.name} | TEDxKLH Bachupally 2026`,
-        description: `${s.name}, ${s.role}, speaks at TEDxKLH Bachupally, Sat Aug 22, 2026 in Hyderabad. ${s.highlight}.`,
+        description: `${s.name}, ${s.role}, speaks at TEDxKLH Bachupally, Sat Aug 22, 2026 in Hyderabad.${s.highlight ? ` ${s.highlight}.` : ''}`,
       },
     ]),
 )
