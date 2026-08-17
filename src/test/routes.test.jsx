@@ -96,7 +96,7 @@ describe('speaker reveal gating', () => {
     detail.unmount()
 
     renderAt('/speakers')
-    expect(await screen.findByText(/3 of 10 talks revealed/i)).toBeInTheDocument()
+    expect(await screen.findByText(/3 of 12 talks revealed/i)).toBeInTheDocument()
     expect(screen.queryByText(/Vinuthna Jagarlapudi/i)).not.toBeInTheDocument()
   })
 

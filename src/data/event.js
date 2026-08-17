@@ -160,6 +160,24 @@ export const speakers = [
     bio: "Moiz S. Master is the founder of Alister Equipments, a premier provider of commercial kitchen equipment and solutions. Under his leadership, the company has built a reputation for high-quality, reliable, and technologically advanced products, delivering customized solutions for hotels, restaurants, cafes, and bakeries that optimize efficiency and productivity. His commitment to sustainability, customer satisfaction, and continuous innovation has set industry benchmarks and established him as a respected leader in the commercial kitchen equipment sector.",
     photo: null,
   },
+  {
+    n: 11,
+    slug: 'akshay-pabba',
+    name: 'Akshay Pabba',
+    category: 'Arts',
+    role: 'Podcaster',
+    revealDate: '2026-08-17T09:00:00+05:30',
+    photo: null,
+  },
+  {
+    n: 12,
+    slug: 'kamakshi-bhaskarla',
+    name: 'Kamakshi Bhaskarla',
+    category: 'Arts',
+    role: 'Actress',
+    revealDate: '2026-08-18T09:00:00+05:30',
+    photo: null,
+  },
 ]
 
 // True once a speaker's reveal moment has passed. `now` is injectable for
@@ -170,9 +188,7 @@ export function isRevealed(speaker, now = new Date()) {
 }
 
 // Official running order, 9:30 AM – 4:00 PM. `slug` links a talk row to its
-// entry in `speakers` above (and drives the /speakers/:slug link on Schedule.jsx);
-// two names on the printed program — Kamakshi Bhaskarla and Akshay Pabba —
-// have no roster entry yet, so their rows carry `role` only and render unlinked.
+// entry in `speakers` above (and drives the /speakers/:slug link on Schedule.jsx).
 // `kind` drives Schedule.jsx's visual treatment: 'talk' gets the numbered
 // TED-style card, everything else (ceremony/break/performance/interaction/
 // valedictory) gets the plain program-note treatment.
@@ -194,14 +210,14 @@ export const schedule = [
   { time: '11:20 AM – 11:40 AM', kind: 'talk', n: 5, slug: 'tejaswini-adada', name: 'Dr. Tejaswini Adada', role: 'Clinician & Research Scientist in Oncology, Cancer Conscious Clinic' },
   { time: '11:40 AM – 12:00 PM', kind: 'talk', n: 6, slug: 'nawab-mir-nasir-ali-khan', name: 'Dr. Nawab Mir Nasir Ali Khan', role: 'Honorary Consul of the Republic of Kazakhstan, Hyderabad' },
   { time: '12:00 PM – 12:20 PM', kind: 'talk', n: 7, slug: 'sathwika-sama', name: 'Sathwika Sama Surakanti', role: 'Deputy Superintendent of Police (DSP)' },
-  { time: '12:20 PM – 12:40 PM', kind: 'talk', n: 8, name: 'Kamakshi Bhaskarla', role: 'Actress' },
+  { time: '12:20 PM – 12:40 PM', kind: 'talk', n: 8, slug: 'kamakshi-bhaskarla', name: 'Kamakshi Bhaskarla', role: 'Actress' },
   { time: '12:40 PM – 1:00 PM', kind: 'interaction', title: 'Speaker – Student Interaction' },
   { time: '1:00 PM – 2:00 PM', kind: 'break', title: 'Lunch Break' },
   { time: '2:00 PM – 2:10 PM', kind: 'performance', title: 'Band / Dance' },
   { time: '2:10 PM – 2:30 PM', kind: 'talk', n: 9, slug: 'sampath-akondi', name: 'Sampath Akondi', role: 'Content Creator' },
   { time: '2:30 PM – 2:50 PM', kind: 'talk', n: 10, slug: 'katapally-sai-kiran', name: 'Katapally Sai Kiran', role: 'Founder & Director, Space App India' },
   { time: '2:50 PM – 3:10 PM', kind: 'talk', n: 11, slug: 'moiz-s-master', name: 'Moiz S. Master', role: 'Founder, Alister Equipments' },
-  { time: '3:10 PM – 3:30 PM', kind: 'talk', n: 12, name: 'Akshay Pabba', role: 'Podcaster' },
+  { time: '3:10 PM – 3:30 PM', kind: 'talk', n: 12, slug: 'akshay-pabba', name: 'Akshay Pabba', role: 'Podcaster' },
   { time: '3:30 PM – 4:00 PM', kind: 'valedictory', title: 'Valedictory Ceremony' },
 ]
 
