@@ -276,7 +276,12 @@ export const team = [
     photo: photoAnuradha,
     socials: { linkedin: 'https://www.linkedin.com/in/anuradha-nandini-912284378/' },
   },
-  { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
+  {
+    name: 'Parinitha',
+    dept: 'Marketing',
+    photo: photoParinitha,
+    socials: { linkedin: 'https://www.linkedin.com/in/t-parinita-487412416' },
+  },
   // Cropped to a square head-and-shoulders portrait at build time rather than
   // steered with photoPos: the source was a full-length shot where she stood
   // small in the frame, and object-position can only pan that window, not zoom
