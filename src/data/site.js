@@ -210,7 +210,7 @@ export const team = [
     name: 'Vamsi',
     dept: 'Hospitality',
     photo: photoVamsi,
-    socials: { linkedin: 'https://www.linkedin.com/in/vamsi-markandeya-yerra/' },
+    socials: { linkedin: 'https://www.linkedin.com/in/vamsi-markandeya-yerra-918558351/' },
   },
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   { name: 'Subramanyam', dept: 'Hospitality', photo: photoSubramanyam },
