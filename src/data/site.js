@@ -277,7 +277,7 @@ export const team = [
     socials: { linkedin: 'https://www.linkedin.com/in/anuradha-nandini-912284378/' },
   },
   {
-    name: 'Parinitha',
+    name: 'Parinita',
     dept: 'Marketing',
     photo: photoParinitha,
     socials: { linkedin: 'https://www.linkedin.com/in/t-parinita-487412416' },
