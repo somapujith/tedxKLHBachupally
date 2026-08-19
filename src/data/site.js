@@ -109,8 +109,8 @@ export const theme = {
     },
     {
       n: '003/003',
-      title: 'Seven speakers. One question.',
-      body: 'We invited seven people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage, on a screen, at a negotiating table. They will not tell you what to think. They will tell you what it cost them to think it.',
+      title: 'Twelve speakers. One question.',
+      body: 'We invited twelve people who have already had to make that choice — in a clinic, in a boardroom, in an oncology ward, in a lab, on a stage, on a screen, at a negotiating table. They will not tell you what to think. They will tell you what it cost them to think it.',
     },
   ],
 }
