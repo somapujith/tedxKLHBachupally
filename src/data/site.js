@@ -242,7 +242,13 @@ export const team = [
   // Marketing
   { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
   { name: 'Suhas G', dept: 'Marketing', role: 'Leader', photo: photoSuhasG },
-  { name: 'Pemesh', dept: 'Marketing', role: 'Co Leader', photo: photoPemesh },
+  {
+    name: 'Pemesh',
+    dept: 'Marketing',
+    role: 'Co Leader',
+    photo: photoPemesh,
+    socials: { linkedin: 'https://www.linkedin.com/in/pemesh-undefined-3094b3416/' },
+  },
   {
     name: 'Sohith',
     dept: 'Marketing',
