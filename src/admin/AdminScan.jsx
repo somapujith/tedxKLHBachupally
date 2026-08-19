@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
-import { adminFetch, getToken } from './api'
+import { adminFetch, getToken, isSuperAdmin } from './api'
 import { Button, Card, Field } from './ui'
 
 const READER_ID = 'admin-qr-reader'
@@ -112,7 +112,7 @@ export default function AdminScan() {
             <span className="text-sm font-semibold tracking-tight">Gate check-in</span>
           </div>
           <Link
-            to="/admin"
+            to={isSuperAdmin() ? '/admin' : '/admin/checked-in'}
             className="rounded-lg px-2.5 py-1.5 text-sm text-paper/55 transition-colors hover:bg-white/[0.06] hover:text-paper"
           >
             Close

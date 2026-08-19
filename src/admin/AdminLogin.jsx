@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getToken, login } from './api'
+import { getToken, isSuperAdmin, login } from './api'
+
+// A plain admin lands straight on the checked-in view — /admin (Dashboard) is
+// a superadmin screen now, and routing through it first would flash the
+// wrong page before AdminShell's guard bounces them off it.
+function landingPath() {
+  return isSuperAdmin() ? '/admin' : '/admin/checked-in'
+}
 import { Alert, Button, Card, Field, Input } from './ui'
 
 export default function AdminLogin() {
@@ -10,7 +17,7 @@ export default function AdminLogin() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (getToken()) navigate('/admin', { replace: true })
+    if (getToken()) navigate(landingPath(), { replace: true })
   }, [navigate])
 
   function update(field, value) {
@@ -28,7 +35,7 @@ export default function AdminLogin() {
     setError('')
     try {
       await login(form.username, form.password)
-      navigate('/admin', { replace: true })
+      navigate(landingPath(), { replace: true })
     } catch (err) {
       setError(err.message || 'Sign in failed.')
     } finally {

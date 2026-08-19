@@ -1,11 +1,13 @@
 import { NavLink } from 'react-router-dom'
 import { isSuperAdmin } from './api'
 
-// Fixed mobile bottom nav: Dashboard · Scan · Registrations
-// (· Activity · Admins for a superadmin).
-// Flat bar, three equal targets — the scanner reads as primary through a solid
-// red chip instead of a floating raised circle. Hidden at md+ where the desktop
-// top header takes over. Safe-area padding clears the iPhone home indicator.
+// Fixed mobile bottom nav.
+// Plain admin (gate duty, close to the event): Scan · Checked in — exactly the
+// two views that role has. Superadmin: Dashboard · Scan · Registrations
+// (· Activity · Admins). Flat bar, equal-width targets — the scanner reads as
+// primary through a solid red chip instead of a floating raised circle.
+// Hidden at md+ where the desktop top header takes over. Safe-area padding
+// clears the iPhone home indicator.
 
 const ICON = 'h-[22px] w-[22px]'
 
@@ -64,6 +66,15 @@ function SupportIcon() {
   )
 }
 
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={ICON} aria-hidden>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="m8.5 12.2 2.4 2.4 4.6-4.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 function TeamIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
@@ -116,22 +127,39 @@ export default function BottomNav() {
   // Five targets is the most this bar can hold legibly on a small phone, so the
   // superadmin labels are short ones and the max width grows with the count.
   const superAdmin = isSuperAdmin()
+
+  if (!superAdmin) {
+    // Exactly this role's two views. Both get the full-width treatment (no
+    // squeezed three-plus-tab row) since there's nothing else to fit.
+    return (
+      <nav
+        aria-label="Admin"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-ink/90 backdrop-blur-xl md:hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="mx-auto flex max-w-xs items-stretch px-2">
+          <Tab to="/admin/scan" label="Scan" icon={<ScanIcon />} accent />
+          <Tab to="/admin/checked-in" label="Checked in" icon={<CheckIcon />} />
+        </div>
+      </nav>
+    )
+  }
+
   return (
     <nav
       aria-label="Admin"
       className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-ink/90 backdrop-blur-xl md:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className={`mx-auto flex items-stretch px-2 ${superAdmin ? 'max-w-lg' : 'max-w-md'}`}>
+      <div className="mx-auto flex max-w-lg items-stretch px-2">
         <Tab to="/admin" label="Dashboard" icon={<DashIcon />} />
         <Tab to="/admin/scan" label="Scan" icon={<ScanIcon />} accent />
-        <Tab to="/admin/registrations" label={superAdmin ? 'Regs' : 'Registrations'} icon={<ListIcon />} />
+        <Tab to="/admin/registrations" label="Regs" icon={<ListIcon />} />
         {/* Five targets is this bar's legible ceiling on a small phone, so a
             superadmin — who already has two extra tabs — reaches Support from
             the desktop tab or the dashboard link instead of a sixth chip. */}
-        {!superAdmin && <Tab to="/admin/support" label="Support" icon={<SupportIcon />} />}
-        {superAdmin && <Tab to="/admin/activity" label="Activity" icon={<LogIcon />} />}
-        {superAdmin && <Tab to="/admin/admins" label="Admins" icon={<TeamIcon />} />}
+        <Tab to="/admin/activity" label="Activity" icon={<LogIcon />} />
+        <Tab to="/admin/admins" label="Admins" icon={<TeamIcon />} />
       </div>
     </nav>
   )

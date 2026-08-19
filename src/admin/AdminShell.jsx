@@ -3,14 +3,17 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { getAdminName, getToken, isSuperAdmin, logout } from './api'
 import BottomNav from './BottomNav'
 
-// Shared chrome for the tabbed admin screens (Dashboard, Registrations, and —
-// for a superadmin — Activity and Admins). Top bar = identity + navigation only;
-// the page title/description live in the content column so the bar stays one
-// line tall on every device. The scanner and login screens render bare.
+// Shared chrome for the tabbed admin screens. A plain admin gets exactly one
+// tab here, Checked in (plus the Scan button, a bare route outside this
+// shell); a superadmin gets the full set. Top bar = identity + navigation
+// only; the page title/description live in the content column so the bar
+// stays one line tall on every device. The scanner and login screens render
+// bare.
 
 const PAGES = {
   '/admin': { title: 'Dashboard', description: 'Live registration and check-in numbers.' },
   '/admin/registrations': { title: 'Registrations', description: 'Search, filter and resend attendee passes.' },
+  '/admin/checked-in': { title: 'Checked in', description: 'Live gate roster — updates as every admin scans.' },
   '/admin/support': { title: 'Support', description: 'Tickets raised by attendees. Call or email them, then mark it resolved.' },
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
@@ -19,7 +22,7 @@ const PAGES = {
   '/admin/emails': { title: 'Emails', description: 'Confirmation and pass emails, by delivery status.' },
 }
 
-// `short` is used between md and xl, where a superadmin's six tabs would
+// `short` is used between md and xl, where a superadmin's tabs would
 // otherwise overrun the row; the full label returns at xl.
 const BASE_TABS = [
   { to: '/admin', label: 'Dashboard' },
@@ -28,7 +31,7 @@ const BASE_TABS = [
 ]
 
 // Appended, not substituted: a superadmin keeps every gate-admin screen and
-// gains two more.
+// gains five more.
 const SUPER_TABS = [
   { to: '/admin/payments', label: 'Payments' },
   { to: '/admin/coupons', label: 'Coupons' },
@@ -37,17 +40,36 @@ const SUPER_TABS = [
   { to: '/admin/admins', label: 'Admins' },
 ]
 
+// A plain admin's entire shell surface, close to the event: the scanner
+// (bare route, reached via the header/bottom-nav button) plus this one tab.
+// Dashboard, Registrations, Support and every superadmin screen are gone —
+// not just off the nav, but redirected away below, so a bookmarked or typed
+// URL can't land a gate admin somewhere this panel no longer offers them.
+const GATE_ADMIN_TABS = [{ to: '/admin/checked-in', label: 'Checked in' }]
+const GATE_ADMIN_PATH = '/admin/checked-in'
+
 export default function AdminShell() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const page = PAGES[pathname] ?? { title: 'Admin', description: '' }
   const superAdmin = isSuperAdmin()
-  const tabs = superAdmin ? [...BASE_TABS, ...SUPER_TABS] : BASE_TABS
+  const tabs = superAdmin ? [...BASE_TABS, ...SUPER_TABS] : GATE_ADMIN_TABS
 
   // Auth guard for every shell screen — bounce to login if the token is gone.
+  // A plain admin is further confined to the checked-in view: everything else
+  // under /admin is a superadmin screen right now, and letting a gate admin
+  // sit on a stale Dashboard/Registrations tab (reachable only by typing the
+  // URL, since the nav no longer offers it) is the "not properly designed"
+  // failure mode this restriction exists to close.
   useEffect(() => {
-    if (!getToken()) navigate('/admin/login', { replace: true })
-  }, [navigate, pathname])
+    if (!getToken()) {
+      navigate('/admin/login', { replace: true })
+      return
+    }
+    if (!superAdmin && pathname !== GATE_ADMIN_PATH) {
+      navigate(GATE_ADMIN_PATH, { replace: true })
+    }
+  }, [navigate, pathname, superAdmin])
 
   function onLogout() {
     if (!window.confirm('Sign out of the admin panel?')) return
