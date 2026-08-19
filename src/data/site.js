@@ -189,11 +189,22 @@ export const team = [
   { name: 'Naga', dept: 'Hospitality', photo: photoNaga },
   { name: 'Mahathi', dept: 'Hospitality', photo: photoMahathi, photoPos: '50% 30%' },
   { name: 'Chervi', dept: 'Hospitality', photo: photoChervi, photoPos: '50% 30%' },
-  { name: 'Tanmai', dept: 'Hospitality', photo: photoTanmai, photoPos: '70% 25%' },
+  {
+    name: 'Tanmai',
+    dept: 'Hospitality',
+    photo: photoTanmai,
+    photoPos: '70% 25%',
+    socials: { linkedin: 'https://www.linkedin.com/in/tanmai-duddukuri-776b69377/' },
+  },
   { name: 'Dhanvin', dept: 'Hospitality', photo: photoDhanvin },
   { name: 'Tarun', dept: 'Hospitality', photo: photoTarun },
   { name: 'Ganesh', dept: 'Hospitality', photo: photoGanesh },
-  { name: 'Vamsi', dept: 'Hospitality', photo: photoVamsi },
+  {
+    name: 'Vamsi',
+    dept: 'Hospitality',
+    photo: photoVamsi,
+    socials: { linkedin: 'https://www.linkedin.com/in/vamsi-markandeya-yerra/' },
+  },
   { name: 'Sanuhya', dept: 'Hospitality', photo: photoSanuhya, photoPos: '50% 60%' },
   { name: 'Subramanyam', dept: 'Hospitality', photo: photoSubramanyam },
   { name: 'Naveena', dept: 'Hospitality', photo: photoNaveena, photoPos: '50% 30%' },
@@ -214,7 +225,12 @@ export const team = [
   // the roster grids filter on dept, and a shared card would appear in neither.
   { name: 'Ms Anitha', dept: 'Sponsorship', role: 'Faculty Co-ordinator', photo: photoAnitha },
   { name: 'Vallabh', dept: 'Sponsorship', photo: photoVallabh },
-  { name: 'Kaushik', dept: 'Sponsorship', photo: photoKaushik },
+  {
+    name: 'Kaushik',
+    dept: 'Sponsorship',
+    photo: photoKaushik,
+    socials: { linkedin: 'https://www.linkedin.com/in/koushik-sarabada-4938b3374' },
+  },
   { name: 'Shreyas', dept: 'Sponsorship', photo: photoShreyas, photoPos: '50% 40%' },
   // Marketing
   { name: 'Venkateshwar Rao', dept: 'Marketing', role: 'Faculty Member of Marketing', photo: photoVenkateshwarRao },
