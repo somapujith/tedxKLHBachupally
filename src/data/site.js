@@ -270,7 +270,12 @@ export const team = [
   },
   { name: 'Akshitha', dept: 'Marketing', photo: photoAkshitha },
   { name: 'Ashwika', dept: 'Marketing', photo: photoAshwika },
-  { name: 'Anuradha', dept: 'Marketing', photo: photoAnuradha },
+  {
+    name: 'Anuradha',
+    dept: 'Marketing',
+    photo: photoAnuradha,
+    socials: { linkedin: 'https://www.linkedin.com/in/anuradha-nandini-912284378/' },
+  },
   { name: 'Parinitha', dept: 'Marketing', photo: photoParinitha },
   // Cropped to a square head-and-shoulders portrait at build time rather than
   // steered with photoPos: the source was a full-length shot where she stood
