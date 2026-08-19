@@ -250,7 +250,12 @@ export const team = [
     photoPos: '50% 70%',
     socials: { linkedin: 'https://www.linkedin.com/in/sohith-sai-veldi-694288377/' },
   },
-  { name: 'Chakrika', dept: 'Marketing', photo: photoChakrika },
+  {
+    name: 'Chakrika',
+    dept: 'Marketing',
+    photo: photoChakrika,
+    socials: { linkedin: 'https://www.linkedin.com/in/chakrika-panakala-31a4a340a/' },
+  },
   {
     name: 'Rasagnya',
     dept: 'Marketing',
