@@ -347,9 +347,8 @@ export default function Register() {
   // confirmation (email echo, payment id) even if the last seat went to them.
   if (soldOut && !success) {
     return (
-      <RegisterState eyebrow="Sold out" title="Every seat is claimed.">
-        All seats for TEDxKLH Bachupally have been booked. No further registrations can be
-        accepted. Follow us for announcements about future events.
+      <RegisterState eyebrow="Housefull" title="We are housefull.">
+        All the tickets for the event are sold. Thank you for your contribution.
       </RegisterState>
     )
   }

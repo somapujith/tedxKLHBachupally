@@ -66,7 +66,7 @@ describe('Register form — live pass availability', () => {
   it('replaces the form with the sold-out screen when nothing is left', async () => {
     vi.stubGlobal('fetch', availabilityFetch({ capacity: 250, sold: 250 }))
     renderForm()
-    await waitFor(() => expect(screen.getByText(/every seat is claimed/i)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText(/we are housefull/i)).toBeInTheDocument())
     expect(screen.queryByLabelText(/full name/i)).not.toBeInTheDocument()
   })
 
