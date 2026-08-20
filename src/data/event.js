@@ -45,7 +45,7 @@ export const speakers = [
     slug: 'alekhya-singapore',
     name: 'Dr. Alekhya Singapore',
     category: 'Health',
-    role: 'Consultant Dermatologist & Trichologist',
+    role: 'Founder & Chief Dermatologist, The Skin Sensé Clinics',
     credentials: 'MBBS · DDVL · Healthcare Management, ISB',
     highlight: 'Named India’s first “Dermapreneur” by Times Network',
     revealDate: '2026-08-08T09:00:00+05:30',
