@@ -734,12 +734,34 @@ export default function Register() {
 
 function RegisterState({ eyebrow, title, children }) {
   return (
-    <div className="relative mx-auto max-w-2xl overflow-hidden px-6 py-24 md:py-32">
-      <RedGlow className="left-1/2 top-10 -translate-x-1/2" size={520} />
-      <div className="relative">
-        <Eyebrow className="mb-5">{eyebrow}</Eyebrow>
-        <h1 className="mb-6 font-display text-4xl leading-[1.05] tracking-tight md:text-6xl">{title}</h1>
-        {children ? <p className="text-lg leading-relaxed text-paper/70">{children}</p> : null}
+    <div className="relative mx-auto flex min-h-[70vh] max-w-3xl items-center justify-center px-6 py-24 md:py-32">
+      {/* Glow sits in its own unclipped, centered layer. The old version pinned a
+          520px blob to top-10 inside an overflow-hidden max-w-2xl box, so it was
+          sheared at the container edges and read as a lopsided red slab. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-visible">
+        <RedGlow className="left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2" size={720} />
+      </div>
+
+      <div className="relative w-full text-center">
+        <span className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-red/40 bg-red/[0.07] px-4 py-1.5">
+          <span className="relative flex h-1.5 w-1.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-60" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-red" />
+          </span>
+          <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-red">{eyebrow}</span>
+        </span>
+
+        <h1 className="font-display text-[2.75rem] leading-[1.02] tracking-tight md:text-7xl">
+          {title}
+        </h1>
+
+        <div className="mx-auto mt-8 h-px w-16 bg-gradient-to-r from-transparent via-red to-transparent" />
+
+        {children ? (
+          <p className="mx-auto mt-8 max-w-md text-base leading-relaxed text-paper/60 md:text-lg">
+            {children}
+          </p>
+        ) : null}
       </div>
     </div>
   )
