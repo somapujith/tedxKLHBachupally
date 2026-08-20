@@ -230,6 +230,10 @@ function usePassActions(row, onRevoked) {
   const status = row.payment_status ?? 'pending'
   const isPaid = status === 'paid' || status === 'checked_in'
   const canRevoke = isSuperAdmin() && row.ticket_issued === true
+  // Confirmation mail goes out at submission, well before a payment is
+  // verified — so this is offered whenever proof exists, not gated on isPaid
+  // like the pass resend below.
+  const canResendConfirmation = Boolean(row.submitted_at)
 
   async function resend() {
     if (!window.confirm(`Resend the QR pass email to ${row.email ?? 'this attendee'}?`)) return
@@ -240,6 +244,18 @@ function usePassActions(row, onRevoked) {
       body: JSON.stringify({ registrationId: row.id }),
     })
     setNote(ok ? (data.emailed ? 'Sent' : 'Queued') : data.error || 'Failed')
+    setBusy(false)
+  }
+
+  async function resendConfirmation() {
+    if (!window.confirm(`Resend the booking confirmation email to ${row.email ?? 'this attendee'}?`)) return
+    setBusy(true)
+    setNote('')
+    const { ok, data } = await adminFetch('/api/admin/resend-confirmation', {
+      method: 'POST',
+      body: JSON.stringify({ registrationId: row.id }),
+    })
+    setNote(ok ? 'Confirmation sent' : data.error || 'Failed')
     setBusy(false)
   }
 
@@ -264,12 +280,13 @@ function usePassActions(row, onRevoked) {
     if (ok) onRevoked?.()
   }
 
-  return { status, isPaid, canRevoke, note, busy, resend, revoke }
+  return { status, isPaid, canRevoke, canResendConfirmation, note, busy, resend, resendConfirmation, revoke }
 }
 
 function RegistrationCard({ row, onRevoked }) {
   const [open, setOpen] = useState(false)
-  const { status, isPaid, canRevoke, note, busy, resend, revoke } = usePassActions(row, onRevoked)
+  const { status, isPaid, canRevoke, canResendConfirmation, note, busy, resend, resendConfirmation, revoke } =
+    usePassActions(row, onRevoked)
 
   return (
     <Card pad="sm">
@@ -334,11 +351,18 @@ function RegistrationCard({ row, onRevoked }) {
         </dl>
       )}
 
-      {isPaid && (
+      {(isPaid || canResendConfirmation) && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button size="sm" onClick={resend} disabled={busy}>
-            {busy ? 'Working…' : 'Resend pass'}
-          </Button>
+          {isPaid && (
+            <Button size="sm" onClick={resend} disabled={busy}>
+              {busy ? 'Working…' : 'Resend pass'}
+            </Button>
+          )}
+          {canResendConfirmation && (
+            <Button size="sm" variant="ghost" onClick={resendConfirmation} disabled={busy}>
+              {busy ? 'Working…' : 'Resend confirmation'}
+            </Button>
+          )}
           {canRevoke && (
             <Button size="sm" variant="danger" onClick={revoke} disabled={busy}>
               Revoke QR
@@ -383,7 +407,8 @@ function Detail({ term, value, capitalize = false }) {
 }
 
 function RegistrationRow({ row, onRevoked }) {
-  const { status, isPaid, canRevoke, note, busy, resend, revoke } = usePassActions(row, onRevoked)
+  const { status, isPaid, canRevoke, canResendConfirmation, note, busy, resend, resendConfirmation, revoke } =
+    usePassActions(row, onRevoked)
   return (
     <tr className="border-b border-white/[0.06] align-top transition-colors last:border-0 hover:bg-white/[0.02]">
       <td className="px-4 py-3">
@@ -424,11 +449,18 @@ function RegistrationRow({ row, onRevoked }) {
         )}
       </td>
       <td className="px-4 py-3 text-right">
-        {isPaid && (
-          <div className="inline-flex items-center gap-2">
-            <Button size="sm" onClick={resend} disabled={busy}>
-              {busy ? 'Working…' : 'Resend'}
-            </Button>
+        {(isPaid || canResendConfirmation) && (
+          <div className="inline-flex flex-wrap items-center justify-end gap-2">
+            {isPaid && (
+              <Button size="sm" onClick={resend} disabled={busy}>
+                {busy ? 'Working…' : 'Resend'}
+              </Button>
+            )}
+            {canResendConfirmation && (
+              <Button size="sm" variant="ghost" onClick={resendConfirmation} disabled={busy}>
+                {busy ? 'Working…' : 'Confirmation'}
+              </Button>
+            )}
             {canRevoke && (
               <Button size="sm" variant="danger" onClick={revoke} disabled={busy}>
                 Revoke

@@ -20,6 +20,7 @@ import {
   approvePayment,
   approvePaymentsBulk,
   rejectPayment,
+  resendBookingConfirmation,
 } from '../../server/payments.js'
 import { listSupportTickets, resolveSupportTicket } from '../../server/support.js'
 import { withApi, LIMITS } from '../../server/http.js'
@@ -69,6 +70,15 @@ const RESOURCES = {
     auth: ADMIN,
     POST: async (req, { auth }) =>
       resendTicket({
+        registrationId: req.body?.registrationId,
+        actor: actorFrom(auth),
+        context: requestContext(req),
+      }),
+  },
+  'resend-confirmation': {
+    auth: ADMIN,
+    POST: async (req, { auth }) =>
+      resendBookingConfirmation({
         registrationId: req.body?.registrationId,
         actor: actorFrom(auth),
         context: requestContext(req),

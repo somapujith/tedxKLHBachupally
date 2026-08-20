@@ -22,6 +22,8 @@ export const AUDIT_ACTIONS = {
   CHECKIN_REJECTED: 'checkin_rejected',
   RESEND_TICKET: 'resend_ticket',
   RESEND_FAILED: 'resend_failed',
+  RESEND_CONFIRMATION: 'resend_confirmation',
+  RESEND_CONFIRMATION_FAILED: 'resend_confirmation_failed',
   ADMIN_CREATED: 'admin_created',
   ADMIN_UPDATED: 'admin_updated',
   ADMIN_DEACTIVATED: 'admin_deactivated',

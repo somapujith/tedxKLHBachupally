@@ -13,6 +13,7 @@ import {
   approvePaymentsBulk,
   rejectPayment,
   seatAvailability,
+  resendBookingConfirmation,
 } from './payments.js'
 import { createContactMessage } from './contact.js'
 import { createSupportTicket, listSupportTickets, resolveSupportTicket } from './support.js'
@@ -385,6 +386,22 @@ app.post('/api/admin/resend-ticket', adminWriteLimiter, async (req, res) => {
   } catch (err) {
     console.error('Admin resend error:', err)
     return res.status(500).json({ ok: false, error: 'Could not resend ticket.' })
+  }
+})
+
+app.post('/api/admin/resend-confirmation', adminWriteLimiter, async (req, res) => {
+  const auth = requireAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await resendBookingConfirmation({
+      registrationId: req.body?.registrationId,
+      actor: actorFrom(auth),
+      context: requestContext(req),
+    })
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Admin resend confirmation error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not resend confirmation.' })
   }
 })
 

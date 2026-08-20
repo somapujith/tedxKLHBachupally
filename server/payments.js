@@ -100,6 +100,95 @@ async function sendBookingConfirmation({ registrationId, email, fullName, utr, a
   }
 }
 
+// Admin-triggered re-send of the seat-booking confirmation — the mail sent at
+// submission, before a payment is verified (no QR; that comes with the pass
+// email, resent separately via resendTicket). Exists for exactly the case a
+// superadmin hits in the Emails screen: a 'failed' row where the buyer's proof
+// is safely recorded but the confirmation itself never reached their inbox.
+export async function resendBookingConfirmation({ registrationId, actor = {}, context = {} }) {
+  const audit = {
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    targetType: 'registration',
+    targetId: typeof registrationId === 'string' ? registrationId : null,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  }
+
+  if (!registrationId) {
+    return { ok: false, status: 400, error: 'Missing registration id.' }
+  }
+  if (!isUuid(registrationId)) {
+    return { ok: false, status: 400, error: 'Invalid registration id.' }
+  }
+
+  const sql = getSql()
+  const rows = await sql`
+    SELECT id, full_name, email, utr_id, amount, submitted_at
+    FROM registrations WHERE id = ${registrationId} LIMIT 1
+  `
+  const reg = rows[0]
+  if (!reg) {
+    return { ok: false, status: 404, error: 'Registration not found.' }
+  }
+  audit.targetName = reg.full_name
+  if (!reg.submitted_at) {
+    return { ok: false, status: 409, error: 'No payment has been submitted for this registration yet.' }
+  }
+
+  // Same 2-minute cooldown resendTicket uses, checked against email_log rather
+  // than a dedicated timestamp column: unlike the pass email, no column tracks
+  // "last confirmation sent", and this is a low-volume admin action, not a hot
+  // path worth a schema change for.
+  const recent = await sql`
+    SELECT created_at FROM email_log
+    WHERE registration_id = ${registrationId} AND email_type = 'booking' AND status = 'sent'
+    ORDER BY created_at DESC LIMIT 1
+  `
+  const lastSentAt = recent[0]?.created_at
+  if (lastSentAt && Date.now() - new Date(lastSentAt).getTime() < 2 * 60 * 1000) {
+    return {
+      ok: false,
+      status: 429,
+      error: 'Confirmation was re-sent recently. Try again in a few minutes.',
+    }
+  }
+
+  const sent = await sendBookingEmail({
+    to: reg.email,
+    fullName: reg.full_name,
+    registrationId: reg.id,
+    utrId: reg.utr_id,
+    amount: reg.amount,
+  })
+  await recordEmail({
+    registrationId: reg.id,
+    toEmail: reg.email,
+    fullName: reg.full_name,
+    emailType: 'booking',
+    status: sent.ok ? 'sent' : sent.skipped ? 'skipped' : 'failed',
+    providerMessageId: sent.ok ? sent.id : undefined,
+    error: sent.ok
+      ? undefined
+      : sent.skipped
+        ? 'RESEND_API_KEY is not configured.'
+        : sent.detail || sent.error || 'Email send failed.',
+    triggeredBy: audit.adminUsername,
+  })
+  await recordAudit({
+    ...audit,
+    action: sent.ok ? AUDIT_ACTIONS.RESEND_CONFIRMATION : AUDIT_ACTIONS.RESEND_CONFIRMATION_FAILED,
+    result: sent.ok ? 'success' : 'failure',
+    detail: sent.ok ? null : sent.detail || sent.error || 'Email send failed.',
+  })
+
+  if (!sent.ok) {
+    return { ok: false, status: 502, error: 'Could not resend confirmation email.' }
+  }
+  return { ok: true, status: 200, emailed: true }
+}
+
 /**
  * Buyer submits their bank-transfer proof: UTR reference plus a screenshot.
  *
