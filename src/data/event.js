@@ -57,11 +57,11 @@ export const speakers = [
     slug: 'tejaswini-adada',
     name: 'Dr. Tejaswini Adada',
     category: 'Health',
-    role: 'Consultant Medical Oncologist, Hematologist & Digital Health Innovator',
+    role: 'Clinician & Research Scientist in Oncology, Cancer Conscious Clinic',
     credentials: 'Co-founder & CEO, Cancer Conscious Clinics',
     highlight: 'Over 14 years of cross-sector healthcare experience',
     revealDate: '2026-08-09T09:00:00+05:30',
-    bio: 'Dr. Tejaswini Adada is a physician-scientist, medical oncologist, and healthcare entrepreneur based in Hyderabad. Co-founder and CEO of Cancer Conscious Clinics, she brings over 14 years of cross-sector healthcare experience from premier institutions including Malla Reddy Narayana and HCG Cancer Centre.',
+    bio: 'Dr. Tejaswini Adada is a leader in the field of oncology — both as a clinician-scientist and an administrator — whose work sits at the convergence of clinical oncology, translational research, and healthcare innovation. Internationally certified in medical oncology, she practices at the frontier of precision cancer care — cellular therapies, molecular oncology, and genomics-guided treatment — while building the systems and ventures that carry those advances to patients at scale. She is the co-founder of Cancer Conscious Clinics, delivering 360° oncology care spanning precision diagnostics, genetic counselling, and survivorship support. As Director of AI Innovations at Medhic.ai and CEO at Fifthcare Solutions, she is building AI-enabled infrastructure for clinical trial analytics, drug discovery, and patient-journey redesign. Her research has pioneered the integration of AI with CRISPR technology in early discovery, and as a clinician-scientist she leads oncology research programs in molecular oncology and novel therapeutic strategies. Dr. Tejaswini trained in AI for cancer research internationally, and is an alumnus of the Oxford Saïd Business School Senior Executive Leadership Programme and the Indian School of Business healthcare management program, bringing operational and financial fluency to scientific leadership. She serves on the CII Southern Region Healthcare Panel, shaping policy on oncology development and drug and device manufacturing, and is a Founding Partner of The Women in STEM Network, WE-Hub, NITI Aayog and multiple other national and international mentorship platforms. A speaker at global centres, she advocates for equitable, technology-enabled cancer care.',
     photo: null,
   },
   {
