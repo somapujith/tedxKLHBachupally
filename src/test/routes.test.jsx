@@ -120,7 +120,7 @@ describe('speaker reveal gating', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-08-08T12:00:00+05:30'))
     renderAt('/speakers/alekhya-singapore')
-    expect(await screen.findByText('Dr. Alekhya Singapore')).toBeInTheDocument()
+    expect(await screen.findByText('Dr. Alekya Singapore')).toBeInTheDocument()
     expect(screen.queryByText(/^Previous$/i)).not.toBeInTheDocument()
     expect(screen.queryByText(/^Next$/i)).not.toBeInTheDocument()
   })
