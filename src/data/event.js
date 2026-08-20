@@ -49,7 +49,7 @@ export const speakers = [
     credentials: 'MBBS · DDVL · Healthcare Management, ISB',
     highlight: 'Named India’s first “Dermapreneur” by Times Network',
     revealDate: '2026-08-08T09:00:00+05:30',
-    bio: 'Dr. Alekhya Singapore is a consultant dermatologist, trichologist, and founder of The Skin Sensé Clinic in Hyderabad, with over 14 years of experience. Named India’s first “Dermapreneur” by Times Network, she focuses on clinical, aesthetic, and pediatric dermatology, holding an MBBS, a DDVL, and a healthcare management degree from ISB.',
+    bio: 'Dr. Alekhya Singapore is a pioneering Dermapreneur, dermatologist, successful entrepreneur and AI communicator who has built a career far beyond the conventional boundaries of medicine. With multiple degrees, advanced fellowships and two MBAs, she brings together clinical expertise, entrepreneurship, business strategy, technology and communication. From building and leading successful healthcare ventures to embracing AI and emerging technologies, her journey reflects a relentless commitment to learning, innovation and reinvention. She believes that being a specialist should never mean being confined to a single identity—and that the greatest impact comes from having the courage to evolve beyond the title you started with.',
     photo: null,
   },
   {
