@@ -144,24 +144,6 @@ export async function resendBookingConfirmation({ registrationId, actor = {}, co
     return { ok: false, status: 409, error: 'No payment has been submitted for this registration yet.' }
   }
 
-  // Same 2-minute cooldown resendTicket uses, checked against email_log rather
-  // than a dedicated timestamp column: unlike the pass email, no column tracks
-  // "last confirmation sent", and this is a low-volume admin action, not a hot
-  // path worth a schema change for.
-  const recent = await sql`
-    SELECT created_at FROM email_log
-    WHERE registration_id = ${registrationId} AND email_type = 'booking' AND status = 'sent'
-    ORDER BY created_at DESC LIMIT 1
-  `
-  const lastSentAt = recent[0]?.created_at
-  if (lastSentAt && Date.now() - new Date(lastSentAt).getTime() < 2 * 60 * 1000) {
-    return {
-      ok: false,
-      status: 429,
-      error: 'Confirmation was re-sent recently. Try again in a few minutes.',
-    }
-  }
-
   const sent = await sendBookingEmail({
     to: reg.email,
     fullName: reg.full_name,

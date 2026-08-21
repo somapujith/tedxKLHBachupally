@@ -412,17 +412,6 @@ export async function resendTicket({ registrationId, actor = {}, context = {} })
     await sql`UPDATE registrations SET ticket_revoked_at = NULL WHERE id = ${registrationId}`
   }
 
-  // Cooldown: a ticket emailed within the last 2 minutes cannot be re-sent again,
-  // so a stuck admin cannot spam the attendee's inbox.
-  const sentAt = rows[0].ticket_email_sent_at
-  if (sentAt && Date.now() - new Date(sentAt).getTime() < 2 * 60 * 1000) {
-    return {
-      ok: false,
-      status: 429,
-      error: 'Ticket was re-sent recently. Try again in a few minutes.',
-    }
-  }
-
   // force:true re-claims + re-sends atomically inside issueTicket (no manual
   // null of the column — that left a window where the row could self-re-email).
   // triggeredBy flows into the email log so a resent pass is distinguishable
