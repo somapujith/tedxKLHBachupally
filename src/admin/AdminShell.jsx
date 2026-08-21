@@ -11,31 +11,22 @@ import BottomNav from './BottomNav'
 // bare.
 
 const PAGES = {
-  '/admin': { title: 'Dashboard', description: 'Live registration and check-in numbers.' },
-  '/admin/registrations': { title: 'Registrations', description: 'Search, filter and resend attendee passes.' },
+  '/admin': { title: 'Total users', description: 'Every verified attendee — name, email, phone and their uploaded image.' },
   '/admin/checked-in': { title: 'Checked in', description: 'Live gate roster — updates as every admin scans.' },
-  '/admin/support': { title: 'Support', description: 'Tickets raised by attendees. Call or email them, then mark it resolved.' },
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
-  '/admin/payments': { title: 'Payments', description: 'Every verified bank transfer, by UTR reference.' },
-  '/admin/coupons': { title: 'Coupons', description: 'Discount codes, the amount each takes off, and how many buyers used them.' },
-  '/admin/emails': { title: 'Emails', description: 'Confirmation and pass emails, by delivery status.' },
 }
 
 // `short` is used between md and xl, where a superadmin's tabs would
 // otherwise overrun the row; the full label returns at xl.
 const BASE_TABS = [
-  { to: '/admin', label: 'Dashboard' },
-  { to: '/admin/registrations', label: 'Registrations', short: 'Regs' },
-  { to: '/admin/support', label: 'Support' },
+  { to: '/admin', label: 'Total users' },
+  { to: '/admin/checked-in', label: 'Checked in' },
 ]
 
 // Appended, not substituted: a superadmin keeps every gate-admin screen and
-// gains five more.
+// gains two more.
 const SUPER_TABS = [
-  { to: '/admin/payments', label: 'Payments' },
-  { to: '/admin/coupons', label: 'Coupons' },
-  { to: '/admin/emails', label: 'Emails' },
   { to: '/admin/activity', label: 'Activity' },
   { to: '/admin/admins', label: 'Admins' },
 ]

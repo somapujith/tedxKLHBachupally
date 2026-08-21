@@ -27,18 +27,13 @@ const Nominate = lazy(() => import('./pages/ClosedPages').then((m) => ({ default
 // Admin pages are lazy so html5-qrcode & co. stay out of the public bundle.
 const AdminLogin = lazy(() => import('./admin/AdminLogin'))
 const AdminShell = lazy(() => import('./admin/AdminShell'))
-const AdminDashboard = lazy(() => import('./admin/AdminDashboard'))
-const AdminRegistrations = lazy(() => import('./admin/AdminRegistrations'))
+const AdminUsers = lazy(() => import('./admin/AdminUsers'))
 const AdminCheckedIn = lazy(() => import('./admin/AdminCheckedIn'))
 const AdminScan = lazy(() => import('./admin/AdminScan'))
-const AdminSupport = lazy(() => import('./admin/AdminSupport'))
 // Superadmin-only screens. Lazy like the rest, so a gate admin who never opens
 // them never downloads them.
 const AdminActivity = lazy(() => import('./admin/AdminActivity'))
 const AdminAdmins = lazy(() => import('./admin/AdminAdmins'))
-const AdminPayments = lazy(() => import('./admin/AdminPayments'))
-const AdminCoupons = lazy(() => import('./admin/AdminCoupons'))
-const AdminEmails = lazy(() => import('./admin/AdminEmails'))
 
 // Rewrites the document head on every navigation. A client-side route change
 // does not reload the document, so without this every page after the first
@@ -85,15 +80,10 @@ export default function App() {
       <Route path="/admin/scan" element={<AdminRoute page={AdminScan} />} />
       {/* Tabbed screens share the mobile shell (top bar + bottom nav). */}
       <Route path="/admin" element={<AdminRoute page={AdminShell} />}>
-        <Route index element={<AdminRoute page={AdminDashboard} />} />
-        <Route path="registrations" element={<AdminRoute page={AdminRegistrations} />} />
+        <Route index element={<AdminRoute page={AdminUsers} />} />
         <Route path="checked-in" element={<AdminRoute page={AdminCheckedIn} />} />
-        <Route path="support" element={<AdminRoute page={AdminSupport} />} />
         <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
         <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
-        <Route path="payments" element={<AdminRoute page={AdminPayments} />} />
-        <Route path="coupons" element={<AdminRoute page={AdminCoupons} />} />
-        <Route path="emails" element={<AdminRoute page={AdminEmails} />} />
       </Route>
 
       <Route element={<PublicShell />}>

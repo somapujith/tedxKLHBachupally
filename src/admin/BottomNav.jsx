@@ -22,19 +22,6 @@ function DashIcon() {
   )
 }
 
-function ListIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
-      <line x1="8" y1="6" x2="20" y2="6" strokeLinecap="round" />
-      <line x1="8" y1="12" x2="20" y2="12" strokeLinecap="round" />
-      <line x1="8" y1="18" x2="20" y2="18" strokeLinecap="round" />
-      <circle cx="4" cy="6" r="1.2" fill="currentColor" stroke="none" />
-      <circle cx="4" cy="12" r="1.2" fill="currentColor" stroke="none" />
-      <circle cx="4" cy="18" r="1.2" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-
 function ScanIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={ICON} aria-hidden>
@@ -152,12 +139,10 @@ export default function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div className="mx-auto flex max-w-lg items-stretch px-2">
-        <Tab to="/admin" label="Dashboard" icon={<DashIcon />} />
+        <Tab to="/admin" label="Users" icon={<DashIcon />} />
         <Tab to="/admin/scan" label="Scan" icon={<ScanIcon />} accent />
-        <Tab to="/admin/registrations" label="Regs" icon={<ListIcon />} />
-        {/* Five targets is this bar's legible ceiling on a small phone, so a
-            superadmin — who already has two extra tabs — reaches Support from
-            the desktop tab or the dashboard link instead of a sixth chip. */}
+        <Tab to="/admin/checked-in" label="Checked in" icon={<CheckIcon />} />
+        {/* Five targets is this bar's legible ceiling on a small phone. */}
         <Tab to="/admin/activity" label="Activity" icon={<LogIcon />} />
         <Tab to="/admin/admins" label="Admins" icon={<TeamIcon />} />
       </div>
