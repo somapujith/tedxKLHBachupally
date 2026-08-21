@@ -43,6 +43,13 @@ const PASS_PRICE_KEY = 'pass_price'
 const MAX_PASS_PRICE = 1000000
 const REGISTRATION_OPEN_OVERRIDE_KEY = 'registration_open_override'
 const REGISTRATION_OPENS_AT = '2026-08-05T07:00:00+05:30'
+// Independent of seat capacity on purpose. Capacity also gates approvePayment
+// (a superadmin must be able to raise it to clear a backlog of people who
+// already paid, without that act silently reopening the public register page
+// to new signups). This flag is the "no, we mean it" switch for the public
+// page only — set true, and Register.jsx shows housefull regardless of what
+// capacity happens to be while a backlog is being cleared.
+const HOUSEFULL_OVERRIDE_KEY = 'housefull_override'
 // Sanity ceiling, not a business rule — it stops a pasted phone number from
 // becoming the cap. 0 stays legal: it means the event is closed.
 const MAX_SEAT_CAPACITY = 100000
@@ -258,6 +265,9 @@ function settingsPayload({
   registrationOpenOverridden = false,
   registrationUpdatedAt = null,
   registrationUpdatedBy = null,
+  housefull = false,
+  housefullUpdatedAt = null,
+  housefullUpdatedBy = null,
 }) {
   return {
     seatCapacity: override ?? seatCapacity(),
@@ -271,6 +281,9 @@ function settingsPayload({
     registrationOpenOverridden,
     registrationUpdatedAt,
     registrationUpdatedBy,
+    housefull,
+    housefullUpdatedAt,
+    housefullUpdatedBy,
   }
 }
 
@@ -282,11 +295,12 @@ export async function getSettings() {
   await ensureSettings(sql)
   const rows = await sql`
     SELECT key, value, updated_at, updated_by FROM app_settings
-    WHERE key IN (${SEAT_CAPACITY_KEY}, ${REGISTRATION_OPEN_OVERRIDE_KEY})
+    WHERE key IN (${SEAT_CAPACITY_KEY}, ${REGISTRATION_OPEN_OVERRIDE_KEY}, ${HOUSEFULL_OVERRIDE_KEY})
   `
   const byKey = new Map(rows.map((row) => [row.key, row]))
   const setting = byKey.get(SEAT_CAPACITY_KEY)
   const registrationSetting = byKey.get(REGISTRATION_OPEN_OVERRIDE_KEY)
+  const housefullSetting = byKey.get(HOUSEFULL_OVERRIDE_KEY)
   const [count] = await sql`
     SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
   `
@@ -303,6 +317,9 @@ export async function getSettings() {
       registrationOpenOverridden: registrationOverride === true,
       registrationUpdatedAt: registrationSetting?.updated_at ?? null,
       registrationUpdatedBy: registrationSetting?.updated_by ?? null,
+      housefull: parseStoredHousefull(housefullSetting?.value),
+      housefullUpdatedAt: housefullSetting?.updated_at ?? null,
+      housefullUpdatedBy: housefullSetting?.updated_by ?? null,
     }),
   }
 }
@@ -371,6 +388,10 @@ export async function updateSeatCapacity({ capacity }, actor = {}, context = {})
     userAgent: context.userAgent,
   })
 
+  const [housefullSetting] = await sql`
+    SELECT value FROM app_settings WHERE key = ${HOUSEFULL_OVERRIDE_KEY} LIMIT 1
+  `
+
   return {
     ok: true,
     status: 200,
@@ -378,6 +399,7 @@ export async function updateSeatCapacity({ capacity }, actor = {}, context = {})
       override: clearing ? null : n,
       paid: count?.paid ?? 0,
       updatedBy: actor.adminUsername || null,
+      housefull: parseStoredHousefull(housefullSetting?.value),
     }),
   }
 }
@@ -420,6 +442,9 @@ export async function updateRegistrationOpenOverride({ forceOpen }, actor = {}, 
   const [capacitySetting] = await sql`
     SELECT value FROM app_settings WHERE key = ${SEAT_CAPACITY_KEY} LIMIT 1
   `
+  const [housefullSetting] = await sql`
+    SELECT value FROM app_settings WHERE key = ${HOUSEFULL_OVERRIDE_KEY} LIMIT 1
+  `
   const [count] = await sql`
     SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
   `
@@ -433,7 +458,89 @@ export async function updateRegistrationOpenOverride({ forceOpen }, actor = {}, 
       registrationOpen: forceOpen || registrationsScheduledOpen(),
       registrationOpenOverridden: forceOpen,
       registrationUpdatedBy: actor.adminUsername || null,
+      housefull: parseStoredHousefull(housefullSetting?.value),
     }),
     previousRegistrationOpen: before.open,
+  }
+}
+
+function parseStoredHousefull(value) {
+  if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') return false
+  const v = String(value).trim().toLowerCase()
+  return v === 'true' || v === '1'
+}
+
+// Read-only outside settings.js — every caller that needs to know "should the
+// public page read as sold out" goes through this, never the raw key, so the
+// same one-directional (true only) parsing rule can never drift between callers.
+export async function getHousefull(sql = getSql()) {
+  try {
+    await withDbRetry(() => ensureSettings(sql))
+    const rows = await withDbRetry(
+      () => sql`SELECT value FROM app_settings WHERE key = ${HOUSEFULL_OVERRIDE_KEY} LIMIT 1`,
+    )
+    return parseStoredHousefull(rows[0]?.value)
+  } catch (err) {
+    console.error('Housefull-override read failed; defaulting to off:', err?.message || err)
+    return false
+  }
+}
+
+export async function updateHousefullOverride({ housefull }, actor = {}, context = {}) {
+  if (typeof housefull !== 'boolean') {
+    return { ok: false, status: 400, error: 'housefull must be true or false.' }
+  }
+
+  const sql = getSql()
+  await ensureSettings(sql)
+
+  if (housefull) {
+    await sql`
+      INSERT INTO app_settings (key, value, updated_at, updated_by)
+      VALUES (${HOUSEFULL_OVERRIDE_KEY}, 'true', NOW(), ${actor.adminUsername || null})
+      ON CONFLICT (key) DO UPDATE
+      SET value = EXCLUDED.value, updated_at = NOW(), updated_by = EXCLUDED.updated_by
+    `
+  } else {
+    await sql`DELETE FROM app_settings WHERE key = ${HOUSEFULL_OVERRIDE_KEY}`
+  }
+
+  await recordAudit({
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    action: AUDIT_ACTIONS.HOUSEFULL_UPDATED,
+    targetType: 'setting',
+    targetId: HOUSEFULL_OVERRIDE_KEY,
+    targetName: 'Housefull override',
+    detail: housefull
+      ? 'Housefull forced on — register page reads sold out regardless of capacity.'
+      : 'Housefull override cleared — register page follows capacity again.',
+    ip: context.ip,
+    userAgent: context.userAgent,
+  })
+
+  const [capacitySetting] = await sql`
+    SELECT value FROM app_settings WHERE key = ${SEAT_CAPACITY_KEY} LIMIT 1
+  `
+  const [registrationSetting] = await sql`
+    SELECT value FROM app_settings WHERE key = ${REGISTRATION_OPEN_OVERRIDE_KEY} LIMIT 1
+  `
+  const [count] = await sql`
+    SELECT COUNT(*)::int AS paid FROM registrations WHERE payment_status = 'paid'
+  `
+  const registrationOverride = parseStoredRegistrationOpenOverride(registrationSetting?.value)
+
+  return {
+    ok: true,
+    status: 200,
+    settings: settingsPayload({
+      override: parseStoredCapacity(capacitySetting?.value),
+      paid: count?.paid ?? 0,
+      registrationOpen: registrationOverride === true || registrationsScheduledOpen(),
+      registrationOpenOverridden: registrationOverride === true,
+      housefull,
+      housefullUpdatedBy: actor.adminUsername || null,
+    }),
   }
 }

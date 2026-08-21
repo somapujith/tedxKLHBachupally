@@ -32,7 +32,13 @@ import {
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from './admin-users.js'
 import { applyCoupon, listCoupons, createCoupon, updateCoupon, deleteCoupon } from './coupons.js'
 import { listAuditLog, listEmailLog, getSuperStats, requestContext } from './audit.js'
-import { getSettings, updateRegistrationOpenOverride, updateSeatCapacity } from './settings.js'
+import {
+  getSettings,
+  updateRegistrationOpenOverride,
+  updateSeatCapacity,
+  updatePassPrice,
+  updateHousefullOverride,
+} from './settings.js'
 import { retryFailedTransactionalEmails } from './emailRetry.js'
 
 const app = express()
@@ -663,11 +669,13 @@ app
           actor,
           context,
         )
+      } else if (body.housefull !== undefined) {
+        result = await updateHousefullOverride({ housefull: body.housefull }, actor, context)
       } else {
         result = {
           ok: false,
           status: 400,
-          error: 'Provide capacity, price, or registrationOpenOverride.',
+          error: 'Provide capacity, price, registrationOpenOverride, or housefull.',
         }
       }
       return res.status(result.status).json(result)

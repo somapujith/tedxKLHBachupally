@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = {
   TICKET_REVOKED: 'ticket_revoked',
   CAPACITY_UPDATED: 'capacity_updated',
   REGISTRATION_ACCESS_UPDATED: 'registration_access_updated',
+  HOUSEFULL_UPDATED: 'housefull_updated',
   PRICE_UPDATED: 'price_updated',
   PAYMENT_APPROVED: 'payment_approved',
   PAYMENT_REJECTED: 'payment_rejected',

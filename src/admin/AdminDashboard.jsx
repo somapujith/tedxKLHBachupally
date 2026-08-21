@@ -753,6 +753,7 @@ function SuperSection({ superStats, settings, onSaved }) {
       <div className="grid gap-3 md:grid-cols-2 md:gap-4">
         <RegistrationAccessCard settings={settings} onSaved={onSaved} />
         <CapacityCard settings={settings} onSaved={onSaved} />
+        <HousefullCard settings={settings} onSaved={onSaved} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
@@ -993,6 +994,73 @@ function CapacityCard({ settings, onSaved }) {
             </Button>
           )}
         </form>
+      </div>
+      {note && <div className="mt-3 text-xs text-paper/50">{note}</div>}
+    </Card>
+  )
+}
+
+// Forces the public register page to read as sold out, independent of seat
+// capacity. Exists for exactly one situation: capacity has to go up to clear
+// a backlog of people who already paid before housefull was declared, and
+// that must not silently reopen the page to brand-new signups while the
+// backlog is being worked through. Turn this on, raise capacity, verify the
+// backlog, then turn it back off once capacity is lowered to match.
+function HousefullCard({ settings, onSaved }) {
+  const [busy, setBusy] = useState(false)
+  const [note, setNote] = useState('')
+  const on = settings?.housefull === true
+
+  async function setHousefull(next) {
+    setBusy(true)
+    setNote('')
+    const { ok, data } = await adminFetch('/api/admin/settings', {
+      method: 'PATCH',
+      body: JSON.stringify({ housefull: next }),
+    })
+    setNote(ok ? (next ? 'Housefull forced on.' : 'Housefull override cleared.') : data.error || 'Could not update housefull.')
+    setBusy(false)
+    if (ok) onSaved?.()
+  }
+
+  return (
+    <Card>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <Label>Housefull override</Label>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-[28px] font-semibold leading-none tracking-tight md:text-[32px]">
+              {on ? 'Forced on' : 'Off'}
+            </span>
+            {on && (
+              <span className="rounded-full border border-red/30 bg-red/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.06em] text-red">
+                Sold out
+              </span>
+            )}
+          </div>
+          <div className="mt-2 text-xs text-paper/40">
+            {on
+              ? `Register page reads sold out regardless of capacity${settings?.housefullUpdatedBy ? ` · set by ${settings.housefullUpdatedBy}` : ''}`
+              : 'Register page follows seat capacity as usual'}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!on ? (
+            <Button
+              size="md"
+              variant="primary"
+              onClick={() => setHousefull(true)}
+              disabled={busy}
+            >
+              {busy ? 'Saving…' : 'Force housefull'}
+            </Button>
+          ) : (
+            <Button size="md" onClick={() => setHousefull(false)} disabled={busy}>
+              {busy ? 'Saving…' : 'Turn off'}
+            </Button>
+          )}
+        </div>
       </div>
       {note && <div className="mt-3 text-xs text-paper/50">{note}</div>}
     </Card>

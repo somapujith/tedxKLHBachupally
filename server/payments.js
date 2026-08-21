@@ -13,7 +13,7 @@
 import { getSql, ensureSchemaOnce, withDbRetry, isUuid } from './db.js'
 import { issueTicket } from './tickets.js'
 import { sendBookingEmail } from './email.js'
-import { getSeatCapacity, getPassPrice, getRegistrationStatus, resolvePassPrice } from './settings.js'
+import { getSeatCapacity, getPassPrice, getRegistrationStatus, resolvePassPrice, getHousefull } from './settings.js'
 import { applyCoupon, recordRedemption } from './coupons.js'
 import { recordAudit, AUDIT_ACTIONS, recordEmail } from './audit.js'
 
@@ -43,6 +43,7 @@ export async function seatAvailability() {
   const capacity = await getSeatCapacity(sql)
   const passPrice = await getPassPrice(sql)
   const registration = await getRegistrationStatus(sql)
+  const housefull = await getHousefull(sql)
   const paidCount = await withDbRetry(() => sql`
     SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
   `)
@@ -50,10 +51,16 @@ export async function seatAvailability() {
   const remaining = Math.max(0, capacity - sold)
   // `sold` stays server-side: remaining/capacity is everything the page needs,
   // and a public paid-count is a real-time revenue feed for anyone with curl.
+  //
+  // housefull is independent of capacity on purpose: capacity also gates
+  // approvePayment, and a superadmin clearing a backlog of already-paid
+  // people needs to raise it without that silently reopening this page to
+  // new signups. housefull is the deliberate "still sold out" override for
+  // exactly that window.
   return {
     capacity,
     remaining,
-    soldOut: remaining === 0,
+    soldOut: housefull || remaining === 0,
     passPrice,
     currency: CURRENCY,
     registrationOpen: registration.open,
@@ -250,12 +257,17 @@ export async function submitPaymentProof({ registrationId, utrId, proof, couponC
   }
 
   // Advisory sold-out gate so a closed event does not collect proof it cannot
-  // honour. The binding gate is the atomic flip in approvePayment.
+  // honour. The binding gate is the atomic flip in approvePayment. Checked
+  // against housefull as well as capacity: a superadmin clearing a backlog of
+  // already-paid people raises capacity to do that, and without this check a
+  // brand-new payment could sneak through the API during that window even
+  // though the public page reads as sold out.
   const capacity = await getSeatCapacity(sql)
+  const housefull = await getHousefull(sql)
   const paidCount = await withDbRetry(() => sql`
     SELECT COUNT(*)::int AS count FROM registrations WHERE payment_status = 'paid'
   `)
-  if (paidCount[0].count >= capacity) {
+  if (housefull || paidCount[0].count >= capacity) {
     return { ok: false, status: 409, error: 'Sold out. All seats have been claimed.', soldOut: true }
   }
 
