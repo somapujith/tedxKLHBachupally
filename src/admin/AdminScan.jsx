@@ -6,6 +6,7 @@ import { Button, Card, Field } from './ui'
 
 const READER_ID = 'admin-qr-reader'
 const DUPLICATE_WINDOW_MS = 3000
+const AUTO_ADVANCE_MS = 3000
 
 function qrbox(viewWidth, viewHeight) {
   const size = Math.max(180, Math.floor(Math.min(viewWidth, viewHeight) * 0.75))
@@ -94,6 +95,17 @@ export default function AdminScan() {
       /* camera never started — manual mode */
     }
   }
+
+  // Auto-advance so the gate keeps a scan rhythm without a tap between every
+  // attendee — 3s is enough to read the name off the result panel. "Scan
+  // next" stays as a manual override so an admin who wants to linger on a
+  // rejection, or move faster than 3s, still can.
+  useEffect(() => {
+    if (!result) return undefined
+    const timer = setTimeout(scanNext, AUTO_ADVANCE_MS)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result])
 
   function onManualSubmit(e) {
     e.preventDefault()
@@ -251,8 +263,14 @@ function ScanResult({ result, onNext }) {
 
       {result.kind === 'invalid' && <p className="mt-4 text-sm text-paper/60">{result.error}</p>}
 
-      <Button variant="primary" size="lg" onClick={onNext} className="mt-7 w-full">
-        Scan next
+      <Button variant="primary" size="lg" onClick={onNext} className="relative mt-7 w-full overflow-hidden">
+        <span
+          key={result}
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-full origin-left bg-white/15 motion-reduce:hidden"
+          style={{ animation: `admin-scan-advance ${AUTO_ADVANCE_MS}ms linear forwards` }}
+        />
+        <span className="relative">Scan next</span>
       </Button>
     </div>
   )

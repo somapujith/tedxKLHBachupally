@@ -58,3 +58,14 @@ button:focus-visible {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Countdown fill on the gate scanner's "Scan next" button, shrinking over the
+   auto-advance window so the admin can see the next scan is imminent. */
+@keyframes admin-scan-advance {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
