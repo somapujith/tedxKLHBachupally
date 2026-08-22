@@ -8,8 +8,15 @@ const READER_ID = 'admin-qr-reader'
 const DUPLICATE_WINDOW_MS = 3000
 const AUTO_ADVANCE_MS = 3000
 
+// Sized against the dimensions html5-qrcode reports for the ACTUAL video
+// stream, which is what it crops against — not against the square CSS box the
+// admin sees. The video used to render with object-cover, which crops visually
+// while the library kept sampling the raw stream: the region an admin aimed at
+// was not the region being scanned, and a pass held dead centre never decoded.
+// The video is object-contain now so the two agree. Kept generous (90%) so a
+// pass held anywhere near the centre lands inside the sampled area.
 function qrbox(viewWidth, viewHeight) {
-  const size = Math.max(180, Math.floor(Math.min(viewWidth, viewHeight) * 0.75))
+  const size = Math.max(180, Math.floor(Math.min(viewWidth, viewHeight) * 0.9))
   return { width: size, height: size }
 }
 
@@ -65,7 +72,23 @@ export default function AdminScan() {
     }
 
     scanner
-      .start({ facingMode: 'environment' }, { fps: 10, qrbox }, onDecode, () => {})
+      .start(
+        { facingMode: 'environment' },
+        {
+          fps: 24,
+          qrbox,
+          // Matches the square viewfinder, so the stream the library samples and
+          // the frame the admin aims with are the same shape.
+          aspectRatio: 1,
+          // Uses the platform's native detector where present (Android Chrome,
+          // recent iOS Safari). Materially better at angles, glare and the low
+          // contrast of a QR photographed off another phone's screen — which is
+          // how most attendees present a pass at a gate.
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        },
+        onDecode,
+        () => {},
+      )
       .catch((err) => {
         setCameraError(
           err?.name === 'NotAllowedError' || /permission/i.test(String(err))
@@ -141,7 +164,7 @@ export default function AdminScan() {
             <div className="absolute inset-0 grid place-items-center text-sm text-paper/35">Starting camera…</div>
             <div
               id={READER_ID}
-              className="relative h-full w-full [&_video]:h-full [&_video]:w-full [&_video]:object-cover"
+              className="relative h-full w-full [&_video]:h-full [&_video]:w-full [&_video]:object-contain"
             />
           </div>
           <p className="text-center text-sm text-paper/45">
