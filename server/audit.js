@@ -40,6 +40,7 @@ export const AUDIT_ACTIONS = {
   COUPON_CREATED: 'coupon_created',
   COUPON_UPDATED: 'coupon_updated',
   COUPON_DELETED: 'coupon_deleted',
+  ROLL_NUMBER_LINKED: 'roll_number_linked',
 }
 
 const MAX_PAGE = 500

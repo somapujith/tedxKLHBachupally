@@ -533,3 +533,128 @@ export async function revokeTicket({ registrationId, actor = {}, context = {} })
   })
   return { ok: true, status: 200, registration: { id: updated[0].id, ticketIssued: false } }
 }
+
+// --- College roll numbers -----------------------------------------------------
+//
+// The public form never asks for a roll number — requiring one would block the
+// guests, speakers and outside attendees who are not students. The college still
+// needs its attendance tied to its own student IDs, so an organiser links them
+// afterwards by typing part of a name and filling in the number.
+
+const ROLL_SEARCH_MIN = 2
+const ROLL_SEARCH_LIMIT = 25
+// Long enough for any institutional format, short enough that a pasted line of
+// a spreadsheet row is rejected rather than silently stored as an ID.
+const ROLL_NUMBER_MAX = 32
+
+/**
+ * Type-ahead over registrant names for the roll-number screen.
+ *
+ * Matches name OR email: an organiser working from a college list often has the
+ * address and not the exact spelling of the name. Returns the roll number
+ * already on file so the caller can show what is linked and what is still blank
+ * without a second query.
+ */
+export async function searchRegistrants({ q } = {}) {
+  const term = String(q ?? '').trim()
+  if (term.length < ROLL_SEARCH_MIN) {
+    return { ok: true, status: 200, registrants: [] }
+  }
+  const sql = getSql()
+  // Escape the LIKE metacharacters so a name containing % or _ searches for the
+  // literal character instead of turning into a wildcard that matches everyone.
+  const pattern = `%${term.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`
+  const rows = await sql`
+    SELECT id, full_name, email, phone, college, college_other,
+           payment_status, roll_number, checked_in_at
+    FROM registrations
+    WHERE full_name ILIKE ${pattern} ESCAPE '\'
+       OR email ILIKE ${pattern} ESCAPE '\'
+    ORDER BY
+      -- Rows still missing a roll number first: this screen exists to fill the
+      -- blanks, so the work left to do sorts above what is already done.
+      (roll_number IS NOT NULL),
+      full_name ASC
+    LIMIT ${ROLL_SEARCH_LIMIT}
+  `
+  return { ok: true, status: 200, registrants: rows }
+}
+
+/**
+ * Link (or clear) one registrant's college roll number.
+ *
+ * Passing an empty value unlinks, which is the only way to correct a number
+ * typed onto the wrong person — the unique index would otherwise refuse to let
+ * that number be attached to whoever actually owns it.
+ */
+export async function setRollNumber({ registrationId, rollNumber }, actor = {}, context = {}) {
+  const audit = {
+    adminId: actor.adminId,
+    adminUsername: actor.adminUsername || 'unknown',
+    adminRole: actor.adminRole,
+    targetType: 'registration',
+    targetId: typeof registrationId === 'string' ? registrationId : null,
+    ip: context.ip,
+    userAgent: context.userAgent,
+  }
+
+  if (!isUuid(registrationId)) {
+    return { ok: false, status: 400, error: 'Invalid registration id.' }
+  }
+
+  const raw = String(rollNumber ?? '').trim()
+  // Stored uppercase so "20BCE1234" and "20bce1234" cannot both exist as
+  // separate rows and defeat the uniqueness the index is there to guarantee.
+  const value = raw === '' ? null : raw.toUpperCase()
+  if (value !== null && value.length > ROLL_NUMBER_MAX) {
+    return { ok: false, status: 400, error: `A roll number cannot be longer than ${ROLL_NUMBER_MAX} characters.` }
+  }
+
+  const sql = getSql()
+  const existing = await sql`
+    SELECT id, full_name, roll_number FROM registrations WHERE id = ${registrationId} LIMIT 1
+  `
+  if (!existing[0]) {
+    return { ok: false, status: 404, error: 'Registration not found.' }
+  }
+  audit.targetName = existing[0].full_name
+
+  // Checked before the write so the conflict can name the other person. The
+  // unique index still backstops a concurrent double-link below; this exists to
+  // turn that raw 23505 into something an organiser can act on.
+  if (value !== null) {
+    const clash = await sql`
+      SELECT id, full_name FROM registrations
+      WHERE roll_number = ${value} AND id <> ${registrationId} LIMIT 1
+    `
+    if (clash[0]) {
+      return {
+        ok: false,
+        status: 409,
+        error: `${value} is already linked to ${clash[0].full_name}. Clear it there first if this is the correction.`,
+      }
+    }
+  }
+
+  try {
+    const updated = await sql`
+      UPDATE registrations SET roll_number = ${value}
+      WHERE id = ${registrationId}
+      RETURNING id, full_name, roll_number
+    `
+    await recordAudit({
+      ...audit,
+      action: AUDIT_ACTIONS.ROLL_NUMBER_LINKED,
+      detail: value
+        ? `Roll number ${value} linked${existing[0].roll_number ? ` (was ${existing[0].roll_number})` : ''}.`
+        : `Roll number ${existing[0].roll_number ?? '—'} cleared.`,
+    })
+    return { ok: true, status: 200, registrant: updated[0] }
+  } catch (err) {
+    // Lost the race against a concurrent link of the same number.
+    if (String(err?.code) === '23505') {
+      return { ok: false, status: 409, error: `${value} was just linked to someone else. Refresh and check.` }
+    }
+    throw err
+  }
+}

@@ -34,6 +34,7 @@ const AdminScan = lazy(() => import('./admin/AdminScan'))
 // them never downloads them.
 const AdminActivity = lazy(() => import('./admin/AdminActivity'))
 const AdminAdmins = lazy(() => import('./admin/AdminAdmins'))
+const AdminRollNumbers = lazy(() => import('./admin/AdminRollNumbers'))
 
 // Rewrites the document head on every navigation. A client-side route change
 // does not reload the document, so without this every page after the first
@@ -82,6 +83,7 @@ export default function App() {
       <Route path="/admin" element={<AdminRoute page={AdminShell} />}>
         <Route index element={<AdminRoute page={AdminUsers} />} />
         <Route path="checked-in" element={<AdminRoute page={AdminCheckedIn} />} />
+        <Route path="roll-numbers" element={<AdminRoute page={AdminRollNumbers} />} />
         <Route path="activity" element={<AdminRoute page={AdminActivity} />} />
         <Route path="admins" element={<AdminRoute page={AdminAdmins} />} />
       </Route>

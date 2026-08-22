@@ -13,6 +13,10 @@ import BottomNav from './BottomNav'
 const PAGES = {
   '/admin': { title: 'Total users', description: 'Every verified attendee — name, email, phone and their uploaded image.' },
   '/admin/checked-in': { title: 'Checked in', description: 'Live gate roster — updates as every admin scans.' },
+  '/admin/roll-numbers': {
+    title: 'College IDs',
+    description: 'Search a registrant by name, then link their college roll number.',
+  },
   '/admin/activity': { title: 'Activity', description: 'Every admin action and every ticket email, newest first.' },
   '/admin/admins': { title: 'Admins', description: 'Accounts, roles and per-admin scan counts.' },
 }
@@ -27,6 +31,7 @@ const BASE_TABS = [
 // Appended, not substituted: a superadmin keeps every gate-admin screen and
 // gains two more.
 const SUPER_TABS = [
+  { to: '/admin/roll-numbers', label: 'College IDs', short: 'IDs' },
   { to: '/admin/activity', label: 'Activity' },
   { to: '/admin/admins', label: 'Admins' },
 ]

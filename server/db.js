@@ -129,6 +129,19 @@ export async function ensureRegistrationsTable(sql = getSql()) {
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS verified_by TEXT`
   await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS rejected_reason TEXT`
+  // College roll number, linked by an organiser after the fact rather than
+  // collected at signup: the public form deliberately does not ask for it (it
+  // would gate non-student guests), but the college needs an attendance record
+  // tied to its own student IDs. Nullable forever — most rows never get one.
+  await sql`ALTER TABLE registrations ADD COLUMN IF NOT EXISTS roll_number TEXT`
+  // A roll number identifies exactly one student, so the same one landing on two
+  // registrations means a mis-link. Partial, because the overwhelming majority
+  // of rows are NULL and NULLs must not collide with each other.
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS registrations_roll_number_unique
+    ON registrations (roll_number)
+    WHERE roll_number IS NOT NULL
+  `
   // Coupon applied at submit time. The code is denormalized alongside the id so
   // the admin verification queue can show "₹449 − ₹100 = ₹349, coupon SAVE100"
   // without a join, and so the record survives the coupon being deleted — an

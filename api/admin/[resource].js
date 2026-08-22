@@ -8,6 +8,8 @@ import {
   checkInTicket,
   resendTicket,
   revokeTicket,
+  searchRegistrants,
+  setRollNumber,
 } from '../../server/admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from '../../server/admin-users.js'
 import { listCoupons, createCoupon, updateCoupon, deleteCoupon } from '../../server/coupons.js'
@@ -144,6 +146,22 @@ const RESOURCES = {
     auth: SUPER,
     GET: async (req) =>
       listVerifiedPayments({ search: req.query?.search, limit: req.query?.limit }),
+  },
+  // Linking attendees to their college student IDs. Superadmin-only: it is a
+  // roster-wide read (name, email and phone for anyone matching a search) and a
+  // write onto a record the college treats as authoritative for attendance.
+  //
+  // POST rather than PATCH so it shares the write path every other resource here
+  // uses; an empty rollNumber unlinks.
+  'roll-numbers': {
+    auth: SUPER,
+    GET: async (req) => searchRegistrants({ q: req.query?.q }),
+    POST: async (req, { auth }) =>
+      setRollNumber(
+        { registrationId: req.body?.registrationId, rollNumber: req.body?.rollNumber },
+        actorFrom(auth),
+        requestContext(req),
+      ),
   },
   'audit-log': {
     auth: SUPER,

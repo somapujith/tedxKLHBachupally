@@ -28,6 +28,8 @@ import {
   checkInTicket,
   resendTicket,
   revokeTicket,
+  searchRegistrants,
+  setRollNumber,
 } from './admin.js'
 import { listAdmins, createAdmin, updateAdmin, setAdminActive } from './admin-users.js'
 import { applyCoupon, listCoupons, createCoupon, updateCoupon, deleteCoupon } from './coupons.js'
@@ -593,6 +595,37 @@ app.post('/api/admin/bulk-verify', adminWriteLimiter, async (req, res) => {
   } catch (err) {
     console.error('Bulk verify error:', err)
     return res.status(500).json({ ok: false, error: 'Could not verify the selected payments.' })
+  }
+})
+
+// College roll numbers. Mirrors the 'roll-numbers' resource in
+// api/admin/[resource].js — same service calls, same superadmin gate — so the
+// two deploy targets cannot drift.
+app.get('/api/admin/roll-numbers', adminReadLimiter, async (req, res) => {
+  const auth = await requireSuperAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await searchRegistrants({ q: req.query?.q })
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Registrant search error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not search registrants.' })
+  }
+})
+
+app.post('/api/admin/roll-numbers', adminWriteLimiter, async (req, res) => {
+  const auth = await requireSuperAdmin(req)
+  if (!auth.ok) return res.status(auth.status).json({ ok: false, error: auth.error })
+  try {
+    const result = await setRollNumber(
+      { registrationId: req.body?.registrationId, rollNumber: req.body?.rollNumber },
+      actorFrom(auth),
+      requestContext(req),
+    )
+    return res.status(result.status).json(result)
+  } catch (err) {
+    console.error('Roll number link error:', err)
+    return res.status(500).json({ ok: false, error: 'Could not save the roll number.' })
   }
 })
 
