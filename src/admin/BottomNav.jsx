@@ -73,6 +73,17 @@ function TeamIcon() {
   )
 }
 
+function IdIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" className={ICON} aria-hidden>
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" />
+      <circle cx="8.5" cy="11" r="2.1" />
+      <path d="M5.2 16.2a3.6 3.6 0 0 1 6.6 0" strokeLinecap="round" />
+      <path d="M14.5 10h4M14.5 13.5h4" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 function Tab({ to, label, icon, accent = false }) {
   return (
     <NavLink
@@ -96,9 +107,12 @@ function Tab({ to, label, icon, accent = false }) {
           >
             {icon}
           </span>
+          {/* nowrap + truncate: at six tabs each cell is ~60px on a 360px
+              phone, and a label that wrapped would push the row taller than
+              the icons and break the baseline across the bar. */}
           <span
             className={[
-              'text-[11px] font-medium transition-colors duration-200',
+              'max-w-full truncate whitespace-nowrap px-0.5 text-[11px] font-medium transition-colors duration-200',
               isActive && !accent ? 'text-paper' : 'text-paper/45',
             ].join(' ')}
           >
@@ -111,8 +125,9 @@ function Tab({ to, label, icon, accent = false }) {
 }
 
 export default function BottomNav() {
-  // Five targets is the most this bar can hold legibly on a small phone, so the
-  // superadmin labels are short ones and the max width grows with the count.
+  // Six targets is this bar's ceiling on a small phone — roughly 60px per cell
+  // at 360px wide — so every superadmin label is kept to a single short word
+  // and the labels truncate rather than wrap.
   const superAdmin = isSuperAdmin()
 
   if (!superAdmin) {
@@ -141,8 +156,11 @@ export default function BottomNav() {
       <div className="mx-auto flex max-w-lg items-stretch px-2">
         <Tab to="/admin" label="Users" icon={<DashIcon />} />
         <Tab to="/admin/scan" label="Scan" icon={<ScanIcon />} accent />
-        <Tab to="/admin/checked-in" label="Checked in" icon={<CheckIcon />} />
-        {/* Five targets is this bar's legible ceiling on a small phone. */}
+        {/* "Gate", not "Checked in": at six tabs the cell is too narrow for two
+            words, and this is the wording the scanner screen already uses. The
+            gate-admin bar above keeps the full label — it has only two tabs. */}
+        <Tab to="/admin/checked-in" label="Gate" icon={<CheckIcon />} />
+        <Tab to="/admin/roll-numbers" label="IDs" icon={<IdIcon />} />
         <Tab to="/admin/activity" label="Activity" icon={<LogIcon />} />
         <Tab to="/admin/admins" label="Admins" icon={<TeamIcon />} />
       </div>
