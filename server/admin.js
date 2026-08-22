@@ -550,6 +550,13 @@ const ROLL_NUMBER_MAX = 32
 /**
  * Type-ahead over registrant names for the roll-number screen.
  *
+ * Verified attendees only (payment_status = 'paid'). The roll number feeds the
+ * college's attendance record, and someone who never completed payment is not
+ * attending — offering them as a search hit only invites linking a student ID
+ * to a row that will never come through the gate. Note that a checked-in row
+ * still reads 'paid' (check-in stamps checked_in_at, it does not move the
+ * status), so this covers arrivals as well as expected attendees.
+ *
  * Matches name OR email: an organiser working from a college list often has the
  * address and not the exact spelling of the name. Returns the roll number
  * already on file so the caller can show what is linked and what is still blank
@@ -568,8 +575,9 @@ export async function searchRegistrants({ q } = {}) {
     SELECT id, full_name, email, phone, college, college_other,
            payment_status, roll_number, checked_in_at
     FROM registrations
-    WHERE full_name ILIKE ${pattern} ESCAPE '\'
-       OR email ILIKE ${pattern} ESCAPE '\'
+    WHERE payment_status = 'paid'
+      AND (full_name ILIKE ${pattern} ESCAPE '\'
+           OR email ILIKE ${pattern} ESCAPE '\')
     ORDER BY
       -- Rows still missing a roll number first: this screen exists to fill the
       -- blanks, so the work left to do sorts above what is already done.

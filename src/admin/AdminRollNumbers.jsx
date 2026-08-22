@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { adminFetch, getToken, isSuperAdmin } from './api'
-import { Alert, Button, Card, EmptyState, Input, Label, SearchIcon, StatusBadge } from './ui'
+import { Alert, Button, Card, EmptyState, Input, Label, SearchIcon } from './ui'
 import ExportCsvButton from './ExportCsvButton'
 
 // Links an attendee to their college student ID. The public form never asks for
@@ -87,7 +87,8 @@ export default function AdminRollNumbers() {
         <Label>How this works</Label>
         <p className="mt-2 text-sm leading-relaxed text-paper/55">
           Type at least {MIN_QUERY} letters of a name or email, then enter that person’s roll number
-          and save. Rows still missing a number are listed first. Clearing a field unlinks it.
+          and save. Verified attendees only. Rows still missing a number are listed first, and
+          clearing a field unlinks it.
         </p>
       </Card>
 
@@ -99,8 +100,8 @@ export default function AdminRollNumbers() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Start typing a name or email…"
-          aria-label="Search registrants by name or email"
+          placeholder="Start typing a verified attendee’s name or email…"
+          aria-label="Search verified attendees by name or email"
           autoFocus
           className="pl-9"
         />
@@ -125,16 +126,16 @@ export default function AdminRollNumbers() {
             hint={
               query.trim().length < MIN_QUERY
                 ? `Enter at least ${MIN_QUERY} letters to search the register.`
-                : 'No registrant matches that name or email.'
+                : 'No verified attendee matches that name or email.'
             }
           >
             {loading
               ? 'Searching…'
               : query.trim().length < MIN_QUERY
-                ? 'Search for a registrant'
+                ? 'Search for an attendee'
                 : searched
                   ? 'Nothing found'
-                  : 'Search for a registrant'}
+                  : 'Search for an attendee'}
           </EmptyState>
         </Card>
       ) : (
@@ -205,7 +206,14 @@ function RollRow({ row, onSaved }) {
             {row.college_other || row.college || 'No college on file'}
           </div>
         </div>
-        <StatusBadge status={row.payment_status ?? 'pending'} />
+        {/* Arrival state, not payment: the search only returns verified
+            attendees, so a "Verified" badge on every row would say nothing.
+            Whether they are already through the gate does differ row to row. */}
+        {row.checked_in_at && (
+          <span className="flex-none rounded-full border border-sky-400/25 bg-sky-400/10 px-2 py-0.5 text-[11px] font-medium text-sky-300">
+            Checked in
+          </span>
+        )}
       </div>
 
       <form
@@ -219,7 +227,7 @@ function RollRow({ row, onSaved }) {
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder="Roll number"
-          aria-label={`Roll number for ${row.full_name ?? 'this registrant'}`}
+          aria-label={`Roll number for ${row.full_name ?? 'this attendee'}`}
           className="w-full font-mono uppercase sm:w-56"
         />
         <Button type="submit" variant={dirty ? 'primary' : 'subtle'} size="md" disabled={busy || !dirty}>
