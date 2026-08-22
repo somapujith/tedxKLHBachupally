@@ -315,15 +315,36 @@ export async function checkInTicket({ token, adminName, actor = {}, context = {}
     userAgent: context.userAgent,
   }
 
-  const verified = verifyTicket(String(token || ''))
+  const scanned = String(token || '')
+  const verified = verifyTicket(scanned)
   if (!verified.ok) {
+    // Record WHY, not just "rejected". jsonwebtoken's own message separates the
+    // three cases a gate actually has to act on differently, and collapsing
+    // them into one fixed string left the door unable to tell a guest holding
+    // the wrong image apart from a genuine signing problem:
+    //   'jwt malformed'     -> the QR is not a pass at all (a UPI/payment code,
+    //                          a poster, someone else's link)
+    //   'invalid signature' -> a real JWT signed with a different secret
+    //   'jwt expired'       -> a pass older than the 365d issue window
+    // The leading characters of the payload are kept alongside it: a pass token
+    // always starts 'eyJ', so this shows at a glance which of the two it was.
+    // Only a short prefix, and never the trailing signature.
     await recordAudit({
       ...audit,
       action: AUDIT_ACTIONS.CHECKIN_REJECTED,
       result: 'failure',
-      detail: 'Unreadable or forged ticket token.',
+      detail: `Rejected (${verified.error || 'unreadable'}). Scanned: ${scanned.slice(0, 24) || '(empty)'}…`,
     })
-    return { ok: false, status: 404, error: 'Invalid ticket.' }
+    return {
+      ok: false,
+      status: 404,
+      // 'jwt malformed' is the common, recoverable case at a door, and it has a
+      // concrete instruction attached: the person is holding the wrong picture.
+      // "Invalid ticket" sent an admin looking for a system fault instead.
+      error: /malformed/i.test(verified.error || '')
+        ? 'Not a TEDx pass. Ask them to open the “Your TEDxKLH entry pass” email and show that QR.'
+        : 'Invalid ticket.',
+    }
   }
 
   const { rid, jti } = verified.payload

@@ -158,7 +158,11 @@ export function bookingHtml({ fullName, registrationId, utrId, amount }) {
           <tr>
             <td style="padding:36px 32px 6px;">
               <h1 style="margin:0;font:700 27px/1.25 Arial,Helvetica,sans-serif;color:#111111;">Seat booking confirmed</h1>
-              <p style="margin:16px 0 0;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#4a4a4a;">Hi ${fullName}, we have your booking for ${event.edition} along with your payment details. Our team is verifying the transaction against our bank records.</p>
+              <p style="margin:16px 0 0;font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#4a4a4a;">Hi ${fullName}, we have your booking for ${event.edition}${
+                utrId
+                  ? ' along with your payment details. Our team is verifying the transaction against our bank records.'
+                  : '. Your seat is reserved and our team will confirm it shortly.'
+              }</p>
             </td>
           </tr>
 
@@ -167,7 +171,7 @@ export function bookingHtml({ fullName, registrationId, utrId, amount }) {
             <td style="padding:22px 32px 4px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 ${detailRow('Name', fullName)}
-                ${detailRow('UTR', `<span style="font-family:'Courier New',Courier,monospace;">${utrId}</span>`)}
+                ${utrId ? detailRow('UTR', `<span style="font-family:'Courier New',Courier,monospace;">${utrId}</span>`) : ''}
                 ${amount ? detailRow('Amount', `&#8377;${amount}`) : ''}
                 ${detailRow('Booking ID', `<span style="font-family:'Courier New',Courier,monospace;word-break:break-all;">${registrationId}</span>`)}
               </table>
