@@ -20,44 +20,6 @@ function qrbox(viewWidth, viewHeight) {
   return { width: size, height: size }
 }
 
-// The two things that decide whether a pass reads instantly or only after the
-// admin hunts for the focal plane:
-//
-//   focusMode: 'continuous' — without it the camera focuses ONCE when the
-//   stream opens and then holds that distance, so every pass has to be
-//   physically moved to wherever that plane happens to be.
-//
-//   resolution — the browser's default capture is far below sensor capability.
-//   More pixels per QR module is what lets a code resolve at arm's length, and
-//   it matters most for the common case of a pass shown on another phone's
-//   screen. Requested as `ideal` so a device that cannot hit 1080p downgrades
-//   instead of failing.
-//
-// `advanced` entries are best-effort by spec — a browser that does not know
-// focusMode ignores that entry rather than rejecting the request — but the
-// caller still falls back to a bare facingMode start if the whole set is
-// refused.
-const VIDEO_CONSTRAINTS = {
-  facingMode: 'environment',
-  width: { ideal: 1920 },
-  height: { ideal: 1080 },
-  advanced: [{ focusMode: 'continuous' }],
-}
-
-const SCAN_CONFIG = {
-  fps: 24,
-  qrbox,
-  // A QR is never mirrored, so the library's default second pass over a
-  // flipped copy of every frame is pure waste — turning it off halves the work
-  // per frame and roughly doubles how fast a code is picked up.
-  disableFlip: true,
-  // Uses the platform's native detector where present (Android Chrome, recent
-  // iOS Safari). Materially better at angles, glare and the low contrast of a
-  // QR photographed off another phone's screen — which is how most attendees
-  // present a pass at a gate.
-  experimentalFeatures: { useBarCodeDetectorIfSupported: true },
-}
-
 export default function AdminScan() {
   const navigate = useNavigate()
   const [result, setResult] = useState(null)
@@ -109,15 +71,24 @@ export default function AdminScan() {
       checkin(text)
     }
 
-    // Try for a high-resolution, continuously-focusing stream first, then fall
-    // back to a bare facingMode request. The rich constraints are what make a
-    // pass decode at arm's length instead of only in the camera's one fixed
-    // focal plane — but focusMode is not universally supported, and a device
-    // that rejects the whole constraint set must still get a working scanner
-    // rather than an error card at the gate.
-    Promise.resolve()
-      .then(() => scanner.start(VIDEO_CONSTRAINTS, SCAN_CONFIG, onDecode, () => {}))
-      .catch(() => scanner.start({ facingMode: 'environment' }, SCAN_CONFIG, onDecode, () => {}))
+    scanner
+      .start(
+        { facingMode: 'environment' },
+        {
+          fps: 24,
+          qrbox,
+          // Matches the square viewfinder, so the stream the library samples and
+          // the frame the admin aims with are the same shape.
+          aspectRatio: 1,
+          // Uses the platform's native detector where present (Android Chrome,
+          // recent iOS Safari). Materially better at angles, glare and the low
+          // contrast of a QR photographed off another phone's screen — which is
+          // how most attendees present a pass at a gate.
+          experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+        },
+        onDecode,
+        () => {},
+      )
       .catch((err) => {
         setCameraError(
           err?.name === 'NotAllowedError' || /permission/i.test(String(err))
@@ -185,16 +156,11 @@ export default function AdminScan() {
       </header>
 
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-7 sm:px-6">
-        {/* Viewfinder — html5-qrcode injects its video into READER_ID. The
-            wrapper reserves the space so the frame does not collapse to a
-            hairline while the camera is still starting. Portrait (3:4) rather
-            than square: a phone's rear stream is portrait, and object-contain
-            letterboxed it into a small strip inside a square box — a bigger,
-            correctly-shaped preview is what lets an admin frame a pass at a
-            glance instead of hunting. object-contain (never cover) so the
-            region shown and the region html5-qrcode samples stay identical. */}
+        {/* Viewfinder — html5-qrcode injects its video into READER_ID. The square
+            wrapper reserves the space so the frame does not collapse to a hairline
+            while the camera is still starting. */}
         <div className={result || cameraError ? 'hidden' : 'space-y-3'}>
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl border border-white/10 bg-black">
+          <div className="relative aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-black">
             <div className="absolute inset-0 grid place-items-center text-sm text-paper/35">Starting camera…</div>
             <div
               id={READER_ID}
